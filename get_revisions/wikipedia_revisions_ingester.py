@@ -67,7 +67,7 @@ def main():
        xml_path.XmlPath().enter_many(['mediawiki', 'page', 'title'])),
       ('rev_id',
        xml_path.XmlPath().enter_many(['mediawiki', 'page', 'revision', 'id'])),
-      ('rev_timestamp', xml_path.XmlPath().enter_many(
+      ('timestamp', xml_path.XmlPath().enter_many(
           ['mediawiki', 'page', 'revision', 'timestamp'])),
       ('sha1', xml_path.XmlPath().enter_many(
           ['mediawiki', 'page', 'revision', 'sha1'])),
@@ -75,7 +75,7 @@ def main():
           ['mediawiki', 'page', 'revision', 'text'])),
       ('user_id', xml_path.XmlPath().enter_many(
           ['mediawiki', 'page', 'revision', 'contributor', 'id'])),
-      ('user_name', xml_path.XmlPath().enter_many(
+      ('user_text', xml_path.XmlPath().enter_many(
           ['mediawiki', 'page', 'revision', 'contributor', 'username'])),
   ]
   content_handler = ParserContentHandler(
