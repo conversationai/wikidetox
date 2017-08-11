@@ -30,3 +30,14 @@ python wikipedia_revisions_ingester.py --input <path-to-input-7z-chunk>
 ```
 
 Note that the output is written to stdout and so should be redirected to an appropriate output file. 
+
+### Step 3: Filter out non-talk-page data
+
+Filtered out non-talk-page data.
+
+```
+python wikipedia_revisions_ingester.py --input <path-to-input-7z-chunk> | filter.py 
+```
+Same as the last step, note that the output is written to stdout and so should be redirected to an appropriate output file. 
+
+
