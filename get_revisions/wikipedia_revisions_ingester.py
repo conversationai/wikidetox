@@ -18,6 +18,7 @@ parser = argparse.ArgumentParser(description='Download and save wikipedia revisi
 parser.add_argument('-i', '--input',  required=True, help='Path to a wikipedia xml or 7z revision dump file.')
 
 args = parser.parse_args()
+TALK_PAGE_NAMESPACE = [1, 3, 5, 7, 9, 11, 13, 15] 
 
 class ParserContentHandler(xml.sax.ContentHandler):
   """Content handler using a minimal incremental combinator parser."""
@@ -37,17 +38,20 @@ class ParserContentHandler(xml.sax.ContentHandler):
   def endElement(self, name):
     # print('# END: ' + str(self.xml_path))
     if self.xml_path.element_path_eq(self.data_reset_path):
-      print(json.dumps(self.data))
+      if int(self.data['page_namespace'][0]) in TALK_PAGE_NAMESPACE: 
+         print(json.dumps(self.data))
       self.data = {}
     self.xml_path.exit()
 
   def characters(self, content_text):
     self.xml_path.add_line_of_content()
-    for data_name, data_path in self.data_paths:
-      if self.xml_path.element_path_eq(data_path):
-        if data_name not in self.data:
-          self.data[data_name] = ''
-        self.data[data_name] += content_text
+    if not('page_namespace' in self.data) or \
+       int(self.data['page_namespace'][0]) in TALK_PAGE_NAMESPACE:
+       for data_name, data_path in self.data_paths:
+         if self.xml_path.element_path_eq(data_path):
+           if data_name not in self.data:
+             self.data[data_name] = []
+           self.data[data_name].append(content_text)
     # print('# CONTENT: ' + str(self.xml_path))
 
 
