@@ -42,6 +42,11 @@ class ParserContentHandler(xml.sax.ContentHandler):
     if self.xml_path.element_path_eq(self.revision_reset_path):
        if int(self.page_data['page_namespace']) in TALK_PAGE_NAMESPACE:
           if 'revisions' not in self.page_data: self.page_data['revisions'] = [] 
+          if 'user_ip' in self.data:
+             self.data['user_id'] = -1
+             self.data['user_text'] = self.data['user_ip'] 
+          if not('text' in self.data):
+             self.data['text'] = ""
           self.page_data['revisions'].append(self.data)
           self.data = {} 
        
@@ -95,6 +100,9 @@ def main():
           ['mediawiki', 'page', 'revision', 'contributor', 'id'])),
       ('user_text', xml_path.XmlPath().enter_many(
           ['mediawiki', 'page', 'revision', 'contributor', 'username'])),
+      ('user_ip', xml_path.XmlPath().enter_many(
+          ['mediawiki', 'page', 'revision', 'contributor', 'ip'])),
+
   ]
   content_handler = ParserContentHandler(
       data_reset_path=data_reset_path, data_paths=data_paths, revision_reset_path=revision_reset_path)
