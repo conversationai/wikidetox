@@ -31,13 +31,15 @@ python wikipedia_revisions_ingester.py --input <path-to-input-7z-chunk>
 
 Note that the output is written to stdout and so should be redirected to an appropriate output file. 
 
-### Step 3: Filter out non-talk-page data
+### Step 3: Transfer it into input format of conversation reconstruction
 
-Filtered out non-talk-page data.
+The formatting script will turn the ingested json format into the the format of lists of pages, each item in the list is one revision with the same format that used in the conversation reconstruction.
+
+It also filtered out the archived talk page data.
 
 ```
-python wikipedia_revisions_ingester.py --input <path-to-input-7z-chunk> | filter.py 
+python wikipedia_revisions_ingester.py --input <path-to-input-7z-chunk> | python formatting.py
 ```
-Same as the last step, note that the output is written to stdout and so should be redirected to an appropriate output file. 
 
+Like the previous step, note that the output is written to stdout and so should be redirected to an appropriate output file. 
 
