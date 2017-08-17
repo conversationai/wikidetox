@@ -47,6 +47,9 @@ class ParserContentHandler(xml.sax.ContentHandler):
              self.data['user_text'] = self.data['user_ip'] 
           if not('text' in self.data):
              self.data['text'] = ""
+          if not('user_id' in self.data):
+             self.data['user_id'] = None
+             self.data['user_text'] = None
           self.page_data['revisions'].append(self.data)
           self.data = {} 
        
