@@ -60,3 +60,8 @@ typings/
 # Json dumps
 *.json
 
+# Compiled python
+*.pyc
+
+# Mac files
+.DS_Store
