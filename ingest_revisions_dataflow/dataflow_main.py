@@ -1,3 +1,11 @@
+"""
+A dataflow pipeline to ingest the Wikipedia dump from 7zipped xml files to json.
+
+Run with:
+
+python dataflow_main.py --setup_file ./setup.py
+"""
+
 from __future__ import absolute_import
 
 import argparse
@@ -67,24 +75,33 @@ class WriteDecompressedFile(beam.DoFn):
     local_out_filename = chunk_name[:-3] + '.json'
     out_file_path = 'gs://wikidetox-viz-dataflow/ingested/'
 
-    logging.info('USERLOG: Running gsutil %s ./' % in_file_path)
-    cp_local_cmd = (['gsutil', 'cp', in_file_path, './'])
-    subprocess.call(cp_local_cmd)
+    check_file_cmd = (['gsutil', '-q', 'stat', out_file_path + local_out_filename])
+    file_not_exist = subprocess.call(check_file_cmd)
+    
+    if(file_not_exist):
+      logging.info('USERLOG: Running gsutil %s ./' % in_file_path)
+      cp_local_cmd = (['gsutil', 'cp', in_file_path, './'])
+      subprocess.call(cp_local_cmd)
 
-    logging.info('USERLOG: Loading ingester with input: %s output: %s' % (chunk_name, local_out_filename))
-    ingester = wiki_ingester.WikipediaRevisionsIngester(chunk_name, local_out_filename)
-    logging.info('USERLOG: Running ingester.')
-    ingester.run_ingester()
-  
-    logging.info('USERLOG: Running gsutil cp %s %s' % ('./' + local_out_filename, out_file_path))
-    cp_remote_cmd = (['gsutil', 'cp', './' + local_out_filename, out_file_path])
-    subprocess.call(cp_remote_cmd)
+      logging.info('USERLOG: Loading ingester with input: %s output: %s' % (chunk_name, local_out_filename))
+      ingester = wiki_ingester.WikipediaRevisionsIngester(chunk_name, local_out_filename)
+      logging.info('USERLOG: Running ingester on %s.' % chunk_name)
+      ingester.run_ingester()
+    
+      logging.info('USERLOG: Running gsutil cp %s %s' % ('./' + local_out_filename, out_file_path))
+      cp_remote_cmd = (['gsutil', 'cp', './' + local_out_filename, out_file_path])
+      subprocess.call(cp_remote_cmd)
 
-    logging.info('USERLOG: Removing local files.')
-    rm_cmd = (['rm', chunk_name[:-2] + '*'])
-    subprocess.call(rm_cmd)
+      logging.info('USERLOG: Removing local files.')
+      rm_cmd = (['rm', './' + local_out_filename])
+      subprocess.call(rm_cmd)
+      rm_cmd = (['rm', './' + chunk_name])
+      subprocess.call(rm_cmd)
 
-    logging.info('USERLOG: Job complete.')
+      logging.info('USERLOG: Job complete on %s.' % chunk_name)
+
+    else:
+      logging.info('USERLOG: SKIPPED FILE %s as it is already ingested.' % chunk_name)
 
     return element
 
