@@ -10,40 +10,36 @@ from __future__ import absolute_import
 
 import argparse
 import logging
+import subprocess
+import json
+from os import path
+from ingest_utils import wikipedia_revisions_ingester as wiki_ingester
 
 import apache_beam as beam
-from ingest_utils import wikipedia_revisions_ingester as wiki_ingester
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.io import ReadFromText
 from apache_beam.io import WriteToText
 from google.cloud import storage
-import subprocess
 
 
-def run(argv=None):
+
+def run(arg_dict):
   """Main entry point; defines and runs the wordcount pipeline."""
 
   parser = argparse.ArgumentParser()
   parser.add_argument('--input',
                       dest='input',
-                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list.txt',
+                      default=arg_dict.pop('input'),
                       help='Input file to process.')
   parser.add_argument('--output',
                       dest='output',
                       # CHANGE 1/5: The Google Cloud Storage path is required
                       # for outputting the results.
-                      default='gs://wikidetox-viz-dataflow/output_lists/ingestion_output.txt',
+                      default=arg_dict.pop('output'),
                       help='Output file to write results to.')
   known_args, pipeline_args = parser.parse_known_args(argv)
-  pipeline_args.extend([\
-      '--runner=DataflowRunner',
-      '--project=wikidetox-viz',
-      '--staging_location=gs://wikidetox-viz-dataflow/staging',
-      '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-      '--job_name=nthain-ingest-job-2',
-      '--worker_machine_type=n1-highmem-4',
-  ])
+  pipeline_args.extend(['--%s=%s' % (k,v) for k,v in arg_dict.items()])
 
   # We use the save_main_session option because one or more DoFn's in this
   # workflow rely on global context (e.g., a module imported at module level).
@@ -62,11 +58,11 @@ class WriteDecompressedFile(beam.DoFn):
     chunk_name = element
     status = 'NO STATUS'
 
-    in_file_path = 'gs://wikidetox-viz-dataflow/raw-downloads/' + chunk_name
+    in_file_path = path.join('gs://wikidetox-viz-dataflow/raw-downloads/', chunk_name)
     local_out_filename = chunk_name[:-3] + '.json'
     out_file_path = 'gs://wikidetox-viz-dataflow/ingested/'
 
-    check_file_cmd = (['gsutil', '-q', 'stat', out_file_path + local_out_filename])
+    check_file_cmd = (['gsutil', '-q', 'stat', path.join(out_file_path, local_out_filename)])
     file_not_exist = subprocess.call(check_file_cmd)
     
     if(file_not_exist):
@@ -81,8 +77,8 @@ class WriteDecompressedFile(beam.DoFn):
         logging.info('USERLOG: Running ingester on %s.' % chunk_name)
         ingester.run_ingester()
       
-        logging.info('USERLOG: Running gsutil cp %s %s' % ('./' + local_out_filename, out_file_path))
-        cp_remote_cmd = (['gsutil', 'cp', './' + local_out_filename, out_file_path])
+        logging.info('USERLOG: Running gsutil cp %s %s' % (local_out_filename, out_file_path))
+        cp_remote_cmd = (['gsutil', 'cp', local_out_filename, out_file_path])
         cp_proc = subprocess.call(cp_remote_cmd)
         if cp_proc == 0:
           status = 'SUCCESS'
@@ -90,9 +86,9 @@ class WriteDecompressedFile(beam.DoFn):
           status = 'FAILED to copy to remote'
 
         logging.info('USERLOG: Removing local files.')
-        rm_cmd = (['rm', './' + local_out_filename])
+        rm_cmd = (['rm', local_out_filename])
         subprocess.call(rm_cmd)
-        rm_cmd = (['rm', './' + chunk_name])
+        rm_cmd = (['rm', chunk_name])
         subprocess.call(rm_cmd)
 
         logging.info('USERLOG: Job complete on %s.' % chunk_name)
@@ -111,7 +107,9 @@ class WriteDecompressedFile(beam.DoFn):
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
-  run()
+  with open('args_config.json') as f:
+    arg_dict = json.loads(f.read())
+  run(arg_dict)
 
 
 # TODO:
