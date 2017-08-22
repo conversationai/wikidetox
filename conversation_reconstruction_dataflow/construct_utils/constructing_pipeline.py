@@ -1,11 +1,11 @@
-from conversation_constructor import Conversation_Constructor
+from .conversation_constructor import Conversation_Constructor
 import json
 import fileinput
 import sys
 
 class ConstructingPipeline():
     def __init__(self, page_history, output_file):
-        self.page_history = page_history 
+        self.page_history = page_history
         self.output_file = output_file
 
     def reconstruct(content):
@@ -22,6 +22,6 @@ class ConstructingPipeline():
             for action in actions:
                 print(json.dumps(action) + '\n')
 
-    def run_constructor(self): 
+    def run_constructor(self):
         with open(self.output_file, "w") as w:
-            reconstruct(page_history) 
+            reconstruct(page_history)

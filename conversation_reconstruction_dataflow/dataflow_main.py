@@ -13,7 +13,7 @@ import logging
 import subprocess
 import json
 from os import path
-from construct_utils import constructing_pipeline 
+from construct_utils import constructing_pipeline
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
@@ -48,7 +48,7 @@ def run(arg_dict):
   with beam.Pipeline(options=pipeline_options) as p:
 
     # Read the text file[pattern] into a PCollection.
-    filenames = (p | 'ReadFromText' >> beam.io.ReadFromText(known_args.input) 
+    filenames = (p | 'ReadFromText' >> beam.io.ReadFromText(known_args.input)
                    | beam.ParDo(ReconstructConversation())
                    | WriteToText(known_args.output))
 
@@ -56,7 +56,7 @@ class WriteDecompressedFile(beam.DoFn):
   def process(self, element):
     page = json.loads(element)
     logging.info('USERLOG: Working on %s' % page['page_id'])
-    page_id = page['page_id'] 
+    page_id = page['page_id']
     status = 'NO STATUS'
 
     local_out_filename = page_id + '.json'
@@ -66,14 +66,14 @@ class WriteDecompressedFile(beam.DoFn):
     file_not_exist = subprocess.call(check_file_cmd)
     if '/Archive' in page['page_title']:
        logging.info('USERLOG: SKIPPED FILE %s as it is an archived talk page.' % page_id)
-      status = 'ARCHIVE PAGE'
+       status = 'ARCHIVE PAGE'
     if(file_not_exist and not(status == 'ARCHIVE PAGE')):
       try:
         logging.info('USERLOG: Loading constructor with input: %s output: %s' % (page_id, local_out_filename))
         processor = constructing_pipeline.ConstructingPipeline(page, local_out_filename)
         logging.info('USERLOG: Running constructor on %s.' % page_id)
         processor.run_constructor()
-      
+
         logging.info('USERLOG: Running gsutil cp %s %s' % (local_out_filename, out_file_path))
         cp_remote_cmd = (['gsutil', 'cp', local_out_filename, out_file_path])
         cp_proc = subprocess.call(cp_remote_cmd)
