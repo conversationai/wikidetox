@@ -1,4 +1,7 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division, print_function
+from builtins import *
+from future.builtins.disabled import *
+
 from .conversation_constructor import Conversation_Constructor
 import json
 import fileinput

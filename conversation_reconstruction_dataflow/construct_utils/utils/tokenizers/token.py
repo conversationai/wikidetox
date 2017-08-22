@@ -5,13 +5,16 @@ extends :class:`str` is provided.
 .. autoclass:: deltas.Token
     :members:
 """
+from __future__ import absolute_import, division, print_function
+from builtins import *
+from future.builtins.disabled import *
+
 
 
 class Token(str):
     """
     Constructs a typed sub-string extracted from a text.
     """
-    __slots__ = ("type")
 
     def __new__(cls, content, *args, **kwargs):
         if isinstance(content, cls):
