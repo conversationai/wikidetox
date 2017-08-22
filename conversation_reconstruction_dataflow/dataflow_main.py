@@ -5,20 +5,13 @@ Run with:
 
 python dataflow_main.py --setup_file ./setup.py
 """
-from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
-from builtins import (
-         bytes, dict, int, list, object, range, str,
-         ascii, chr, hex, input, next, oct, open,
-         pow, round, super,
-         filter, map, zip)
-
+from __future__ import absolute_import
 import argparse
 import logging
 import subprocess
 import json
 from os import path
-from construct_utils import constructing_pipeline
+#from construct_utils import constructing_pipeline
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
@@ -35,17 +28,17 @@ def run(arg_dict):
   parser = argparse.ArgumentParser()
   parser.add_argument('--input',
                       dest='input',
-                      default=arg_dict.pop('input'),
+                      default=str(arg_dict.pop('input')),
                       help='Input file to process.')
   parser.add_argument('--output',
                       dest='output',
                       # CHANGE 1/5: The Google Cloud Storage path is required
                       # for outputting the results.
-                      default=arg_dict.pop('output'),
+                      default=str(arg_dict.pop('output')),
                       help='Output file to write results to.')
-  argv = ['--%s=%s' % (k,v) for k,v in arg_dict.items()]
-  known_args, pipeline_args = parser.parse_known_args()
-
+  argv = [str('--%s=%s' % (k,v)) for k,v in arg_dict.items()]
+  known_args, pipeline_args = parser.parse_known_args(argv)
+  
   # We use the save_main_session option because one or more DoFn's in this
   # workflow rely on global context (e.g., a module imported at module level).
   pipeline_options = PipelineOptions(pipeline_args)
@@ -53,12 +46,15 @@ def run(arg_dict):
   with beam.Pipeline(options=pipeline_options) as p:
 
     # Read the text file[pattern] into a PCollection.
-    filenames = (p | 'ReadFromText' >> beam.io.ReadFromText(known_args.input)
-                   | beam.ParDo(ReconstructConversation())
+    filenames = (p | ReadFromText(known_args.input)
+          #         | beam.Flatten()
+#                   | beam.ParDo(ReconstructConversation()))
                    | WriteToText(known_args.output))
 
 class ReconstructConversation(beam.DoFn):
   def process(self, element):
+    return "test" 
+    logging.info('USERLOG: Work start')
     page = json.loads(element)
     logging.info('USERLOG: Working on %s' % page['page_id'])
     page_id = page['page_id']
@@ -102,7 +98,7 @@ class ReconstructConversation(beam.DoFn):
       logging.info('USERLOG: SKIPPED FILE %s as it is already processed.' % page_id)
       status = 'ALREADY EXISTS'
 
-    return "%s %s" % (chunk_name, status)
+    return "%s %s" % (page['page_id'], status)
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)

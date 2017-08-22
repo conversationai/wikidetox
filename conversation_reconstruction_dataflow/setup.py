@@ -65,8 +65,9 @@ class build(_build):  # pylint: disable=invalid-name
 CUSTOM_COMMANDS = [
     ['apt-get', 'update'],
     ['apt-get', '--assume-yes', 'install', 'p7zip-full'],
-    ['python', './mwparserfromhell/setup.py', 'install'],
+    ['python', 'construct_utils/mwparserfromhell/setup.py', 'install'],
     ['echo', 'Custom command worked!']]
+
 
 
 class CustomCommands(setuptools.Command):
@@ -118,3 +119,5 @@ setuptools.setup(
         'CustomCommands': CustomCommands,
         }
     )
+
+
