@@ -66,7 +66,7 @@ class WriteDecompressedFile(beam.DoFn):
     file_not_exist = subprocess.call(check_file_cmd)
     if '/Archive' in page['page_title']:
        logging.info('USERLOG: SKIPPED FILE %s as it is an archived talk page.' % page_id)
-      status = 'ARCHIVE PAGE'
+       status = 'ARCHIVE PAGE'
     if(file_not_exist and not(status == 'ARCHIVE PAGE')):
       try:
         logging.info('USERLOG: Loading constructor with input: %s output: %s' % (page_id, local_out_filename))
