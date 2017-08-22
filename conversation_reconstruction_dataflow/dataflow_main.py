@@ -43,8 +43,8 @@ def run(arg_dict):
                       # for outputting the results.
                       default=arg_dict.pop('output'),
                       help='Output file to write results to.')
-  known_args, pipeline_args = parser.parse_known_args(argv)
-  pipeline_args.extend(['--%s=%s' % (k,v) for k,v in arg_dict.items()])
+  argv = ['--%s=%s' % (k,v) for k,v in arg_dict.items()]
+  known_args, pipeline_args = parser.parse_known_args()
 
   # We use the save_main_session option because one or more DoFn's in this
   # workflow rely on global context (e.g., a module imported at module level).
@@ -57,7 +57,7 @@ def run(arg_dict):
                    | beam.ParDo(ReconstructConversation())
                    | WriteToText(known_args.output))
 
-class WriteDecompressedFile(beam.DoFn):
+class ReconstructConversation(beam.DoFn):
   def process(self, element):
     page = json.loads(element)
     logging.info('USERLOG: Working on %s' % page['page_id'])
@@ -106,7 +106,7 @@ class WriteDecompressedFile(beam.DoFn):
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
-  with open('args_config.json') as f:
+  with open("args_config.json") as f:
     arg_dict = json.loads(f.read())
   run(arg_dict)
 
