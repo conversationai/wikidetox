@@ -1,4 +1,5 @@
-from .conversation_constructor import Conversation_Constructor
+from __future__ import absolute_import
+from conversation_constructor import Conversation_Constructor
 import json
 import fileinput
 import sys

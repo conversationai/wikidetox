@@ -154,6 +154,7 @@ CUSTOM_COMMANDS = [
     ['apt-get', 'update'],
     ['apt-get', '--assume-yes', 'install', 'p7zip-full'],
     ['echo', 'Custom command worked!']]
+# add the package using custom_command to set it up
 
 
 class CustomCommands(setuptools.Command):
@@ -205,3 +206,6 @@ setuptools.setup(
         'CustomCommands': CustomCommands,
         }
     )
+
+# call setup file for mwparserfromhell
+# extra_package
