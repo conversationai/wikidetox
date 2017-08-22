@@ -91,7 +91,7 @@ def display(snapshot):
 
 def generate_snapshots(conv):
     snapshots = []
-    snapshot = [] 
+    snapshot = []
     displayed = False
     for action in conv:
         snapshot,status = update(snapshot, action)
