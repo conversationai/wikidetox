@@ -47,7 +47,7 @@ def run(arg_dict):
     # Read the text file[pattern] into a PCollection.
     filenames = (p | "ReadFromJson" >> beam.io.ReadFromText(known_args.input)
           #         | beam.Flatten()
-                   | beam.ParDo(ReconstructConversation())
+#                   | beam.ParDo(ReconstructConversation())
                    | WriteToText(known_args.output))
 
 class ReconstructConversation(beam.DoFn):
