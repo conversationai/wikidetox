@@ -106,7 +106,6 @@ REQUIRED_PACKAGES = [
     'google-cloud-storage >= 1.3.2',
     ]
 
-
 setuptools.setup(
     name='construct_utils',
     version='0.0.1',
@@ -119,5 +118,4 @@ setuptools.setup(
         'CustomCommands': CustomCommands,
         }
     )
-
 
