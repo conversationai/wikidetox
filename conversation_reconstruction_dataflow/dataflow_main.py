@@ -27,17 +27,16 @@ def run(arg_dict):
   parser = argparse.ArgumentParser()
   parser.add_argument('--input',
                       dest='input',
-                      default='gs://wikidetox-viz-dataflow/ingested/enwiki-20170601-pages-meta-history11.xml-p3924468p3926861.json',#str(arg_dict.pop('input')),
+                      default=str(arg_dict.pop('input')),
                       help='Input file to process.')
   parser.add_argument('--output',
                       dest='output',
                       # CHANGE 1/5: The Google Cloud Storage path is required
                       # for outputting the results.
-                      default='gs://wikidetox-viz-dataflow/conversations/log',#str(arg_dict.pop('output')),
+                      default= str(arg_dict.pop('output')),
                       help='Output file to write results to.')
-#  argv = [str('--%s=%s' % (k,v)) for k,v in arg_dict.items()]
-#  known_args, pipeline_args = parser.parse_known_args(argv)
-  pipeline_args = ['--project=wikidetox-viz', '--worker_machine_type=n1-highmem-4', '--num_workers=1', '--runner=DataflowRunner', '--temp_location=gs://wikidetox-viz-dataflow/tempfiles', '--staging_location=gs://wikidetox-viz-dataflow/stages', '--job_name=yiqing-construction-job-2']
+  argv = [str('--%s=%s' % (k,v)) for k,v in arg_dict.items()]
+  known_args, pipeline_args = parser.parse_known_args(argv)
   
   # We use the save_main_session option because one or more DoFn's in this
   # workflow rely on global context (e.g., a module imported at module level).
@@ -46,11 +45,10 @@ def run(arg_dict):
   with beam.Pipeline(options=pipeline_options) as p:
 
     # Read the text file[pattern] into a PCollection.
-    filenames = (p | "ReadFromJson" >> ReadFromText('gs://wikidetox-viz-dataflow/ingested/enwiki-20170601-pages-meta-history11.xml-p3924468p3926861.json')
+    filenames = (p | "ReadFromJson" >> ReadFromText(known_args.input)
           #         | beam.Flatten()
-#                   | beam.ParDo(ReconstructConversation())
-                   | WriteToText('gs://wikidetox-viz-dataflow/conversations/log'))
-"""
+                   | beam.ParDo(ReconstructConversation(known_args.output)))
+
 class ReconstructConversation(beam.DoFn):
   def process(self, element):
 
@@ -60,6 +58,7 @@ class ReconstructConversation(beam.DoFn):
 
     logging.info('USERLOG: Work start')
 
+    return 
     page = json.loads(element)
     logging.info('USERLOG: Working on %s' % page['page_id'])
     page_id = page['page_id']
@@ -103,8 +102,8 @@ class ReconstructConversation(beam.DoFn):
       logging.info('USERLOG: SKIPPED FILE %s as it is already processed.' % page_id)
       status = 'ALREADY EXISTS'
 
-    return "%s %s" % (page['page_id'], status)
-"""
+    return 
+
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
   with open("args_config.json") as f:

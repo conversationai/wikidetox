@@ -18,6 +18,3 @@ construct_utils/utils/tokenizers/text_split.py
 construct_utils/utils/tokenizers/token.py
 construct_utils/utils/tokenizers/tokenizer.py
 construct_utils/utils/tokenizers/wikitext_split.py
-construct_utils/utils/tokenizers/tests/__init__.py
-construct_utils/utils/tokenizers/tests/test_text_split.py
-construct_utils/utils/tokenizers/tests/test_wikitext_split.py
