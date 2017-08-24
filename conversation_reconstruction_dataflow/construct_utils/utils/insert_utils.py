@@ -1,7 +1,4 @@
 from __future__ import absolute_import, division, print_function
-from builtins import *
-from future.builtins.disabled import *
-
 from .tokenizers import text_split
 import re
 import copy
@@ -70,8 +67,8 @@ def find_pos(pos, lst):
 
 def get_action_start(action_lst, token_position):
     ans = find_pos(token_position, action_lst)
-    if action_lst[ans] == token_position:
-        return action_lst[ans - 1]
+    if (action_lst[ans] == token_position and not(token_position == 0)):
+        return action_lst[ans-1]
     else:
         return action_lst[ans]
 
@@ -138,5 +135,8 @@ def locate_new_token_pos(old_pos, ops, errorchoice='raise_error'):
                         else:
                             new_pos = op['b1']
             if old_pos == op['a2']:
-                new_pos = max(new_pos, op['b2'])
+                if errorchoice == 'left_bound':
+                   new_pos = op['b1']
+                else:
+                   new_pos = max(new_pos, op['b2'])
     return new_pos

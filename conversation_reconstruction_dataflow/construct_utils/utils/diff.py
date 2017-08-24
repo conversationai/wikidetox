@@ -1,7 +1,5 @@
-from __future__ import absolute_import, division, print_function
-from builtins import *
-from future.builtins.disabled import *
 
+from future.builtins.disabled import *
 from .tokenizers import text_split
 from collections import defaultdict
 import copy
@@ -82,7 +80,7 @@ def quick_check(a, b):
     for seq in b_sequences:
         if seq in a_dict:
            matched_potion += 1
-    if matched_potion >= 1 or (a_len <= 3):
+    if (matched_potion >= a_len / 2) or (matched_potion >= 1 and a_len <= 10) or (a_len <= 3):
        return True
     return False
 
@@ -137,6 +135,29 @@ def match_seq(a, b):
             ops.append(new_op)
             x -= 1
             y -= 1
+    xx = x
+    yy = y
+    for ax in a[:x][::-1]:
+        new_op = {}
+        new_op['name'] = 'delete'
+        new_op['a2'] = xx 
+        xx -= 1
+        new_op['a1'] = xx 
+        new_op['b1'] = y 
+        new_op['b2'] = y 
+        new_op['tokens'] = [ax]
+        ops.append(new_op)
+    for bx in b[:y][::-1]:
+        new_op = {}
+        new_op['name'] = 'insert'
+        new_op['b2'] = yy 
+        yy -= 1
+        new_op['b1'] = yy 
+        new_op['a1'] = x
+        new_op['a2'] = x
+        new_op['tokens'] = [bx]
+        ops.append(new_op)
+
     return ops
 
 def match(a, b):
@@ -241,7 +262,6 @@ def match(a, b):
         new_op['a2'] = a_tok
         new_op['tokens'] = b
         ops.append(new_op)
- #   print(list(ops))
     return ops 
 
 def matched(x, y):
@@ -323,9 +343,7 @@ def diff(cont_a, cont_b):
             b = b_lines[y-1]
             a_tok -= len(a)
             b_tok -= len(b)
-           # print(x, y)
             for new_op in matching_res[x-1][y-1]:
-             #   print(new_op)
                 new_op['a1'] += a_tok
                 new_op['a2'] += a_tok
                 new_op['b1'] += b_tok
@@ -354,5 +372,4 @@ def diff(cont_a, cont_b):
         new_op['a2'] = a_tok
         new_op['tokens'] = b
         ops.append(new_op)
- #   print(list(ops))
     return combined(ops)

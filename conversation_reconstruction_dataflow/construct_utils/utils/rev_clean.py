@@ -7,7 +7,7 @@ from builtins import (
          pow, round, super,
          filter, map, zip)
 
-
+from mwtypes import Timestamp
 from bs4 import BeautifulSoup
 import mwparserfromhell
 import re
@@ -92,5 +92,5 @@ def clean(rev):
     ret = strip_html(ret)
     ret = substitute_patterns(ret, post_sub_patterns)
     ret = re.sub('[\n]+', '\n', str(ret))
-    ret = '\n'.join([x.strip() for x in ret.splitlines() if not(x == "")])
+    ret = '\n'.join([x.strip() for x in ret.splitlines() if not(x.strip() == "")])
     return ret

@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 from builtins import *
 from future.builtins.disabled import *
+
 import copy
 import json
 from .utils.tokenizers import text_split
@@ -17,40 +18,40 @@ from .utils.insert_utils import *
 from .utils.actions import *
 
 def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
-
+    
     # devide ins and dels
     # ideas:
         # types of dels: 1) remove a previous action 2) remove in the middle of an action
         # types of ins : 1) add after an action 2) add inside a comment
         # for each action, find the ins and dels corresponding to the action
             # types: 1) full removal
-            #        2) add after the action
+            #        2) add after the action 
             #            a) started a newline -- addition
             #            b) if not -- modification
             #        3) modification
             #        4) ins and dels matching(later)
-
+    
     comment_removals = []
     comment_additions = []
     removed_actions = {}
     old_actions = sorted(page['actions'].keys())
     modification_actions = defaultdict(int)
-    rev_text = text_split.tokenize(rev['text'])
+    rev_text = text_split.tokenize('\n' + rev['text'])
     for op in rev['diff']:
-        if DEBUGGING_MODE :
+        if DEBUGGING_MODE : 
            print(op['name'], op['a1'], op['a2'], op['b1'], op['b2'])
            if 'tokens' in op: print(''.join(op['tokens']))
         if op['name'] == 'equal':
             continue
-
+        
         if op['name'] == 'insert':
             if op['a1'] in old_actions and (op['tokens'][0].type == 'break' \
-                or op['a1'] == 0 or rev_text[op['b1'] - 1].type == 'break'):
+                or op['a1'] == 0 or rev_text[op['b1'] - 1].type == 'break') and \
+                (op['b2'] == len(rev_text) or op['tokens'][-1].type == 'break' or \
+                rev_text[op['b2']].type == 'break'):
                     content = "".join(op['tokens'])
                     for c in divide_into_section_headings_and_contents(op, content):
                         comment_additions.append(c)
-                        if DEBUGGING_MODE:
-                           print(c['name'], c['a1'], c['a2'], c['b1'], c['b2'], ''.join(c['tokens']))
             else:
                 old_action_start = get_action_start(old_actions, op['a1'])
                 modification_actions[old_action_start] = True
@@ -60,8 +61,8 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
             delete_end = op['a2']
             deleted_action_start = find_pos(delete_start, old_actions)
             deleted_action_end = find_pos(delete_end, old_actions)
-            deleted_action_end = deleted_action_end + 1
-            start_token = 0
+            deleted_action_end = deleted_action_end + 1 
+            start_token = 0 
             for ind, act in enumerate(old_actions[deleted_action_start:deleted_action_end]):
                 if act == delete_end: break
                 partial_op = {}
@@ -76,10 +77,10 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
                 else:
                     comment_removals.append([page['actions'][act], partial_op])
                     removed_actions[act] = True
-
+    
     rearrangement = {}
     updated_removals = []
-    end_tokens = []
+    end_tokens = []      
     updated_actions = []
     # Finding comment rearrangements
     for removal in comment_removals:
@@ -118,11 +119,11 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
         else:
             comment_additions = updated_additions
     comment_removals = updated_removals
-
-    # Register new actions
+    
+    # Register new actions   
     for removal in comment_removals:
         updated_actions.append(comment_removal(removal, rev))
-
+        
     # Update actions on page
     updated_page = {}
     updated_page['page_id'] = rev['page_id']
@@ -135,11 +136,10 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
             updated_page['actions'][new_pos] = page['actions'][act]
         if act in rearrangement:
             updated_page['actions'][rearrangement[act]] = page['actions'][act]
-
+    
     for old_action_start in modification_actions.keys():
-        old_action_end = modification_actions[old_action_start]
         old_action = page['actions'][old_action_start][0]
-        old_action_end = get_action_end(old_actions, old_action_start)
+        old_action_end = get_action_end(old_actions, old_action_start) 
         new_action_start = locate_new_token_pos(old_action_start, rev['diff'], 'left_bound')
         new_action_end = locate_new_token_pos(old_action_end, rev['diff'], 'right_bound')
         tokens = text_split.tokenize(rev['text'])[new_action_start : new_action_end]
@@ -190,7 +190,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
         updated_page['actions'][new_pos] = (new_id, new_ind)
         updated_actions.append(new_action)
         end_tokens.append((insert_op['b1'], insert_op['b2']))
-
+    
     for start_tok, end_tok in end_tokens:
         if not(end_tok in updated_page['actions']):
             tmp_lst = sorted(list(updated_page['actions'].keys()))
@@ -200,18 +200,18 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
             updated_page['actions'][end_tok] = updated_page['actions'][last_rev]
     if DEBUGGING_MODE:
        print(updated_page['actions'])
-
+    
     if DEBUGGING_MODE:
         print([(action['type'] , action['id'])for action in updated_actions])
-
+                  
     # Error checking
     assert (0 in updated_page['actions'])
     eof = max(list(updated_page['actions'].keys()))
     if DEBUGGING_MODE:
        print(eof)
     assert updated_page['actions'][eof] == (-1, -1)
-
-
+    
+    
     return updated_actions, updated_page
 
 
@@ -225,12 +225,12 @@ class Conversation_Constructor:
             self.tracking_file = open(COMMENT_TRACKING_FILE, "w")
         else:
             self.tracking_file = None
-
+        
     def save(self, FILENAME):
         BASE_DIR = 'json_dumps'
         with open(os.path.join(BASE_DIR, FILENAME), "w") as w:
             json.dump([self.pages, self.THERESHOLD, self.latest_content], w)
-
+            
     def load(self, FILENAME, COMMENT_TRACKING_FILE = None):
         BASE_DIR = 'json_dumps'
         with open(os.path.join(BASE_DIR, FILENAME)) as f:
@@ -252,7 +252,7 @@ class Conversation_Constructor:
             self.trakcing_file = open(COMMENT_TRACKING_FILE, "a")
         else:
             self.tracking_file = None
-
+            
     def page_creation(self, rev):
         op = rev['diff'][0]
         page = {}
@@ -260,38 +260,52 @@ class Conversation_Constructor:
         page['actions'] = {}
         page['page_title'] = rev['page_title']
         page['actions'][0] = (-1, -1) # boundary of the page
-
-        return page
-
-
+    
+        return page        
+            
+        
     def process(self, rev, DEBUGGING_MODE = False):
         rev['text'] = clean(rev['text'])
         #print(rev['text'])
         pid = rev['page_id']
-        rev['diff'] = list(diff(self.latest_content[pid], rev['text']))
+        rev['diff'] = list(diff(self.latest_content[pid], rev['text'])) 
         if pid not in self.pages:
             self.previous_comments[pid] = NoAho()
             self.latest_content[pid] = ""
             updated_page = self.page_creation(rev)
             old_page = updated_page
-        else:
+        else:    
             old_page = self.pages[rev['page_id']]
-
-
+    
+        
         self.latest_content[pid] = rev['text']
-
-        actions, updated_page = insert(rev, old_page, self.previous_comments[pid], DEBUGGING_MODE)
+    
+        try:
+            actions, updated_page = insert(rev, old_page, self.previous_comments[pid], DEBUGGING_MODE)
+        except:
+            e_type, e_val, tb = sys.exc_info()
+            traceback.print_tb(tb) 
+            traceback.print_exception(e_type, e_val, tb)
+            tb_info = traceback.extract_tb(tb)
+            filename, line, func, text = tb_info[-1]
+            self.save('%s_error_stopped.json'%(rev['rev_id']))
+            print('An error occurred on line {} in statement {} when parsing revision {}'.format(line, text, rev['rev_id']))
+            print('Intermediate file has been saved in %s_error_stopped.json, load from it to continue when ready.'%(rev['rev_id']))
+            if not(self.tracking_file == None):
+                self.tracking_file.close()
+            return
 
         self.pages[pid] = updated_page
         for action in actions:
             action['page_id'] = pid
-            action['page_title'] = rev['page_title']
+            action['page_title'] = rev['page_title'] 
+#            if (action['type'] == 'COMMENT_ADDING' or action['type'] == 'COMMENT_MODIFICATION' or action['type'] == 'SECTION_CREATION') and len(action['content']) > self.THERESHOLD:
             if action['type'] == 'COMMENT_REMOVAL' and len(action['content']) > self.THERESHOLD:
                 self.previous_comments[pid].add(''.join(action['content']), (action['parent_id'], action['indentation']))
                 if not(self.tracking_file == None):
                     self.tracking_file.write(json.dumps([pid, ''.join(action['content']), (action['parent_id'], action['indentation'])]) + '\n')
         return actions
-
+    
     def cleanup(self):
         if not(self.tracking_file == None):
             self.tracking_file.close()
