@@ -9,7 +9,6 @@ from pathlib import Path
 
 
 THERESHOLD = 60 * 30
-long_page_lst = {}
 
 def reconstruct(input_file):
     with open(input_file, 'r') as f:
@@ -38,31 +37,12 @@ def reconstruct(input_file):
     w.close()
     os.system('mv /scratch/wiki_dumps/tmp/%s.json /scratch/wiki_dumps/conversations/%s.json'%(filename, filename))
 
-rootDir = '/scratch/wiki_dumps/ingested/'
-with open('/scratch/wiki_dumps/long_pages.json') as log:
-     for line in log:
-         p = json.loads(line)
-         long_page_lst[p[0]['page_id']] = True
-
-for dirName, subdirList, fileList in os.walk(rootDir):
-    for fname in fileList:
-        filename = '%s%s' % (dirName, fname)
-        pools = []
-        print(fname[:fname.find('.json')])
-        with open(filename, "r") as f:
-            for ind, line in enumerate(f): 
-               page_history = json.loads(line)
-               fname = page_history['page_id']
-               my_file = Path('/scratch/wiki_dumps/conversations/%s.json'%(fname))
-               if not('/Archive' in page_history['page_title'] or fname in long_page_lst\
-                  or my_file.exists()):
-                  with open('/scratch/wiki_dumps/tmp/%s.json'%(fname), 'w') as w:
-                       json.dump(page_history, w)
-                  pools.append('/scratch/wiki_dumps/tmp/%s.json'%(fname))
-        print('Data read in %d' % (len(pools)))
-        p = Pool(50)
-        result = p.map(reconstruct, pools)
-        for r in result: r.get()
-        p.close()
-        p.join()
-        print('Finished %s' % fname[:fname.find('.json')])
+with open('chunks') as c:
+    for line in c:
+        pools.append(line[:-1])
+print('Data read in %d' % (len(pools)))
+p = Pool(50)
+result = p.map(reconstruct, pools)
+for r in result: r.get()
+p.close()
+p.join()

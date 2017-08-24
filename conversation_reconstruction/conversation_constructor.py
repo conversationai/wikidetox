@@ -32,7 +32,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
     removed_actions = {}
     old_actions = sorted(page['actions'].keys())
     modification_actions = defaultdict(int)
-    rev_text = text_split.tokenize(rev['text'])
+    rev_text = text_split.tokenize('\n' + rev['text'])
     for op in rev['diff']:
         if DEBUGGING_MODE : 
            print(op['name'], op['a1'], op['a2'], op['b1'], op['b2'])
@@ -42,12 +42,12 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
         
         if op['name'] == 'insert':
             if op['a1'] in old_actions and (op['tokens'][0].type == 'break' \
-                or op['a1'] == 0 or rev_text[op['b1'] - 1].type == 'break'):
+                or op['a1'] == 0 or rev_text[op['b1'] - 1].type == 'break') and \
+                (op['b2'] == len(rev_text) or op['tokens'][-1].type == 'break' or \
+                rev_text[op['b2']].type == 'break'):
                     content = "".join(op['tokens'])
                     for c in divide_into_section_headings_and_contents(op, content):
                         comment_additions.append(c)
-                        if DEBUGGING_MODE:
-                           print(c['name'], c['a1'], c['a2'], c['b1'], c['b2'], ''.join(c['tokens']))
             else:
                 old_action_start = get_action_start(old_actions, op['a1'])
                 modification_actions[old_action_start] = True
@@ -134,7 +134,6 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
             updated_page['actions'][rearrangement[act]] = page['actions'][act]
     
     for old_action_start in modification_actions.keys():
-        old_action_end = modification_actions[old_action_start]
         old_action = page['actions'][old_action_start][0]
         old_action_end = get_action_end(old_actions, old_action_start) 
         new_action_start = locate_new_token_pos(old_action_start, rev['diff'], 'left_bound')
@@ -280,8 +279,9 @@ class Conversation_Constructor:
         try:
             actions, updated_page = insert(rev, old_page, self.previous_comments[pid], DEBUGGING_MODE)
         except:
-            _, _, tb = sys.exc_info()
+            e_type, e_val, tb = sys.exc_info()
             traceback.print_tb(tb) 
+            traceback.print_exception(e_type, e_val, tb)
             tb_info = traceback.extract_tb(tb)
             filename, line, func, text = tb_info[-1]
             self.save('%s_error_stopped.json'%(rev['rev_id']))

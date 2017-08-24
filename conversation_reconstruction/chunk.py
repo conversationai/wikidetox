@@ -48,7 +48,6 @@ for dirName, subdirList, fileList in os.walk(rootDir):
     for fname in fileList:
         filename = '%s%s' % (dirName, fname)
         pools = []
-        print(fname[:fname.find('.json')])
         with open(filename, "r") as f:
             for ind, line in enumerate(f): 
                page_history = json.loads(line)
@@ -58,11 +57,5 @@ for dirName, subdirList, fileList in os.walk(rootDir):
                   or my_file.exists()):
                   with open('/scratch/wiki_dumps/tmp/%s.json'%(fname), 'w') as w:
                        json.dump(page_history, w)
-                  pools.append('/scratch/wiki_dumps/tmp/%s.json'%(fname))
-        print('Data read in %d' % (len(pools)))
-        p = Pool(50)
-        result = p.map(reconstruct, pools)
-        for r in result: r.get()
-        p.close()
-        p.join()
-        print('Finished %s' % fname[:fname.find('.json')])
+                  print('/scratch/wiki_dumps/tmp/%s.json'%(fname))
+        os.system('rm %s'%(filename))

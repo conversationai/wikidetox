@@ -113,7 +113,8 @@ def main():
   cmd = (['7z', 'x', args.input, '-so']
          if args.input.endswith('.7z') else ['cat', args.input])
   p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-  xml.sax.parse(p.stdout, content_handler)
+  if not(p.stdout == ""):
+      xml.sax.parse(p.stdout, content_handler)
 
 
 if __name__ == '__main__':
