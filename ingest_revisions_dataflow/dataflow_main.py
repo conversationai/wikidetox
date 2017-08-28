@@ -1,9 +1,25 @@
 """
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-------------------------------------------------------------------------------
+
 A dataflow pipeline to ingest the Wikipedia dump from 7zipped xml files to json.
 
 Run with:
 
 python dataflow_main.py --setup_file ./setup.py
+
 """
 
 from __future__ import absolute_import
@@ -30,11 +46,11 @@ def run(argv = None):
   parser = argparse.ArgumentParser()
   parser.add_argument('--input',
                       dest='input',
-                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_short.txt',
+                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_short_10.txt',
                       help='Input file to process.')
   parser.add_argument('--output',
                       dest='output',
-                      default='gs://wikidetox-viz-dataflow/output_lists/ingested_sharded/talk_pages.json',
+                      default='gs://wikidetox-viz-dataflow/ingested_sharded/talk_pages',
                       help='Output file to write results to.')
   known_args, pipeline_args = parser.parse_known_args(argv)
   pipeline_args.extend([
@@ -43,7 +59,7 @@ def run(argv = None):
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
     '--job_name=nthain-test-job',
-    '--num_workers=5',
+    '--num_workers=90',
   ])
 
   pipeline_options = PipelineOptions(pipeline_args)
@@ -52,7 +68,7 @@ def run(argv = None):
 
     filenames = (p | ReadFromText(known_args.input)
                    | beam.ParDo(WriteDecompressedFile())
-                   | WriteToText(known_args.output))
+                   | WriteToText(known_args.output, file_name_suffix='.json', append_trailing_newlines=False))
 
 class WriteDecompressedFile(beam.DoFn):
   def process(self, element):
@@ -71,6 +87,8 @@ class WriteDecompressedFile(beam.DoFn):
 
     for line in ingest_proc.stdout:
       yield line
+
+    logging.info('USERLOG: File %s complete!' % chunk_name)
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)

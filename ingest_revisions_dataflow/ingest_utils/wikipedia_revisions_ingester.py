@@ -1,4 +1,20 @@
-"""wikipedia_revisions_ingester.
+"""
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-------------------------------------------------------------------------------
+
+wikipedia_revisions_ingester.
 
 Read in Wikipedia raw revisions output them to stdout in json format.
 """
@@ -14,12 +30,8 @@ from . import xml_path
 import argparse
 
 
-#parser = argparse.ArgumentParser(description='Download and save wikipedia revisions from a dump.')
-#parser.add_argument('-i', '--input',  help='Path to a wikipedia xml or 7z revision dump file.')
-#parser.add_argument('-o', '--output',  help='Path to an output json file.')
 
-#args = parser.parse_args()
-TALK_PAGE_NAMESPACE = [1, 3, 5, 7, 9, 11, 13, 15] 
+TALK_PAGE_NAMESPACE = ['1', '3', '5', '7', '9', '11', '13', '15'] 
 
 class ParserContentHandler(xml.sax.ContentHandler):
   """Content handler using a minimal incremental combinator parser."""
@@ -52,8 +64,8 @@ class ParserContentHandler(xml.sax.ContentHandler):
       if not('user_id' in self.data):
          self.data['user_id'] = None
          self.data['user_text'] = None
-      #if self.data['page_namespace'] in TALK_PAGE_NAMESPACE:
-      print(json.dumps(self.data))
+      if self.data['page_namespace'] in TALK_PAGE_NAMESPACE:
+        print(json.dumps(self.data))
       self.data = {} 
        
     if self.xml_path.element_path_eq(self.data_reset_path):
@@ -74,7 +86,7 @@ class ParserContentHandler(xml.sax.ContentHandler):
             self.data[data_name] = ""
           self.data[data_name] += content_text
 
-def get_paths():
+def _get_paths():
   data_reset_path = xml_path.XmlPath().enter_many(['mediawiki', 'page'])
   revision_reset_path = xml_path.XmlPath().enter_many(['mediawiki', 'page', 'revision']) 
   data_paths = [
@@ -106,3 +118,15 @@ def get_paths():
 
   ]
   return data_reset_path, revision_reset_path, data_paths
+
+def parse_stream(input_file):
+  data_reset_path, revision_reset_path, data_paths = _get_paths()
+  content_handler = ParserContentHandler(
+    data_reset_path=data_reset_path, 
+    data_paths=data_paths, 
+    revision_reset_path=revision_reset_path)
+
+  cmd = (['7z', 'x', input_file, '-so']
+       if input_file.endswith('.7z') else ['cat', input_file])
+  p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+  xml.sax.parse(p.stdout, content_handler)
