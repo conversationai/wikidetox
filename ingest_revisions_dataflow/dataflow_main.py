@@ -14,6 +14,8 @@ limitations under the License.
 
 -------------------------------------------------------------------------------
 
+Dataflow Main
+
 A dataflow pipeline to ingest the Wikipedia dump from 7zipped xml files to json.
 
 Run with:
@@ -88,7 +90,7 @@ class WriteDecompressedFile(beam.DoFn):
     for i, line in enumerate(ingest_proc.stdout):
       yield line
 
-    logging.info('USERLOG: File %s complete! %s lines written.' % (chunk_name, i))
+    logging.info('USERLOG: File %s complete! %s lines emitted.' % (chunk_name, i))
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)

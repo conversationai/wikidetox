@@ -14,8 +14,9 @@ limitations under the License.
 
 -------------------------------------------------------------------------------
 
-Runs wikipedia_revisions_ingester.py with command line arguments for input.
+Run Ingester
 
+Runs wikipedia_revisions_ingester.py with command line arguments for input.
 """
 
 from __future__ import absolute_import
@@ -34,8 +35,8 @@ parser.add_argument('-i', '--input', required = True, help='Path to a wikipedia 
 args = parser.parse_args()
 
 def run(input_file):
-	wikipedia_revisions_ingester.parse_stream(input_file)
+  wikipedia_revisions_ingester.parse_stream(input_file)
 
 
 if __name__ == '__main__':
-	run(args.input)
+  run(args.input)

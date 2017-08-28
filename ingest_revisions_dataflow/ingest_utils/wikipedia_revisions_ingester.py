@@ -14,7 +14,7 @@ limitations under the License.
 
 -------------------------------------------------------------------------------
 
-wikipedia_revisions_ingester.
+Wikipedia Revisions Ingester
 
 Read in Wikipedia raw revisions output them to stdout in json format.
 """
