@@ -85,10 +85,10 @@ class WriteDecompressedFile(beam.DoFn):
     ingestion_cmd = ['python2', '-m', 'ingest_utils.run_ingester', '-i', chunk_name]
     ingest_proc = subprocess.Popen(ingestion_cmd, stdout=subprocess.PIPE, bufsize = 4096)
 
-    for line in ingest_proc.stdout:
+    for i, line in enumerate(ingest_proc.stdout):
       yield line
 
-    logging.info('USERLOG: File %s complete!' % chunk_name)
+    logging.info('USERLOG: File %s complete! %s lines written.' % (chunk_name, i))
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
