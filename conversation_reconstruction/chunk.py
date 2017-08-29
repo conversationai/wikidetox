@@ -41,8 +41,8 @@ def reconstruct(input_file):
 rootDir = '/scratch/wiki_dumps/ingested/'
 with open('/scratch/wiki_dumps/long_pages.json') as log:
      for line in log:
-         p = json.loads(line)
-         long_page_lst[p[0]['page_id']] = True
+         p = int(line.strip())
+         long_page_lst[p] = True
 
 for dirName, subdirList, fileList in os.walk(rootDir):
     for fname in fileList:
@@ -53,9 +53,11 @@ for dirName, subdirList, fileList in os.walk(rootDir):
                page_history = json.loads(line)
                fname = page_history['page_id']
                my_file = Path('/scratch/wiki_dumps/conversations/%s.json'%(fname))
-               if not('/Archive' in page_history['page_title'] or fname in long_page_lst\
+               if not('/Archive' in page_history['page_title'] or int(fname) in long_page_lst\
                   or my_file.exists()):
                   with open('/scratch/wiki_dumps/tmp/%s.json'%(fname), 'w') as w:
                        json.dump(page_history, w)
                   print('/scratch/wiki_dumps/tmp/%s.json'%(fname))
+        with open('chunked_ingested_filelist', 'a') as fl:
+             fl.write(filename + '\n')
         os.system('rm %s'%(filename))
