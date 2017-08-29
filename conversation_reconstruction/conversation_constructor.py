@@ -152,7 +152,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
         for k1, k2, val in previous_comments.findall_long(text):
             k1_tok = len(text_split.tokenize(text[last_pos:k1])) + last_tok
             last_pos = k2
-            k2_tok = len(text_split.tokenize(text[k1:k2])) + k1_tok
+            k2_tok = min(len(text_split.tokenize(text[k1:k2])) + k1_tok, insert_op['b2'])
             last_op = {}
             last_op['tokens'] = tokens[last_tok:k1_tok]
             if not(last_op['tokens'] == []):

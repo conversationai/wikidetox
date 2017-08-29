@@ -29,7 +29,7 @@ def reconstruct(input_file):
         actions = processor.process(h, DEBUGGING_MODE = False)
         if time.time() - start > THERESHOLD:
            with open('/scratch/wiki_dumps/long_pages.json', 'a') as log:
-                log.write(json.dumps(page_history) + '\n')
+                log.write(json.dumps(page_history['page_id']) + '\n')
            w.close()
            os.system('rm /scratch/wiki_dumps/tmp/%s.json'%(filename))
            return 
