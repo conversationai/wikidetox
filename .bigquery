@@ -11,12 +11,30 @@ FROM
     wikidetox_conversations.scored_comments)
 WHERE row_number = 1
 
+# Divide into Two types
+SELECT *
+FROM wikidetox_conversations.conversations
+WHERE type = 'COMMENT_ADDING' or type = 'SECTION_CREATION' or type = 'COMMENT_MODIFICATION'
+
+SELECT *
+FROM wikidetox_conversations.conversations
+WHERE type = 'COMMENT_REMOVAL' or type = 'COMMENT_RESTORATION'
+
 # Join with the conversations
 SELECT *
-FROM wikidetox_conversations.conversations AS conversations
+FROM wikidetox_conversations.conversations_self AS conversations
 JOIN wikidetox_conversations.scored_comments as scores
 ON conversations.id = scores.record_id
 WHERE scores.model = "RockV5_1:TOXICITY"
+
+SELECT *
+FROM wikidetox_conversations.conversations_parent AS conversations
+JOIN wikidetox_conversations.scored_comments as scores
+ON conversations.parent_id = scores.record_id
+WHERE scores.model = "RockV5_1:TOXICITY"
+
+SELECT *
+FROM wikidetox_conversations.conversation_parent, wikidetox_conversations.conversation_self
 
 # Filter out Partially Scored Conversations
 SELECT s.conversations_conversation_id as conversation_id, s.conversations_page_title as page_title,
