@@ -1,9 +1,8 @@
 # WikiDetox
 
-This repository is the shared codebase for experiments on the Wikimedia.
-It is being developed as part of the [Study of
+This repository is the shared codebase for experiments on the Wikimedia as part of the [Study of
 harassment and its
-impact](https://meta.wikimedia.org/wiki/Research:Study_of_harassment_and_its_impact), and [WikiDetox](https://meta.wikimedia.org/wiki/Research:Detox).
+impact](https://meta.wikimedia.org/wiki/Research:Study_of_harassment_and_its_impact), and [the WikiDetox Project](https://meta.wikimedia.org/wiki/Research:Detox).
 
 Part of this research is experimenting with ways to visualize the structure of conversation and the toxicity of contributions (measured by the [Perspective API](https://www.perspectivepai.com)), and the resluting impact on wikipedia.
 
