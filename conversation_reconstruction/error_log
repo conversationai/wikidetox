@@ -2,3 +2,5 @@ page_id 12787398 row 106 comment modification from a -1 ided action
 revision 317243174 assertion error
 Some revisions who have something repeated on the page all the time has error
 some insertion in the end also caused error
+Comment Rearragement have parent_id missing
+Some comments have replyTo_id pointing to self
