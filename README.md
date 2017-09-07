@@ -20,4 +20,4 @@ We're still exploring how we might visualize more information, such as:
 
 ## Notes
 
-This code is an experimental project; it is not an official Google product.
+This code is an experimental Conversation AI project; it is not an official Google product.
