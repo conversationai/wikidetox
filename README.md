@@ -16,8 +16,8 @@ We're still exploring how we might visualize more information, such as:
  * Which are the more recent comments? Can we visualizse when comments happen?
  * Can we cluster comments by topic in a meaningful way?
  * Can we make the visualization live, so that new comments 'fly' in when they are sent to wikipedia? 
- * Other cool ideas? File an issue with you idea :) 
+ * Other cool ideas? File an issue with your idea :)
 
 ## Notes
 
-This code is an experimental Conversation AI project; it is not an official Google product.
+This code is an experimental Wikimedia & Conversation AI project; it is not an official Google product.
