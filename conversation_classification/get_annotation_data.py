@@ -41,6 +41,8 @@ def update(snapshot, action):
                 act['indentation'] = action['indentation']
                 act['comment_type'] = action['comment_type']
                 act['toxicity_score'] = action['score']
+                act['user_text'] = action['user_text']
+                act['timestamp'] = action['timestamp']
  
                 act['parent_ids'] = pids
                 act['status'] = 'content changed'
@@ -59,6 +61,9 @@ def update(snapshot, action):
             act['indentation'] = action['indentation']
             act['comment_type'] = action['comment_type']
             act['toxicity_score'] = action['score']
+            act['user_text'] = action['user_text']
+            act['timestamp'] = action['timestamp']
+
             
             act['status'] = 'just added'
             status = 'just added'
@@ -76,7 +81,12 @@ def update(snapshot, action):
         act['indentation'] = action['indentation']
         act['comment_type'] = action['comment_type']
         act['toxicity_score'] = action['score']
+        act['user_text'] = action['user_text']
+        act['timestamp'] = action['timestamp']
 
+
+     
+     
         act['status'] = 'just added'
         status = 'just added'
         act['relative_replyTo'] = -1
