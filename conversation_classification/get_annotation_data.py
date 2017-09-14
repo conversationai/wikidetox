@@ -1,10 +1,11 @@
 import json
 import pandas as pd
-from conversation_display import *
+import itertools
+import csv
 
 def clean(s):
-    ret = s.replace('\t', '[TAB_REPLACEMENT]')
-    ret = ret.replace('\n', '[NEWLINE_REPLACEMENT]')
+    ret = s.replace('\t', ' ')
+    ret = ret.replace('\n', ' ')
     while (len(ret) >= 2 and ret[0] == '=' and ret[-1] == '='):
         ret = ret[1:-1]
     while (len(ret) >= 1 and (ret[0] == ':' or ret[0] == '*')):
@@ -100,7 +101,6 @@ def update(snapshot, action):
     if not(Found): print(action)
     return snapshot, status
 
-
 def generate_snapshots(conv):
     snapshot = [] # list of (text, user_text, user_id, timestamp, status, replyto, relative_reply_to)
     for action in conv:
@@ -109,7 +109,7 @@ def generate_snapshots(conv):
 
 maxl = 10
 res = []
-with open("/scratch/wiki_dumps/train_test/len5-11_train.json") as f:
+with open("/scratch/wiki_dumps/len5-11_train.json") as f:
      for line in f:
          conv_id, clss, conversation = json.loads(line)
          actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
@@ -118,5 +118,7 @@ with open("/scratch/wiki_dumps/train_test/len5-11_train.json") as f:
          res.append(ret)
 
 
-df = pd.DataFrame(res) 
-df.to_csv("/scratch/wiki_dumps/annotations/data.csv", chunksize=5000, encoding = "utf-8", index='False', sep = "\t")
+df = pd.DataFrame(res)
+df.rename(columns={i: 'comment_%s' % i for i in df.columns}, inplace=True)
+
+df.to_csv("/scratch/wiki_dumps/annotations/conversations_as_json.csv", chunksize=5000, encoding = "utf-8", index=False, quoting=csv.QUOTE_ALL)
