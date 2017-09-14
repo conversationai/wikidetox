@@ -44,22 +44,17 @@ def update(snapshot, action):
                 act['toxicity_score'] = action['score']
                 act['user_text'] = action['user_text']
                 act['timestamp'] = action['timestamp']
-                if 'replyto_id' in action:
-                   act['replyto_id'] = action['replyto_id']
-                else:
-                   act['replyto_id'] = -1
-
-
-
  
                 act['parent_ids'] = pids
                 act['status'] = 'content changed'
                 status = 'content changed'
                 act['relative_replyTo'] = -1
+                act['absolute_replyTo'] = -1
                 act['parent_ids'][action['id']] = True
                 for ind, a in enumerate(snapshot):
                     if a['id'] == action['replyTo_id']:
                         act['relative_replyTo'] = ind
+                        act['absolute_replyTo'] = a['id']
                 snapshot[i] = act
                 Found = True
         if not(found):
@@ -71,11 +66,7 @@ def update(snapshot, action):
             act['toxicity_score'] = action['score']
             act['user_text'] = action['user_text']
             act['timestamp'] = action['timestamp']
-            if 'replyto_id' in action:
-               act['replyto_id'] = action['replyto_id']
-            else:
-               act['replyto_id'] = -1
-
+            act['absolute_replyTo'] = -1
 
 
             
@@ -85,6 +76,7 @@ def update(snapshot, action):
             for ind, a in enumerate(snapshot):
                 if 'replyTo_id' in action and a['id'] == action['replyTo_id']:
                     act['relative_replyTo'] = ind
+                    act['absolute_replyTo'] = a['id']
             act['parent_ids'] = {action['id'] : True}
             snapshot.append(act)
             Found = True
@@ -97,13 +89,8 @@ def update(snapshot, action):
         act['toxicity_score'] = action['score']
         act['user_text'] = action['user_text']
         act['timestamp'] = action['timestamp']
-        if 'replyTo_id' in action:
-           act['replyTo_id'] = action['replyTo_id']
-        else:
-           act['replyTo_id'] = -1
-
-     
-     
+        
+        act['absolute_replyTo'] = -1
         act['status'] = 'just added'
         status = 'just added'
         act['relative_replyTo'] = -1
@@ -111,6 +98,7 @@ def update(snapshot, action):
         for ind, a in enumerate(snapshot):
             if 'replyTo_id' in action and a['id'] == action['replyTo_id']:
                 act['relative_replyTo'] = ind
+                act['absolute_replyTo'] = a['id']
         act['parent_ids'] = {action['id'] : True}
         snapshot.append(act)
 
