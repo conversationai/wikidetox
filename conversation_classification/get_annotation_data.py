@@ -107,18 +107,33 @@ def generate_snapshots(conv):
         snapshot,status = update(snapshot, action)
     return snapshot
 
-maxl = 10
-res = []
-with open("/scratch/wiki_dumps/len5-11_train.json") as f:
-     for line in f:
-         conv_id, clss, conversation = json.loads(line)
-         actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
-         snapshot = generate_snapshots(actions)
-         ret = {ind:json.dumps(s) for ind, s in enumerate(snapshot) if not(s['status'] == 'removed')}
-         res.append(ret)
+def combine_rows(df):
+    #new_df = pd.DataFrame()
+    output = []
+    for i in range(len(df)):
+        row = df[i:i+1]
+        output.append(pd.json.dumps(row))
+    return pd.DataFrame(output)
+
+def main():
+    maxl = 10
+    res = []
+    with open("/scratch/wiki_dumps/len5-11_train.json") as f:
+         for line in f:
+             conv_id, clss, conversation = json.loads(line)
+             actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
+             snapshot = generate_snapshots(actions)
+             ret = {ind:json.dumps(s) for ind, s in enumerate(snapshot) if not(s['status'] == 'removed')}
+             res.append(ret)
 
 
-df = pd.DataFrame(res)
-df.rename(columns={i: 'comment_%s' % i for i in df.columns}, inplace=True)
+    df = pd.DataFrame(res)
+    df.rename(columns={i: 'comment_%s' % i for i in df.columns}, inplace=True)
+    
+    combined_df = combine_rows(df)
+    combined_df.columns = ['conversations']
 
-df.to_csv("/scratch/wiki_dumps/annotations/conversations_as_json.csv", chunksize=5000, encoding = "utf-8", index=False, quoting=csv.QUOTE_ALL)
+    combined_df.to_csv("/scratch/wiki_dumps/annotations/conversations_as_json.csv", chunksize=5000, encoding = "utf-8", index=False, quoting=csv.QUOTE_ALL)
+    
+if __name__ == '__main__':
+    main()
