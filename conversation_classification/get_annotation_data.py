@@ -44,6 +44,13 @@ def update(snapshot, action):
                 act['toxicity_score'] = action['score']
                 act['user_text'] = action['user_text']
                 act['timestamp'] = action['timestamp']
+                if 'replyto_id' in action:
+                   act['replyto_id'] = action['replyto_id']
+                else:
+                   act['replyto_id'] = -1
+
+
+
  
                 act['parent_ids'] = pids
                 act['status'] = 'content changed'
@@ -64,6 +71,12 @@ def update(snapshot, action):
             act['toxicity_score'] = action['score']
             act['user_text'] = action['user_text']
             act['timestamp'] = action['timestamp']
+            if 'replyto_id' in action:
+               act['replyto_id'] = action['replyto_id']
+            else:
+               act['replyto_id'] = -1
+
+
 
             
             act['status'] = 'just added'
@@ -84,7 +97,10 @@ def update(snapshot, action):
         act['toxicity_score'] = action['score']
         act['user_text'] = action['user_text']
         act['timestamp'] = action['timestamp']
-
+        if 'replyTo_id' in action:
+           act['replyTo_id'] = action['replyTo_id']
+        else:
+           act['replyTo_id'] = -1
 
      
      
@@ -110,7 +126,7 @@ def generate_snapshots(conv):
 def main():
     maxl = None
     res = []
-    with open("/scratch/wiki_dumps/len5-11_train.json") as f:
+    with open("/scratch/wiki_dumps/train_test/len5-11_train.json") as f:
         for i, line in enumerate(f):
             conv_id, clss, conversation = json.loads(line)
             actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
