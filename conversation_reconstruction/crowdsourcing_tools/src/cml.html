@@ -1,0 +1,33 @@
+<div class="html-element-wrapper">
+<h1> The conversation to read: </h1>
+<div class="json-data hidden">{{conversations}}</div>
+</div>
+
+<br />
+
+<cml:checkbox label="This comment is not English or is not human readable." name="na" gold="true" aggregation="agg"></cml:checkbox>
+
+<cml:radios only-if="na:unchecked" label="Before the final comment, is there a toxic comment?" name="toxic_before" validates="required" gold="true">
+  <cml:radio label="Yes" value="1"></cml:radio>
+  <cml:radio label="No" value="0"></cml:radio>
+</cml:radios>
+
+<cml:radios only-if="na:unchecked" label="Is this conversation likely to lead to a fight or a future toxic contribution?" name="lead_to_toxic" validates="required" gold="true">
+  <cml:radio label="Yes" value="1"></cml:radio>
+  <cml:radio label="No" value="0"></cml:radio>
+</cml:radios>
+
+<cml:radios only-if="na:unchecked" label="Does the final comment express disagreement with any previous comment?" name="disagreement" validates="required" gold="true">
+  <cml:radio label="Yes" value="1"></cml:radio>
+  <cml:radio label="No" value="0"></cml:radio>
+</cml:radios>
+
+<cml:radios only-if="na:unchecked" label="Is the final comment toxic?" name="final_toxic" validates="required" gold="true">
+  <cml:radio label="Yes" value="1"></cml:radio>
+  <cml:radio label="No" value="0"></cml:radio>
+</cml:radios>
+
+<cml:radios only-if="na:unchecked" label="Is the final comment passive-aggressive?" name="final_passive_aggressive" validates="required" gold="true">
+  <cml:radio label="Yes" value="1"></cml:radio>
+  <cml:radio label="No" value="0"></cml:radio>
+</cml:radios>

@@ -1,0 +1,22 @@
+{
+  "name": "crowdsourcing_tools",
+  "version": "0.0.1",
+  "description": "Simple project to help with crowdsourcing.",
+  "scripts": {
+    "build": "node fuse && cat build/dist/app.js src/jquery_require_hack.js >build/dist/index.js",
+    "serve": "yarn build && python -m SimpleHTTPServer"
+  },
+  "dependencies": {
+    "fuse-test-runner": "^1.0.14",
+    "jquery": "^3.1.1",
+    "requirejs": "^2.3.5"
+  },
+  "devDependencies": {
+    "@types/jquery": "^3.0.0",
+    "fuse-box": "^2.2.31",
+    "typescript": "^2.1.6"
+  },
+  "type": "git",
+  "url": "https://github.com/conversationai/wikidetox.git",
+  "license": "Apache-2.0"
+}

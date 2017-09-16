@@ -1,0 +1,23 @@
+hr {
+  display: block;
+  height: 1px;
+}
+
+last {
+  color: blue;
+}
+
+.hidden {
+  display: none;
+}
+
+.conversation {
+  border: 1px solid #CCC;
+  padding: 5px;
+  background: #EEE;
+}
+
+.whenandwho {
+  text-align: right;
+  font-size: 80%;
+}
