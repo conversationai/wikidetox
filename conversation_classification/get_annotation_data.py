@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+import hashlib
 import itertools
 import csv
 
@@ -111,22 +112,34 @@ def generate_snapshots(conv):
         snapshot,status = update(snapshot, action)
     return snapshot
 
+def reformat(act):
+    output_dict = {key: act[key] for key in ['id', 'comment_type', 'content', 'timestamp', 'status']}
+    output_dict['parent_id'] = parse_absolute_replyTo(act['absolute_replyTo'])
+    output_dict['hashed_user_id'] = hashlib.sha1(act['user_text'].encode('utf-8')).hexdigest()
+    return output_dict
+
+def parse_absolute_replyTo(value):
+    if value == -1:
+        return ''
+    else:
+        return value
+
 def main():
     maxl = None
     res = []
-    with open("/scratch/wiki_dumps/train_test/len5-11_train.json") as f:
+    with open('/scratch/wiki_dumps/train_test/len5-11_train.json') as f:
         for i, line in enumerate(f):
             conv_id, clss, conversation = json.loads(line)
             actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
             snapshot = generate_snapshots(actions)
-            ret = {act.pop('id'):act for act in snapshot if not(act['status'] == 'removed')}
+            ret = {act['id']:reformat(act) for act in snapshot if not(act['status'] == 'removed')}
             res.append(json.dumps(ret))
             if maxl and i > maxl:
                 break
 
     df = pd.DataFrame(res)
     df.columns = ['conversations']
-    df.to_csv("/scratch/wiki_dumps/annotations/conversations_as_json.csv", chunksize=5000, encoding = "utf-8", index=False, quoting=csv.QUOTE_ALL)
+    df.to_csv('/scratch/wiki_dumps/annotations/conversations_as_json.csv', chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
     
 if __name__ == '__main__':
     main()
