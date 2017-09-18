@@ -19,23 +19,23 @@ for conversations in [good_conversations, bad_conversations]:
     for key, val in conversations.items():
         shouldbe_lst[key] = True
 """
-cnta = 0
-cntb = 0
-with open('/scratch/wiki_dumps/data.json') as f:   
+lst = []
+with open('/scratch/wiki_dumps/train_test/all.json') as f:   
      for line in f:
-         conv_id, c = json.loads(line)
+         conv_id, clss, c = json.loads(line)
          conv= c['action_feature'][0]
-         if 'good_conversation_id' in conv:
-            look_for = conv['good_conversation_id']
-            clss = 0
-            cnta += 1
-         else:
-            look_for = conv['bad_conversation_id']
-            cntb += 1
-            clss = 1
-         with open('/scratch/wiki_dumps/all_data.json', 'a') as w:
-            w.write(json.dumps((conv_id, clss, c)) + '\n')  
-print(cnta, cntb)
+         t1 = min([a['timestamp_in_sec'] for a in c['action_feature']])
+         t2 = max([a['timestamp_in_sec'] for a in c['action_feature']])
+         if t2 == t1:
+            lst.append(conv['bad_conversation_id'])
+            lst.append(conv_id)
+print(len(lst))
+with open('/scratch/wiki_dumps/all_data.json', 'w') as w:
+    with open('/scratch/wiki_dumps/train_test/all.json') as f:   
+        for line in f:
+            conv_id, clss, c = json.loads(line)
+            if not(conv_id in lst):
+               w.write(json.dumps((conv_id, clss, c)) + '\n')  
 """
 print(len(list(all_processed.keys())))
 with open('/scratch/wiki_dumps/all_data.json', 'w') as f:   
