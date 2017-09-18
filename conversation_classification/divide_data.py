@@ -33,8 +33,10 @@ for ind in range(70):
                clss = 0
             else:
                clss = 1
+            t1 = min([a['timestamp_in_sec'] for a in conversation['action_feature']])
+            t2 = max([a['timestamp_in_sec'] for a in conversation['action_feature']])
             conversations[conv_id] = (conv_id, clss, conversation)
-            if clss == 1:
+            if clss == 1 and not(t1 == t2):
                if conv_id in existed:
                   continue
                existed[conv_id] = True
@@ -77,7 +79,7 @@ for l in range(5, 11):
                f.write(json.dumps(conversations[id2]) + '\n')
  
 # >10
-for l in range(10, maxl+1):
+for l in range(11, maxl+1):
    for c in conv_pairs[l]: 
        id1, id2 = c
        if not(id1 in shouldbe_lst and id2 in shouldbe_lst and id2 in conversations):
