@@ -45,12 +45,29 @@ for ind in range(70):
                maxl = max(maxl, l)
 print(maxl)
 
+def attacker_in_conv(conv):
+    end_time = 0
+    attacker = None
+    for act in conv['action_feature']: 
+        if act['timestamp_in_sec'] > end_time:
+           end_time = act['timestamp_in_sec']
+           if 'user_text' in act: attacker = act['user_text']
+    if attacker == None:
+       return False
+    for act in conv['action_feature']: 
+        if act['timestamp_in_sec'] < end_time:
+           if 'user_text' in act and attacker == act['user_text']: return True
+    return False
+
+
 # 0~4
 for l in range(5):
    for c in conv_pairs[l]: 
        id1, id2 = c
        x = random.random()
        if not(id1 in shouldbe_lst and id2 in shouldbe_lst and id2 in conversations):
+          continue
+       if not(attacker_in_conv(conversations[id2][2])):
           continue
        if x > 0.9:
           with open('/scratch/wiki_dumps/len0-4_test.json', 'a') as f:
@@ -68,6 +85,9 @@ for l in range(5, 11):
        id1, id2 = c
        if not(id1 in shouldbe_lst and id2 in shouldbe_lst and id2 in conversations):
           continue
+       if not(attacker_in_conv(conversations[id2][2])):
+          continue
+
        x = random.random()
        if x > 0.9:
           with open('/scratch/wiki_dumps/len5-11_test.json', 'a') as f:
@@ -83,6 +103,8 @@ for l in range(11, maxl+1):
    for c in conv_pairs[l]: 
        id1, id2 = c
        if not(id1 in shouldbe_lst and id2 in shouldbe_lst and id2 in conversations):
+          continue
+       if not(attacker_in_conv(conversations[id2][2])):
           continue
        x = random.random()
        if x > 0.9:
