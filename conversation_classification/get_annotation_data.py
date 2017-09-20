@@ -117,7 +117,7 @@ def generate_snapshots(conv):
     return snapshot
 
 def reformat(act):
-    output_dict = {key: act[key] for key in ['id', 'comment_type', 'content', 'timestamp', 'status']}
+    output_dict = {key: act[key] for key in ['id', 'comment_type', 'content', 'timestamp', 'status', 'page_title']}
     output_dict['parent_id'] = parse_absolute_replyTo(act['absolute_replyTo'])
     output_dict['hashed_user_id'] = hashlib.sha1(act['user_text'].encode('utf-8')).hexdigest()
     return output_dict
