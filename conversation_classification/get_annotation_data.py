@@ -16,6 +16,8 @@ def clean(s):
 
 def update(snapshot, action):
     Found = False
+    if not('user_text' in action):
+       action['user_text'] = 'NO_USERTEXT'
     if action['comment_type'] == 'COMMENT_REMOVAL':
         for ind, act in enumerate(snapshot):
             if 'parent_id' in action and action['parent_id'] in act['parent_ids']:
@@ -45,6 +47,7 @@ def update(snapshot, action):
                 act['toxicity_score'] = action['score']
                 act['user_text'] = action['user_text']
                 act['timestamp'] = action['timestamp']
+                act['page_title'] = action['page_title']
  
                 act['parent_ids'] = pids
                 act['status'] = 'content changed'
@@ -68,7 +71,7 @@ def update(snapshot, action):
             act['user_text'] = action['user_text']
             act['timestamp'] = action['timestamp']
             act['absolute_replyTo'] = -1
-
+            act['page_title'] = action['page_title']
 
             
             act['status'] = 'just added'
@@ -90,6 +93,7 @@ def update(snapshot, action):
         act['toxicity_score'] = action['score']
         act['user_text'] = action['user_text']
         act['timestamp'] = action['timestamp']
+        act['page_title'] = action['page_title']
         
         act['absolute_replyTo'] = -1
         act['status'] = 'just added'
@@ -127,7 +131,7 @@ def parse_absolute_replyTo(value):
 def main():
     maxl = None
     res = []
-    with open('/scratch/wiki_dumps/train_test/len5-11_train.json') as f:
+    with open('/scratch/wiki_dumps/attacker_in_conv/len5-11_train.json') as f:
         for i, line in enumerate(f):
             conv_id, clss, conversation = json.loads(line)
             actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
