@@ -51,9 +51,11 @@ export function indentOfComment(comment: Comment, conversation: Conversation) : 
 export function htmlForComment(comment: Comment, conversation: Conversation) : string {
   let indent = indentOfComment(comment, conversation);
 
+  let section_heading : string = '';
   let comment_class_name : string;
   if (comment.comment_type === 'SECTION_CREATION') {
     comment_class_name = 'section';
+    section_heading = `<h3>${comment.page_title}</h3>`;
   } else if(comment.isLatest) {
     comment_class_name = 'finalcomment';
   } else {
@@ -62,6 +64,7 @@ export function htmlForComment(comment: Comment, conversation: Conversation) : s
 
   return `
     <div class="${comment_class_name}" style="margin-left: ${indent}em;">
+       ${section_heading}
        <div class="content">${comment.content}</div>
        <div class="whenandwho">
         <span>by ${comment.hashed_user_id.substring(0,4)}</span> (<span>${comment.timestamp})</span>
@@ -103,15 +106,23 @@ export function structureConversaton(conversation : Conversation)
   let ids = Object.keys(conversation);
 
   let rootComment : Comment | null = null;
-  let latestComment : Comment | null = null;
+  let latestComments : Comment[] = [];
 
   for(let i of ids) {
     let comment = conversation[i];
     comment.isFinal = false;
     comment.isLatest = false;
-    if (!latestComment || compareByDateFn(latestComment, comment) > 0) {
-      latestComment = comment;
+    if (latestComments.length === 0) {
+      latestComments = [comment];
+    } else {
+      let dtime = compareByDateFn(latestComments[0], comment);
+      if(dtime > 0) {
+        latestComments = [comment];
+      } else if(dtime === 0) {
+        latestComments.push(comment);
+      }
     }
+
     if(!comment.children) { comment.children = []; }
     let parent = conversation[comment.parent_id];
     if(parent) {
@@ -130,9 +141,9 @@ export function structureConversaton(conversation : Conversation)
     }
   }
 
-  if(latestComment) {
-    latestComment.isLatest = true;
-  }
+  latestComments.forEach(c => {
+    c.isLatest = true;
+  });
 
   if(rootComment) {
     let finalComment = lastDecendentComment(rootComment);
