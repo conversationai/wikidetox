@@ -25,7 +25,7 @@ export function runWithJqueryLoaded(this:any, $:any) : void {
   let rootComment : conversation.Comment | null;
   $('.json-data').each( function (this:any) {
     let conv = JSON.parse($(this)[0].textContent);
-    rootComment = conversation.structureConversaton(conv);
+    let rootComment = conversation.structureConversaton(conv);
     if (!rootComment) {
       console.error('No Root comment in conversation');
       return;

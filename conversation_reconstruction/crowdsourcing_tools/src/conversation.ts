@@ -25,6 +25,8 @@ export interface Comment {
   // Added based on conversation structure.
   children ?: Comment[];
   isRoot ?: boolean; // true iff this is starting comment of a conversation.
+  isLatest ?: boolean; // true iff this is the latest comment in the conversation.
+  isFinal ?: boolean; // true iff this is the final (by DFS) comment in the conversation.
 }
 
 export interface Conversation { [id:string]: Comment };
@@ -48,14 +50,49 @@ export function indentOfComment(comment: Comment, conversation: Conversation) : 
 
 export function htmlForComment(comment: Comment, conversation: Conversation) : string {
   let indent = indentOfComment(comment, conversation);
+
+  let comment_class_name : string;
+  if (comment.comment_type === 'SECTION_CREATION') {
+    comment_class_name = 'section';
+  } else if(comment.isLatest) {
+    comment_class_name = 'finalcomment';
+  } else {
+    comment_class_name = 'comment';
+  }
+
   return `
-    <div class="comment" style="margin-left: ${indent}em;">
+    <div class="${comment_class_name}" style="margin-left: ${indent}em;">
        <div class="content">${comment.content}</div>
        <div class="whenandwho">
         <span>by ${comment.hashed_user_id.substring(0,4)}</span> (<span>${comment.timestamp})</span>
        </div>
      <div>
     `;
+}
+
+// Walk down a comment and its children depth first.
+export function walkDfsComments(
+    rootComment : Comment,
+    f : (c:Comment) => void) : void {
+  let commentsHtml = [];
+  let agenda : Comment[] = [];
+  let next_comment : Comment|undefined = rootComment;
+  while (next_comment) {
+    if (next_comment) {
+      if(next_comment.children) {
+        agenda = agenda.concat(next_comment.children);
+      }
+      f(next_comment);
+    }
+    next_comment = agenda.pop();
+  }
+}
+
+// Get the last comment in the thread.
+export function lastDecendentComment(rootComment : Comment) : Comment {
+  let finalComment : Comment = rootComment;
+  walkDfsComments(rootComment, (c) => { finalComment = c; });
+  return finalComment;
 }
 
 // Add and sort children to each comment in a conversation.
@@ -66,9 +103,15 @@ export function structureConversaton(conversation : Conversation)
   let ids = Object.keys(conversation);
 
   let rootComment : Comment | null = null;
+  let latestComment : Comment | null = null;
 
   for(let i of ids) {
     let comment = conversation[i];
+    comment.isFinal = false;
+    comment.isLatest = false;
+    if (!latestComment || compareByDateFn(latestComment, comment) > 0) {
+      latestComment = comment;
+    }
     if(!comment.children) { comment.children = []; }
     let parent = conversation[comment.parent_id];
     if(parent) {
@@ -87,23 +130,14 @@ export function structureConversaton(conversation : Conversation)
     }
   }
 
-  return rootComment;
-}
-
-// Walk down a comment and its children depth first.
-export function walkDfsComments(
-    rootComment : Comment,
-    f : (c:Comment) => void) {
-  let commentsHtml = [];
-  let agenda : Comment[] = [];
-  let next_comment : Comment|undefined = rootComment;
-  while (next_comment) {
-    if (next_comment) {
-      if(next_comment.children) {
-        agenda = agenda.concat(next_comment.children);
-      }
-      f(next_comment);
-    }
-    next_comment = agenda.pop();
+  if(latestComment) {
+    latestComment.isLatest = true;
   }
+
+  if(rootComment) {
+    let finalComment = lastDecendentComment(rootComment);
+    finalComment.isFinal = true;
+  }
+
+  return rootComment;
 }

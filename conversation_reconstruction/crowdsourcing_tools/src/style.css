@@ -24,6 +24,13 @@ last {
   border: 1px solid #CCC;
 }
 
+.finalcomment {
+  padding: 5px;
+  background: #FFF;
+  margin: 2px;
+  border: 2px dotted #88F;
+}
+
 .whenandwho {
   text-align: right;
   font-size: 80%;
