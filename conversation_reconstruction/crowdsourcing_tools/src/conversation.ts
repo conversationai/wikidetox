@@ -15,23 +15,16 @@ limitations under the License.
 */
 export interface Comment {
   id: string;
-  // TODO(ldixon): make it always a string, and have it empty string for not present instead of -1
-  absolute_replyTo: string | number; // id of the parent
-  children ?: Comment[];
-  comment_type : 'COMMENT_MODIFICATION' | 'COMMENT_ADDING';
-  content: string;
-  indentation : string;
-  isRoot ?: boolean; // true iff this is starting comment of a conversation.
-  // TODO(ldixon): remove
-  parent_ids: { [id:string]: boolean };
-  // TODO(ldixon): remove
-  relative_replyTo : string | number; // relative id of the parent.
+  comment_type : 'COMMENT_MODIFICATION' | 'COMMENT_ADDING' | 'SECTION_CREATION';
   status: 'just added' | 'content changed';
+  content: string;
+  parent_id: string;
+  hashed_user_id: string;
   timestamp : string;
-  // TODO(ldixon): remove; not needed and in fact harmful (can be used to game crowdsourcing)
-  toxicity_score : number;
-  // TODO(ldixon): change up-stream to be a hash of the user-id.
-  user_text: string;
+  page_title : string;
+  // Added based on conversation structure.
+  children ?: Comment[];
+  isRoot ?: boolean; // true iff this is starting comment of a conversation.
 }
 
 export interface Conversation { [id:string]: Comment };
@@ -41,46 +34,53 @@ export function compareByDateFn(a: Comment, b: Comment) : number {
   return Date.parse(b.timestamp) - Date.parse(a.timestamp);
 }
 
-export function htmlForComment(comment: Comment) : string {
-  let real_indent = parseInt(comment.indentation) + 1;
+export function indentOfComment(comment: Comment, conversation: Conversation) : number {
+  if(comment.parent_id === '') {
+    return 0;
+  }
+  let parent = conversation[comment.parent_id];
+  console.log(comment.parent_id, parent);
+  return 1 + indentOfComment(parent, conversation);
+}
+
+export function htmlForComment(comment: Comment, conversation: Conversation) : string {
+  let indent = indentOfComment(comment, conversation);
   return `
-    <div class="conversation" style="margin-left: ${real_indent}em;">
+    <div class="conversation" style="margin-left: ${indent}em;">
        <div class="content">${comment.content}</div>
        <div class="whenandwho">
-        <span>-- ${comment.user_text}</span> (<span>${comment.timestamp})</span>
+        <span>-- comment by ${comment.hashed_user_id.substring(0,4)}</span> (<span>${comment.timestamp})</span>
        </div>
      <div>
     `;
 }
 
-// Add and sort children to each comment in a conversation, and also
+// Add and sort children to each comment in a conversation.
+// Also set the isRoot field of every comment, and return the
+// overall root comment of the conversation.
 export function structureConversaton(conversation : Conversation)
     : Comment|null {
   let ids = Object.keys(conversation);
 
-  // Init the children fields.
-  for(let i of ids) {
-    if(!conversation[i].children) {
-      conversation[i].children = [];
-    }
-  }
-
   let rootComment : Comment | null = null;
 
   for(let i of ids) {
-    let parent = conversation[conversation[i].absolute_replyTo];
-    if(parent && parent.children) {
-      parent.children.push(conversation[i]);
+    let comment = conversation[i];
+    if(!comment.children) { comment.children = []; }
+    let parent = conversation[comment.parent_id];
+    if(parent) {
+      if(!parent.children) { parent.children = []; }
+      parent.children.push(comment);
       parent.children.sort(compareByDateFn);
-      conversation[i].isRoot = false;
+      comment.isRoot = false;
     } else {
-      conversation[i].isRoot = true;
+      comment.isRoot = true;
       if (rootComment) {
         console.error('Extra root comments (old and new): ');
         console.error(rootComment);
-        console.error(conversation[i]);
+        console.error(comment);
       }
-      rootComment = conversation[i];
+      rootComment = comment;
     }
   }
 

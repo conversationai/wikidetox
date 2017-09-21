@@ -22,10 +22,10 @@ export function runWithJqueryLoaded(this:any, $:any) : void {
   //jQuery goes here
   global.$ = $;
 
-  var rootComment = null;
+  let rootComment = null;
   $('.json-data').each( function (this:any) {
-    var d = JSON.parse($(this)[0].textContent);
-    rootComment = conversation.structureConversaton(d);
+    let conv = JSON.parse($(this)[0].textContent);
+    rootComment = conversation.structureConversaton(conv);
     if (!rootComment) {
       console.error('No Root comment in conversation');
       return;
@@ -33,7 +33,7 @@ export function runWithJqueryLoaded(this:any, $:any) : void {
 
     conversation.walkDfsComments(rootComment,
       (next_comment: conversation.Comment) => {
-        $(this).before(conversation.htmlForComment(next_comment));
+        $(this).before(conversation.htmlForComment(next_comment, conv));
       });
   });
 }

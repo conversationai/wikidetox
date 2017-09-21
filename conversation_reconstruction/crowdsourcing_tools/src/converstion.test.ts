@@ -18,31 +18,50 @@ import * as conversation from "./conversation";
 import { example_conversation1 } from "./testdata/example_conversations";
 
 export class ConversationTest {
-   "structureConversaton"() {
-      let rootComment =
-        conversation.structureConversaton(
-          JSON.parse(JSON.stringify(example_conversation1)))
-      should(rootComment).beOkay();
-      should(rootComment!.isRoot).equal(true);
-   }
+  "structureConversaton"() {
+    let rootComment =
+      conversation.structureConversaton(
+        JSON.parse(JSON.stringify(example_conversation1)))
+    should(rootComment).beOkay();
+    should(rootComment!.isRoot).equal(true);
+  }
 
-   "Map of structureConversaton"() {
-      let rootComment =
-        conversation.structureConversaton(
-          JSON.parse(JSON.stringify(example_conversation1)));
-      let comment_ids : string[] = [];
-      should(rootComment).beOkay();
-      should(rootComment!.isRoot).equal(true);
+  "Map of structureConversaton"() {
+    let rootComment =
+      conversation.structureConversaton(
+        JSON.parse(JSON.stringify(example_conversation1)));
+    let comment_ids: string[] = [];
+    should(rootComment).beOkay();
+    should(rootComment!.isRoot).equal(true);
 
-      conversation.walkDfsComments(rootComment!, (c) => {
-        comment_ids.push(c.id);
-      });
+    conversation.walkDfsComments(rootComment!, (c) => {
+      comment_ids.push(c.id);
+    });
 
-      should(comment_ids).haveLength(4);
-      should(comment_ids[0]).equal('550613551.0.0');
-      should(comment_ids[1]).equal('675014505.416.416');
-      should(comment_ids[2]).equal('685549021.514.514');
-      should(comment_ids[3]).equal('700660703.8.8');
-    }
+    should(comment_ids).haveLength(4);
+    should(comment_ids[0]).equal('550613551.0.0');
+    should(comment_ids[1]).equal('675014505.416.416');
+    should(comment_ids[2]).equal('685549021.514.514');
+    should(comment_ids[3]).equal('700660703.8.8');
+  }
+
+  "Indent level"() {
+    let rootComment =
+      conversation.structureConversaton(
+        JSON.parse(JSON.stringify(example_conversation1)));
+    let comments: conversation.Comment[] = [];
+    should(rootComment).beOkay();
+    should(rootComment!.isRoot).equal(true);
+
+    conversation.walkDfsComments(rootComment!, (c) => {
+      comments.push(c);
+    });
+
+    should(comments).haveLength(4);
+    should(conversation.indentOfComment(comments[0], example_conversation1)).equal(0);
+    should(conversation.indentOfComment(comments[1], example_conversation1)).equal(1);
+    should(conversation.indentOfComment(comments[2], example_conversation1)).equal(2);
+    should(conversation.indentOfComment(comments[3], example_conversation1)).equal(1);
+  }
 }
 
