@@ -39,17 +39,20 @@ export function indentOfComment(comment: Comment, conversation: Conversation) : 
     return 0;
   }
   let parent = conversation[comment.parent_id];
-  console.log(comment.parent_id, parent);
+  if(!parent) {
+    console.error('Comment lacks parent in conversation: ', conversation, comment);
+    return 0;
+  }
   return 1 + indentOfComment(parent, conversation);
 }
 
 export function htmlForComment(comment: Comment, conversation: Conversation) : string {
   let indent = indentOfComment(comment, conversation);
   return `
-    <div class="conversation" style="margin-left: ${indent}em;">
+    <div class="comment" style="margin-left: ${indent}em;">
        <div class="content">${comment.content}</div>
        <div class="whenandwho">
-        <span>-- comment by ${comment.hashed_user_id.substring(0,4)}</span> (<span>${comment.timestamp})</span>
+        <span>by ${comment.hashed_user_id.substring(0,4)}</span> (<span>${comment.timestamp})</span>
        </div>
      <div>
     `;

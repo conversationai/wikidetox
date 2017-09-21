@@ -22,7 +22,7 @@ export function runWithJqueryLoaded(this:any, $:any) : void {
   //jQuery goes here
   global.$ = $;
 
-  let rootComment = null;
+  let rootComment : conversation.Comment | null;
   $('.json-data').each( function (this:any) {
     let conv = JSON.parse($(this)[0].textContent);
     rootComment = conversation.structureConversaton(conv);
@@ -31,9 +31,15 @@ export function runWithJqueryLoaded(this:any, $:any) : void {
       return;
     }
 
+    // Create a unique id for each conversation so that we can
+    // add stuff to that location using jquery.
+    let classname = "conv_" + rootComment.id.replace(/\./g, '_');
+    $(this).after(`<div class="conversation" id="${classname}"><div>`);
+    let conv_el = $(`#${classname}`);
+
     conversation.walkDfsComments(rootComment,
       (next_comment: conversation.Comment) => {
-        $(this).before(conversation.htmlForComment(next_comment, conv));
+        conv_el.append(conversation.htmlForComment(next_comment, conv));
       });
   });
 }
