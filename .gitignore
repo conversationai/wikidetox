@@ -58,7 +58,7 @@ typings/
 .env
 
 # Json dumps
-*.json
+viz/**/*.json
 
 # Compiled python
 *.pyc
@@ -68,3 +68,9 @@ typings/
 
 # Configuration files (that may contain keys)
 viz/config/
+
+# Fusebox tmp/cache files
+.fusebox
+
+# conversation_reconstruction crowdsourcing tools build files
+conversation_reconstruction/crowdsourcing_tools/build/
