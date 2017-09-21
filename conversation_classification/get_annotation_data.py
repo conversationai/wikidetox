@@ -66,7 +66,7 @@ def update(snapshot, action):
             act['content'] = clean(action['content'])
             act['id'] = action['id']
             act['indentation'] = action['indentation']
-            act['comment_type'] = action['comment_type']
+            act['comment_type'] = 'COMMENT_ADDING' #action['comment_type']
             act['toxicity_score'] = action['score']
             act['user_text'] = action['user_text']
             act['timestamp'] = action['timestamp']
@@ -135,7 +135,14 @@ def main():
         for i, line in enumerate(f):
             conv_id, clss, conversation = json.loads(line)
             actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
+            # not including the last action
+            end_time = max([a['timestamp_in_sec'] for a in actions])
+            actions = [a for a in actions if a['timestamp_in_sec'] < end_time]
+
             snapshot = generate_snapshots(actions)
+            for act in snapshot:
+                if 'relative_replyTo' in act and not(act['relative_replyTo'] == -1):
+                   act['absolute_replyTo'] = snapshot[act['relative_replyTo']]['id']
             ret = {act['id']:reformat(act) for act in snapshot if not(act['status'] == 'removed')}
             res.append(json.dumps(ret))
             if maxl and i > maxl:
@@ -143,7 +150,7 @@ def main():
 
     df = pd.DataFrame(res)
     df.columns = ['conversations']
-    df.to_csv('/scratch/wiki_dumps/annotations/conversations_as_json.csv', chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
+    df.to_csv('/scratch/wiki_dumps/annotations/conversations_as_json_job1.csv', chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
     
 if __name__ == '__main__':
     main()
