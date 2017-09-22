@@ -87,6 +87,29 @@ GROUP BY conversation_id) as attack_time
 ON all.conversation_id = attack_time.conversation_id)
 WHERE all.timestamp <= attack_time.attack_time
 
+SELECT 
+      all.id as id, all.score as score, all.conversation_id as conversation_id, all.page_title as page_title,
+      all.indentation as indentation, all.replyTo_id as replyTo_id, all.content as content, all.user_text as user_text,
+      all.rev_id as rev_id, all.type as type, all.user_id as user_id, all.page_id as page_id, 
+      all.timestamp as timestamp,
+      all.parent_id as parent_id, 
+      all.attack_time as attack_time
+FROM 
+(SELECT *
+FROM wikidetox_conversations.6_bad_convs as all
+JOIN
+(SELECT ss.conversation_id as cid
+FROM
+(SELECT conversation_id, MAX(score) AS max_score
+FROM 
+(SELECT *
+FROM wikidetox_conversations.6_bad_convs
+WHERE timestamp < attack_time)
+GROUP BY conversation_id) as ss
+WHERE max_score < 0.4) as selected
+ON selected.cid = conversation_id)
+
+
 # Pick out good conversations
 SELECT 
   all.id AS id,
