@@ -1,18 +1,21 @@
 <div class="html-element-wrapper">
-    <h1> The conversation to read: </h1>
-    <div class="json-data hidden">{{conversations}}</div>
-  </div>
-  
-  <br />
-  
-  <cml:checkbox label="This conversation is not primarily in English or is not human readable." name="na" gold="true" aggregation="agg"></cml:checkbox>
+  <h1> The conversation to read: </h1>
+  <div class="json-data hidden">{{conversations}}</div>
+</div>
 
-  <cml:radios only-if="na:unchecked" label="Does this conversation contain a toxic comment?" name="toxic" validates="required" gold="true">
-    <cml:radio label="Yes" value="1"></cml:radio>
-    <cml:radio label="No" value="0"></cml:radio>
-  </cml:radios>
+<br />
 
-  <cml:radios only-if="na:unchecked" label="Is the next comment in this conversation likely to be toxic?" name="lead_to_toxic" validates="required">
-    <cml:radio label="Yes" value="1"></cml:radio>
-    <cml:radio label="No" value="0"></cml:radio>
-  </cml:radios>
+<cml:checkbox label="This conversation is not primarily in English or is not human readable." name="na" gold="true" aggregation="agg"></cml:checkbox>
+
+<cml:radios only-if="na:unchecked" label="Does this conversation contain a toxic comment?" name="toxic" validates="required" gold="true">
+  <cml:radio label="Yes" value="1"></cml:radio>
+  <cml:radio label="No" value="0"></cml:radio>
+  <cml:radio label="Uncertain" value="-1"></cml:radio>
+</cml:radios>
+
+<cml:radios only-if="na:unchecked" label="Is the next comment in this conversation likely to be toxic?" name="lead_to_toxic" validates="required">
+  <cml:radio label="Very Likely" value="2"></cml:radio>
+  <cml:radio label="Somewhat Likely" value="1"></cml:radio>
+  <cml:radio label="Somewhat Unlikely" value="-1"></cml:radio>
+  <cml:radio label="Very Unlikely" value="-2"></cml:radio>
+</cml:radios>
