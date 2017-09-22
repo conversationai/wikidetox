@@ -17,7 +17,7 @@ def clean(s):
 def update(snapshot, action):
     Found = False
     if not('user_text' in action):
-       action['user_text'] = 'NO_USERTEXT'
+       action['user_text'] = 'Anonymous'
     if action['comment_type'] == 'COMMENT_REMOVAL':
         for ind, act in enumerate(snapshot):
             if 'parent_id' in action and action['parent_id'] in act['parent_ids']:
@@ -39,27 +39,30 @@ def update(snapshot, action):
             if 'parent_id' in action and action['parent_id'] in act['parent_ids']:
                 found = True
                 pids = act['parent_ids']
-                act = {}
-                act['content'] = clean(action['content'])
-                act['id'] = action['id']
-                act['indentation'] = action['indentation']
-                act['comment_type'] = action['comment_type']
-                act['toxicity_score'] = action['score']
-                act['user_text'] = action['user_text']
-                act['timestamp'] = action['timestamp']
-                act['page_title'] = action['page_title']
+                new_act = {}
+                new_act['content'] = clean(action['content'])
+                new_act['id'] = action['id']
+                new_act['indentation'] = action['indentation']
+                new_act['comment_type'] = action['comment_type']
+                new_act['toxicity_score'] = action['score']
+                if 'bot' in action['user_text'].lower(): 
+                   new_act['user_text'] = act['user_text']
+                else:
+                   new_act['user_text'] = action['user_text']
+                new_act['timestamp'] = action['timestamp']
+                new_act['page_title'] = action['page_title']
  
-                act['parent_ids'] = pids
-                act['status'] = 'content changed'
+                new_act['parent_ids'] = pids
+                new_act['status'] = 'content changed'
                 status = 'content changed'
-                act['relative_replyTo'] = -1
-                act['absolute_replyTo'] = -1
-                act['parent_ids'][action['id']] = True
+                new_act['relative_replyTo'] = -1
+                new_act['absolute_replyTo'] = -1
+                new_act['parent_ids'][action['id']] = True
                 for ind, a in enumerate(snapshot):
-                    if a['id'] == action['replyTo_id']:
-                        act['relative_replyTo'] = ind
-                        act['absolute_replyTo'] = a['id']
-                snapshot[i] = act
+                    if action['replyTo_id'] in a['parent_ids']:
+                        new_act['relative_replyTo'] = ind
+                        new_act['absolute_replyTo'] = a['id']
+                snapshot[i] = new_act
                 Found = True
         if not(found):
             act = {}
@@ -117,9 +120,9 @@ def generate_snapshots(conv):
     return snapshot
 
 def reformat(act):
-    output_dict = {key: act[key] for key in ['id', 'comment_type', 'content', 'timestamp', 'status', 'page_title']}
+    output_dict = {key: act[key] for key in ['id', 'comment_type', 'content', 'timestamp', 'status', 'page_title', 'user_text']}
     output_dict['parent_id'] = parse_absolute_replyTo(act['absolute_replyTo'])
-    output_dict['hashed_user_id'] = hashlib.sha1(act['user_text'].encode('utf-8')).hexdigest()
+#    output_dict['hashed_user_id'] = hashlib.sha1(act['user_text'].encode('utf-8')).hexdigest()
     return output_dict
 
 def parse_absolute_replyTo(value):
@@ -135,9 +138,10 @@ def main():
         for i, line in enumerate(f):
             conv_id, clss, conversation = json.loads(line)
             actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
+
             # not including the last action
-            end_time = max([a['timestamp_in_sec'] for a in actions])
-            actions = [a for a in actions if a['timestamp_in_sec'] < end_time]
+#            end_time = max([a['timestamp_in_sec'] for a in actions])
+#            actions = [a for a in actions if a['timestamp_in_sec'] < end_time]
 
             snapshot = generate_snapshots(actions)
             for act in snapshot:
@@ -150,7 +154,7 @@ def main():
 
     df = pd.DataFrame(res)
     df.columns = ['conversations']
-    df.to_csv('/scratch/wiki_dumps/annotations/conversations_as_json_job1.csv', chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
+    df.to_csv('/scratch/wiki_dumps/annotations/conversations_as_json_job2.csv', chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
     
 if __name__ == '__main__':
     main()
