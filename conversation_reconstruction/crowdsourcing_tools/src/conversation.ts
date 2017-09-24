@@ -111,6 +111,7 @@ export function htmlForComment(comment: Comment, conversation: Conversation)
   } else {
     comment_class_name = 'comment';
   }
+  let timestamp = comment.timestamp.replace(/ UTC/g, '');
 
   return `
       ${convId}
@@ -118,7 +119,7 @@ export function htmlForComment(comment: Comment, conversation: Conversation)
       <table class="action">
         <tr><td class="whenandwho">
             <div class="author">${comment.user_text}</div>
-            <div class="timestamp">(${comment.timestamp})</div>
+            <div class="timestamp">${timestamp}</div>
         </td><td class="content">
           ${section_heading}
           ${comment.content}
