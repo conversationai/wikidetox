@@ -19,7 +19,7 @@ export interface Comment {
   status: 'just added' | 'content changed';
   content: string;
   parent_id: string;
-  hashed_user_id: string;
+  user_text: string;
   timestamp : string;
   page_title : string;
   // Added based on conversation structure.
@@ -31,12 +31,59 @@ export interface Comment {
 
 export interface Conversation { [id:string]: Comment };
 
+//
+export function interpretId(id:string)
+    : {revision : number; token: number; action:number} | null {
+  let myRegexp = /(\d+)\.(\d+)\.(\d+)/g;
+  let match = myRegexp.exec(id);
+  if(!match || match.length < 4) {
+    return null
+  }
+
+  return {
+    revision: parseInt(match[1]),
+    token: parseInt(match[2]),
+    action: parseInt(match[3])
+  };
+}
+
 
 export function compareByDateFn(a: Comment, b: Comment) : number {
   return Date.parse(b.timestamp) - Date.parse(a.timestamp);
 }
 
-export function indentOfComment(comment: Comment, conversation: Conversation) : number {
+//
+export function compareCommentOrder(comment1:Comment, comment2:Comment){
+  let dateCmp = compareByDateFn(comment2, comment1)
+  if (dateCmp !== 0) {
+    return dateCmp;
+  }
+
+  let id1 = interpretId(comment1.id);
+  let id2 = interpretId(comment2.id);
+
+  if(id1 === null || id2 === null) {
+    console.warn('Using string comparison for comment order:' +
+      ' comment has uninterpretable id: ', comment1);
+    return comment1.id === comment2.id ? 0
+           : (comment1.id > comment2.id ? 1 : -1);
+  }
+
+  let revisionDiff = id1.revision - id2.revision;
+  let tokenDiff = id1.token - id2.token;
+  let actionDiff = id1.action - id2.action;
+  return revisionDiff !== 0 ? revisionDiff
+         : (tokenDiff !== 0 ? tokenDiff
+         : (actionDiff !== 0 ? actionDiff : 0));
+}
+
+export function compareCommentOrderSmallestFirst(
+  comment1:Comment, comment2:Comment){
+  return compareCommentOrder(comment2, comment1);
+}
+
+export function indentOfComment(comment: Comment, conversation: Conversation)
+   : number {
   if(comment.parent_id === '') {
     return 0;
   }
@@ -48,27 +95,35 @@ export function indentOfComment(comment: Comment, conversation: Conversation) : 
   return 1 + indentOfComment(parent, conversation);
 }
 
-export function htmlForComment(comment: Comment, conversation: Conversation) : string {
+export function htmlForComment(comment: Comment, conversation: Conversation)
+    : string {
   let indent = indentOfComment(comment, conversation);
 
+  let convId : string = '';
   let section_heading : string = '';
   let comment_class_name : string;
-  if (comment.comment_type === 'SECTION_CREATION') {
+  if (comment.isRoot) {
     comment_class_name = 'section';
     section_heading = `<h3>${comment.page_title}</h3>`;
+    convId = `<div class="convid">conversation id: ${comment.id}</div>`;
   } else if(comment.isLatest) {
-    comment_class_name = 'finalcomment';
+    comment_class_name = 'comment finalcomment';
   } else {
     comment_class_name = 'comment';
   }
 
   return `
-    <div class="${comment_class_name}" style="margin-left: ${indent}em;">
-       ${section_heading}
-       <div class="content">${comment.content}</div>
-       <div class="whenandwho">
-        <span>by ${comment.hashed_user_id.substring(0,4)}</span> (<span>${comment.timestamp})</span>
-       </div>
+      ${convId}
+      <div class="action ${comment_class_name}" style="margin-left: ${indent}em;">
+      <table class="action">
+        <tr><td class="whenandwho">
+            <div class="author">${comment.user_text}</div>
+            <div class="timestamp">(${comment.timestamp})</div>
+        </td><td class="content">
+          ${section_heading}
+          ${comment.content}
+        </td></tr>
+      </table>
      <div>
     `;
 }
@@ -96,6 +151,15 @@ export function lastDecendentComment(rootComment : Comment) : Comment {
   let finalComment : Comment = rootComment;
   walkDfsComments(rootComment, (c) => { finalComment = c; });
   return finalComment;
+}
+
+
+export function makeParent(comment: Comment, parent: Comment) {
+  if(!parent.children) { parent.children = []; }
+  parent.children.push(comment);
+  parent.children.sort(compareCommentOrderSmallestFirst);
+  comment.parent_id = parent.id;
+  comment.isRoot = false;
 }
 
 // Add and sort children to each comment in a conversation.
@@ -126,20 +190,28 @@ export function structureConversaton(conversation : Conversation)
     if(!comment.children) { comment.children = []; }
     let parent = conversation[comment.parent_id];
     if(parent) {
-      if(!parent.children) { parent.children = []; }
-      parent.children.push(comment);
-      parent.children.sort(compareByDateFn);
-      comment.isRoot = false;
+      makeParent(comment, parent)
     } else {
-      comment.isRoot = true;
       if (rootComment) {
-        console.error('Extra root comments (old and new): ');
-        console.error(rootComment);
-        console.error(comment);
+        let commentCmp = compareCommentOrder(rootComment, comment);
+        if(commentCmp < 0) {
+          makeParent(comment, rootComment);
+        } else {
+          makeParent(rootComment, comment);
+          comment.isRoot = true;
+          rootComment = comment;
+        }
+        console.warn(`Extra root comments (old and new):
+          Choosing root by comment time-stamp.
+          Old: ${JSON.stringify(rootComment, null, 2)}
+          New: ${JSON.stringify(comment, null, 2)}
+        `);
+      } else {
+        comment.isRoot = true;
+        rootComment = comment;
       }
-      rootComment = comment;
     }
-  }
+  }  // For comments.
 
   latestComments.forEach(c => {
     c.isLatest = true;

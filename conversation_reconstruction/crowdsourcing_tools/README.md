@@ -33,9 +33,10 @@ Generated files end up in `build/dist`.
 yarn run serve
 ```
 
-Then open this URL in your browser:
+In your browser, then open the URL for the corresponding crowdsourcing job i.e.:
 
-http://localhost:8000/src/testdata/test.html
+*  http://localhost:8000/src/testdata/test1.html
+*  http://localhost:8000/src/testdata/test2.html
 
 And observe the test conversations look right, and that no errors appear in the
 JavaScript console.
@@ -44,9 +45,11 @@ JavaScript console.
 
 CrowdFlower has 3 sections that need files from this directory need to be copied to the relevant UI input boxes in a CrowdFlower's Job page (afer you run the build command):
 
-* CML: `src/cml.html`
+* CML: `src/cml{N}.html`
+* CSS: `src/style{N}.css`
 * JavaScript: `build/dist/index.js`
-* CSS: `src/style.css`
+
+Where `{N}` is the corresponding crowdsourcing job.
 
 ## Job 1: Conversation Selection Method: ask questions.
 

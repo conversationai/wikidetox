@@ -18,7 +18,8 @@ const { FuseBox } = require("fuse-box");
 const fuse = FuseBox.init({
     homeDir: "src",
     output: "build/dist/$name.js",
-    target: "browser",
+    sourceMaps: true,
+    target: "browser"
 });
 fuse.bundle("app")
     .instructions(`>run.ts`);

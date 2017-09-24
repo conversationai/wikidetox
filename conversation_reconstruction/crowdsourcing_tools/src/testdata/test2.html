@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>UI Test for Conversations</title>
+    <meta charset="utf-8">
+
+    <link rel="stylesheet" type="text/css" href="../style1.css">
+
+    <script type="text/javascript" charset="utf-8" src="../../node_modules/requirejs/require.js"></script>
+
+    <script type="text/javascript" charset="utf-8" src="conversations_job2_x1000.js"></script>
+
+    <link href="//fonts.googleapis.com/css?family=Lato:300,400,700" media="all" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+
+  <h1>UI Test for Conversations</h1>
+  <div id="json-data-items">
+  </div>
+  </body>
+
+  <script type="text/javascript" charset="utf-8">
+    // Add the conversations into the page below.
+    let jsonDataItemsEl = document.getElementById('json-data-items');
+    for (let i of conversations_x1000) {
+      dataItemEl = document.createElement('div');
+      dataItemEl.setAttribute("class", 'json-data hidden');
+      dataItemEl.innerText = JSON.stringify(i, null, 2);
+      jsonDataItemsEl.appendChild(dataItemEl);
+      brEl = document.createElement('br');
+      jsonDataItemsEl.appendChild(brEl);
+    }
+
+    // Load the generated index file for displaying conversations.
+    var script = document.createElement('script');
+    script.setAttribute('src','../../build/dist/index.js');
+    document.head.appendChild(script);
+  </script>
+
+</html>
