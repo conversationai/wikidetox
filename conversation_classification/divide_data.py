@@ -59,6 +59,19 @@ def attacker_in_conv(conv):
            if 'user_text' in act and attacker == act['user_text']: return True
     return False
 
+def maximum_toxicity(conv):
+    end_time = 0
+    attacker = None
+    for act in conv['action_feature']: 
+        if act['timestamp_in_sec'] > end_time:
+           end_time = act['timestamp_in_sec']
+    ret = 0
+    for act in conv['action_feature']: 
+        if act['timestamp_in_sec'] < end_time:
+           ret = max(ret, act['score'])
+    return ret 
+
+
 
 # 0~4
 for l in range(5):
@@ -67,7 +80,7 @@ for l in range(5):
        x = random.random()
        if not(id1 in shouldbe_lst and id2 in shouldbe_lst and id2 in conversations):
           continue
-       if not(attacker_in_conv(conversations[id2][2])):
+       if not(attacker_in_conv(conversations[id2][2]) and maximum_toxicity(conversations[id2][2]) < 0.4):
           continue
        if x > 0.9:
           with open('/scratch/wiki_dumps/len0-4_test.json', 'a') as f:
@@ -85,7 +98,7 @@ for l in range(5, 11):
        id1, id2 = c
        if not(id1 in shouldbe_lst and id2 in shouldbe_lst and id2 in conversations):
           continue
-       if not(attacker_in_conv(conversations[id2][2])):
+       if not(attacker_in_conv(conversations[id2][2]) and maximum_toxicity(conversations[id2][2]) < 0.4):
           continue
 
        x = random.random()
@@ -104,7 +117,7 @@ for l in range(11, maxl+1):
        id1, id2 = c
        if not(id1 in shouldbe_lst and id2 in shouldbe_lst and id2 in conversations):
           continue
-       if not(attacker_in_conv(conversations[id2][2])):
+       if not(attacker_in_conv(conversations[id2][2]) and maximum_toxicity(conversations[id2][2]) < 0.4):
           continue
        x = random.random()
        if x > 0.9:
