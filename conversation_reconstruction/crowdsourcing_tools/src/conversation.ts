@@ -104,7 +104,7 @@ export function htmlForComment(comment: Comment, conversation: Conversation)
   let comment_class_name : string;
   if (comment.isRoot) {
     comment_class_name = 'section';
-    section_heading = `<h3>${comment.page_title}</h3>`;
+    section_heading = `<div>In page: <b>${comment.page_title}</b></div>`;
     convId = `<div class="convid">conversation id: ${comment.id}</div>`;
   } else if(comment.isLatest) {
     comment_class_name = 'comment finalcomment';
@@ -114,14 +114,15 @@ export function htmlForComment(comment: Comment, conversation: Conversation)
   let timestamp = comment.timestamp.replace(/ UTC/g, '');
 
   return `
+      ${section_heading}
       ${convId}
       <div class="action ${comment_class_name}" style="margin-left: ${indent}em;">
       <table class="action">
         <tr><td class="whenandwho">
             <div class="author">${comment.user_text}</div>
             <div class="timestamp">${timestamp}</div>
-        </td><td class="content">
-          ${section_heading}
+        </td>
+        <td class="content">
           ${comment.content}
         </td></tr>
       </table>
