@@ -48,7 +48,7 @@ CrowdFlower has 3 sections that need files from this directory need to be copied
 * JavaScript: `build/dist/index.js`
 * CSS: `src/style.css`
 
-## Job 1: Conversation Selection Method: ask full questionaire.
+## Job 1: Conversation Selection Method: ask questions.
 
 Bad:
  - First N comments are OK (score <0.6)
