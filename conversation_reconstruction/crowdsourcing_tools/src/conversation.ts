@@ -225,15 +225,26 @@ export function structureConversaton(conversation : Conversation)
     }
   }  // For comments.
 
-  latestComments.forEach(c => {
-    c.isLatest = true;
-  });
-
+  // Identify the final comment w.r.t. dfs. i.e. the one at the bottom.
   if(rootComment) {
     indexComments(rootComment);
     let finalComment = lastDecendentComment(rootComment);
     finalComment.isFinal = true;
   }
+
+  // Idenitfy the latest action. Order by lex on time desc then index desc.
+  latestComments.sort((c1,c2) => {
+    if (c1.dfs_index === undefined || c2.dfs_index === undefined) {
+      throw Error('Comments should have dfs_index but do not');
+    }
+    return c2.dfs_index - c1.dfs_index;
+  });
+  if(latestComments.length > 0) {
+    latestComments[0].isLatest = true;
+  }
+  // latestComments[].forEach(c => {
+  //   c.isLatest = true;
+  // });
 
   return rootComment;
 }
