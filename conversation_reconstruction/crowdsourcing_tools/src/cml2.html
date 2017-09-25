@@ -7,7 +7,7 @@
 
 <cml:checkbox label="This conversation is not primarily in English or is not human readable." name="na" gold="true" aggregation="agg"></cml:checkbox>
 
-<cml:radios only-if="na:unchecked" label="Are any of the highlighted comments outline toxic?" name="toxic" validates="required" gold="true">
+<cml:radios only-if="na:unchecked" label="Is the highlighted comment toxic?" name="toxic" validates="required" gold="true">
   <cml:radio label="Yes" value="1"></cml:radio>
   <cml:radio label="No" value="0"></cml:radio>
   <cml:radio label="Uncertain" value="-1"></cml:radio>
