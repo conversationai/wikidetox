@@ -31,6 +31,14 @@ last {
   flex: auto;
 }
 
+.index{
+  border: 1px solid #CCC;
+  padding: 5px;
+  width: 2em;
+  border-radius: 5px;
+  text-align: center;
+}
+
 .finalcomment {
   border: 2px dotted #88F;
 }
@@ -71,6 +79,16 @@ last {
 
 .convid {
   text-align: right;
+}
+
+.convid-text {
   font-size: 80%;
   color: #BBB;
+}
+
+.convid-comment-index-header {
+  border: 1px solid #CCC;
+  padding: 5px;
+  border-radius: 5px;
+  text-align: center;
 }

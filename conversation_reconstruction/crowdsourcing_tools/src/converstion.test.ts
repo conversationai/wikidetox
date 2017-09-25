@@ -68,6 +68,28 @@ export class ConversationTest {
     should(conversation.indentOfComment(comments[3], theConversation)).equal(1);
   }
 
+  "Comment DFS Index"() {
+    let theConversation = example_conversation1
+
+    let rootComment =
+      conversation.structureConversaton(
+        JSON.parse(JSON.stringify(theConversation)));
+    let comments: conversation.Comment[] = [];
+    should(rootComment).beOkay();
+    should(rootComment!.isRoot).equal(true);
+
+    conversation.walkDfsComments(rootComment!, (c) => {
+      comments.push(c);
+    });
+
+    should(comments).haveLength(4);
+    should(comments[0].dfs_index).equal(0);
+    should(comments[1].dfs_index).equal(1);
+    should(comments[2].dfs_index).equal(2);
+    should(comments[3].dfs_index).equal(3);
+  }
+
+
   "Interpret & compare id"() {
     let theConversation = example_conversation2
     let rootComment =

@@ -27,6 +27,7 @@ export interface Comment {
   isRoot ?: boolean; // true iff this is starting comment of a conversation.
   isLatest ?: boolean; // true iff this is the latest comment in the conversation.
   isFinal ?: boolean; // true iff this is the final (by DFS) comment in the conversation.
+  dfs_index ?: number // index according to Depth First Search of conv.
 }
 
 export interface Conversation { [id:string]: Comment };
@@ -103,9 +104,12 @@ export function htmlForComment(comment: Comment, conversation: Conversation)
   let section_heading : string = '';
   let comment_class_name : string;
   if (comment.isRoot) {
-    comment_class_name = 'section';
+    comment_class_name = 'comment';
     section_heading = `<div>In page: <b>${comment.page_title}</b></div>`;
-    convId = `<div class="convid">conversation id: ${comment.id}</div>`;
+    convId = `<div class="convid">
+      <span class="convid-text">(conversation id: ${comment.id}) </span>
+      <span class="convid-comment-index-header">Comment Number</span>
+      </div>`;
   } else if(comment.isLatest) {
     comment_class_name = 'comment finalcomment';
   } else {
@@ -114,17 +118,17 @@ export function htmlForComment(comment: Comment, conversation: Conversation)
   let timestamp = comment.timestamp.replace(/ UTC/g, '');
 
   return `
-      ${section_heading}
-      ${convId}
-      <div class="action ${comment_class_name}" style="margin-left: ${indent}em;">
+    ${section_heading}
+    ${convId}
+    <div class="action ${comment_class_name}" style="margin-left: ${indent}em;">
       <table class="action">
         <tr><td class="whenandwho">
             <div class="author">${comment.user_text}</div>
             <div class="timestamp">${timestamp}</div>
         </td>
-        <td class="content">
-          ${comment.content}
-        </td></tr>
+        <td class="content">${comment.content}</td>
+        <td><div class="index">${comment.dfs_index}</div></td>
+      </tr>
       </table>
      <div>
     `;
@@ -138,12 +142,10 @@ export function walkDfsComments(
   let agenda : Comment[] = [];
   let next_comment : Comment|undefined = rootComment;
   while (next_comment) {
-    if (next_comment) {
-      if(next_comment.children) {
-        agenda = agenda.concat(next_comment.children);
-      }
-      f(next_comment);
+    if(next_comment.children) {
+      agenda = agenda.concat(next_comment.children);
     }
+    f(next_comment);
     next_comment = agenda.pop();
   }
 }
@@ -155,6 +157,14 @@ export function lastDecendentComment(rootComment : Comment) : Comment {
   return finalComment;
 }
 
+// Get the last comment in the thread.
+export function indexComments(rootComment : Comment) {
+  let index = 0;
+  walkDfsComments(rootComment, (c) => {
+    c.dfs_index = index;
+    index++;
+  });
+}
 
 export function makeParent(comment: Comment, parent: Comment) {
   if(!parent.children) { parent.children = []; }
@@ -220,6 +230,7 @@ export function structureConversaton(conversation : Conversation)
   });
 
   if(rootComment) {
+    indexComments(rootComment);
     let finalComment = lastDecendentComment(rootComment);
     finalComment.isFinal = true;
   }
