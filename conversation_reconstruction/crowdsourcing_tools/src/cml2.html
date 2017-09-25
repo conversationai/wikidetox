@@ -13,8 +13,4 @@
   <cml:radio label="Uncertain" value="-1"></cml:radio>
 </cml:radios>
 
-<cml:radios only-if="na:unchecked" label="Does last comment at the bottom of the conversation disagree with any previous comment?" name="disagreement" validates="required">
-  <cml:radio label="Yes" value="1"></cml:radio>
-  <cml:radio label="No" value="0"></cml:radio>
-</cml:radios>
-<cml:text only-if="na:unchecked" label="If so, please list the numbers of the comments that are being disagreed with (seperated by spaces):" />
+<cml:text only-if="na:unchecked" label="Enter the comment numbers, separated by spaces, of any comments the highlighted comment disagrees with:" name = "disagreement" />
