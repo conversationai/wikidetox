@@ -143,40 +143,45 @@ SELECT COUNT(*) as length, MIN(timestamp) as start_time, conversation_id, FIRST(
 FROM wikidetox_conversations.6_bad_convs
 GROUP BY conversation_id
 
-# Get Statistics of good conversation table
-SELECT COUNT(*) as conversation_length, conversation_id, end_time, FIRST(page_id) as page_id, COUNT(DISTINCT user_text) as no_users, MIN(timestamp) as start_time, MAX(score) as max_toxicity
-FROM
-(SELECT end_times.timestamp as end_time, all.timestamp as timestamp, end_times.conversation_id as conversation_id, all.page_id as page_id, all.user_text as user_text, all.score as score
-FROM wikidetox_conversations.6_good_convs as all
-JOIN
-(SELECT conversation_id as conversation_id, timestamp
-FROM wikidetox_conversations.6_good_convs
-GROUP BY conversation_id, timestamp) as end_times
-ON all.conversation_id = end_times.conversation_id)
-WHERE timestamp <= end_time
-GROUP BY conversation_id, end_time
-
-
 # Filter out conversations only have attacks
 SELECT *
 FROM wikidetox_conversations.6_bad_convs_stats
 WHERE end_time > start_time and no_users > 1
 
-# Attacker must be in the conversation before
-SELECT stats.length as length, stats.start_time as start_time, stats.conversation_id as conversation_id, stats.page_id as page_id, stats.end_time as end_time, stats.no_users as no_users
-FROM wikidetox_conversations.6_bad_convs_stats as stats
+
+# Get Number of users and max toxicity
+SELECT all.length as length, all.start_time as start_time, all.conversation_id as conversation_id, all.page_id as page_id, all.end_time as end_time, all.no_users as no_users,
+       before.max_toxicity as max_toxicity, before.no_users_before as no_users_before
+FROM wikidetox_conversations.6_bad_convs_stats as all
 JOIN
-(SELECT attacker_appeared.all.conversation_id
+(SELECT MAX(score) as max_toxicity, COUNT(DISTINCT user_text) as no_users_before, conversation_id
 FROM
-(SELECT all.timestamp, all.conversation_id, all.attack_time
-FROM wikidetox_conversations.6_bad_convs as all
-JOIN
-(SELECT user_text as attacker, conversation_id
+(SELECT *
 FROM wikidetox_conversations.6_bad_convs
-WHERE timestamp == attack_time) as attacker_lst
-ON attacker_lst.conversation_id == all.conversation_id and attacker_lst.attacker == all.user_text) as attacker_appeared
-WHERE attacker_appeared.all.timestamp < attacker_appeared.all.attack_time) as picked
-ON stats.conversation_id == picked.attacker_appeared.all.conversation_id
+WHERE timestamp < attack_time)
+GROUP BY conversation_id) as before
+ON before.conversation_id == all.conversation_id
+
+
+# Get Statistics of good conversation table
+SELECT b.no_users_before as no_users_before, b.max_toxicity as max_toxicity, a.conversation_length as length, a.conversation_id as conversation_id,
+       a.end_time as end_time, a.page_id as page_id, a.no_users as no_users, a.start_time as start_time
+FROM wikidetox_conversations.6_good_convs_stats as a
+JOIN
+(SELECT COUNT(DISTINCT all.user_text) as no_users_before, MAX(all.score) as max_toxicity, stats.end_time, all.conversation_id
+FROM
+(SELECT all.score, all.user_text, all.timestamp, stats.end_time, all.conversation_id
+FROM wikidetox_conversations.6_good_convs as all
+JOIN wikidetox_conversations.6_good_convs_stats as stats
+ON all.conversation_id == stats.conversation_id)
+WHERE all.timestamp < stats.end_time
+GROUP BY all.conversation_id, stats.end_time) as b
+ON a.conversation_id == b.all.conversation_id and a.end_time == b.stats.end_time
+
+# Attacker must be in the conversation before
+SELECT *
+FROM wikidetox_conversations.6_bad_convs_stats
+WHERE no_users == no_users_before
 
 # Filter out duplicates 
 #standardSQL
@@ -188,7 +193,7 @@ FROM
     ROW_NUMBER()
           OVER (PARTITION BY conversation_id) row_number
   FROM
-    wikidetox_conversations.6_bad_convs_stats)
+    wikidetox_conversations.attacker_in_conv_6_bad_convs_stats)
 WHERE row_number = 1
 
 # Match conversations on page_id and length
@@ -196,10 +201,10 @@ SELECT *
 FROM
 (SELECT *, ABS(TIMESTAMP_TO_SEC(good.start_time) - TIMESTAMP_TO_SEC(bad.start_time)) as start_time_delta, 
       ABS(TIMESTAMP_TO_SEC(good.end_time) - TIMESTAMP_TO_SEC(bad.end_time)) as end_time_delta
-FROM wikidetox_conversations.6_bad_convs_stats as bad
-JOIN wikidetox_conversations.4_good_convs_stats as good
-ON good.page_id = bad.page_id)
-WHERE good.length >= bad.length
+FROM wikidetox_conversations.attacker_in_conv_6_bad_convs_stats as bad
+JOIN wikidetox_conversations.6_good_convs_stats as good
+ON good.page_id == bad.page_id)
+WHERE good.conversation_length == bad.length
 
 # Delete Match Duplicates
 #standardSQL
