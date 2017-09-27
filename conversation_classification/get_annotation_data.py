@@ -40,7 +40,7 @@ def update(snapshot, action):
                 found = True
                 pids = act['parent_ids']
                 new_act = {}
-                new_act['content'] = clean(action['content'])
+                new_act['content'] = action['cleaned_content']
                 new_act['id'] = action['id']
                 new_act['indentation'] = action['indentation']
                 new_act['comment_type'] = action['comment_type']
@@ -66,7 +66,7 @@ def update(snapshot, action):
                 Found = True
         if not(found):
             act = {}
-            act['content'] = clean(action['content'])
+            act['content'] = action['cleaned_content']
             act['id'] = action['id']
             act['indentation'] = action['indentation']
             act['comment_type'] = 'COMMENT_ADDING' #action['comment_type']
@@ -89,7 +89,10 @@ def update(snapshot, action):
             Found = True
     if action['comment_type'] == 'COMMENT_ADDING' or action['comment_type'] == 'SECTION_CREATION':
         act = {}
-        act['content'] = clean(action['content'])
+        if action['comment_type'] == 'SECTION_CREATION':
+           act['content'] = '==' + action['cleaned_content'] + '=='
+        else: 
+           act['content'] = action['cleaned_content']
         act['id'] = action['id']
         act['indentation'] = action['indentation']
         act['comment_type'] = action['comment_type']
