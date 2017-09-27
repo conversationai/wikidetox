@@ -29,14 +29,14 @@ def generate_bow_features(documents):
     for uni_min in [10, 15, 20, 50, 100]:
         unigram_features = list(filter(lambda x: unigram_counts[x] > uni_min, unigram_counts.keys()))
         print(len(unigram_features))
-        cPickle.dump(unigram_features, open('attacker_in_conv-long_conv-bow_features/unigram%d.pkl'%(uni_min), 'wb'))
+        cPickle.dump(unigram_features, open('4-6_bow_features/unigram%d.pkl'%(uni_min), 'wb'))
     for bi_min in [10, 20, 50, 100, 500]:
         bigram_features = list(filter(lambda x: bigram_counts[x] > bi_min, bigram_counts.keys()))
         print(len(bigram_features))
-        cPickle.dump(bigram_features, open('attacker_in_conv-long_conv-bow_features/bigram%d.pkl'%(bi_min), 'wb'))
+        cPickle.dump(bigram_features, open('4-6_bow_features/bigram%d.pkl'%(bi_min), 'wb'))
    
 documents = []
-with open('/scratch/wiki_dumps/attacker_in_conv/long_conv_train.json') as f:
+with open('/scratch/wiki_dumps/4-6_bad_convs/train.json') as f:
     for line in f:
         conv_id, clss, conversation = json.loads(line)
         documents.append((conversation, clss))       
