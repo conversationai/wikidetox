@@ -110,6 +110,7 @@ WHERE max_score < 0.4) as selected
 ON selected.cid = conversation_id)
 
 
+
 # Pick out good conversations
 SELECT 
   all.id AS id,
@@ -168,7 +169,18 @@ ON attacker_lst.conversation_id == all.conversation_id and attacker_lst.attacker
 WHERE attacker_appeared.all.timestamp < attacker_appeared.all.attack_time) as picked
 ON stats.conversation_id == picked.attacker_appeared.all.conversation_id
 
-
+# Filter out duplicates 
+#standardSQL
+SELECT
+  * EXCEPT(row_number)
+FROM
+(SELECT
+    *,
+    ROW_NUMBER()
+          OVER (PARTITION BY conversation_id) row_number
+  FROM
+    wikidetox_conversations.6_bad_convs_stats)
+WHERE row_number = 1
 
 # Match conversations on page_id and length
 SELECT *
