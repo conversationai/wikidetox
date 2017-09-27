@@ -3,14 +3,23 @@ import pandas as pd
 import hashlib
 import itertools
 import csv
+import re
 
 def clean(s):
     ret = s.replace('\t', ' ')
     ret = ret.replace('\n', ' ')
-    while (len(ret) >= 2 and ret[0] == '=' and ret[-1] == '='):
-        ret = ret[1:-1]
+#    while (len(ret) >= 2 and ret[0] == '=' and ret[-1] == '='):
+#        ret = ret[1:-1]
     while (len(ret) >= 1 and (ret[0] == ':' or ret[0] == '*')):
         ret = ret[1:]
+    sub_patterns = [('EXTERNAL_LINK: ', ''), \
+                    ('\[REPLYTO: .*?\]', ''), \
+                    ('\[MENTION: .*?\]', ''), \
+                    ('\[OUTDENT: .*?\]', ''), \
+                    ('WIKI_LINK: ', '')]
+    for p, r in sub_patterns:
+        ret = re.sub(p, r, ret)
+
 
     return ret
 
@@ -140,8 +149,8 @@ def main():
             actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
 
             # not including the last action
-#            end_time = max([a['timestamp_in_sec'] for a in actions])
-#            actions = [a for a in actions if a['timestamp_in_sec'] < end_time]
+            end_time = max([a['timestamp_in_sec'] for a in actions])
+            actions = [a for a in actions if a['timestamp_in_sec'] < end_time]
 
             snapshot = generate_snapshots(actions)
             for act in snapshot:
@@ -154,7 +163,7 @@ def main():
 
     df = pd.DataFrame(res)
     df.columns = ['conversations']
-    df.to_csv('/scratch/wiki_dumps/annotations/conversations_as_json_job2.csv', chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
+    df.to_csv('/scratch/wiki_dumps/annotations/conversations_as_json_job1.csv', chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
     
 if __name__ == '__main__':
     main()
