@@ -138,7 +138,7 @@ WHERE max_score.max_toxicity < 0.4
 
 
 # Get Statistics of bad conversation table
-SELECT COUNT(*) as length, MIN(timestamp) as start_time, conversation_id, FIRST(page_id) as page_id, MAX(timestamp) as end_time
+SELECT COUNT(*) as length, MIN(timestamp) as start_time, conversation_id, FIRST(page_id) as page_id, MAX(timestamp) as end_time, COUNT(DISTINCT user_text) as no_users
 FROM wikidetox_conversations.6_bad_convs
 GROUP BY conversation_id
 
@@ -150,8 +150,23 @@ GROUP BY conversation_id
 # Filter out conversations only have attacks
 SELECT *
 FROM wikidetox_conversations.6_bad_convs_stats
-WHERE end_time > start_time
+WHERE end_time > start_time and no_users > 1
 
+# Attacker must be in the conversation before
+SELECT stats.length as length, stats.start_time as start_time, stats.conversation_id as conversation_id, stats.page_id as page_id, stats.end_time as end_time, stats.no_users as no_users
+FROM wikidetox_conversations.6_bad_convs_stats as stats
+JOIN
+(SELECT attacker_appeared.all.conversation_id
+FROM
+(SELECT all.timestamp, all.conversation_id, all.attack_time
+FROM wikidetox_conversations.6_bad_convs as all
+JOIN
+(SELECT user_text as attacker, conversation_id
+FROM wikidetox_conversations.6_bad_convs
+WHERE timestamp == attack_time) as attacker_lst
+ON attacker_lst.conversation_id == all.conversation_id and attacker_lst.attacker == all.user_text) as attacker_appeared
+WHERE attacker_appeared.all.timestamp < attacker_appeared.all.attack_time) as picked
+ON stats.conversation_id == picked.attacker_appeared.all.conversation_id
 
 
 
@@ -216,5 +231,26 @@ SELECT all.id as id, all.score as score, all.conversation_id as conversation_id,
        match.bad_length as bad_length
 FROM wikidetox_conversations.4_good_convs as all
 JOIN wikidetox_conversations.4_6_cutoff_matched_convs as match
+ON all.conversation_id = match.good_conversation_id
+
+
+# Matched bad
+SELECT all.id as id, all.score as toxicity_score, all.conversation_id as conversation_id, all.page_title as page_title,
+       all.user_text as user_text, all.rev_id as rev_id, 
+       all.timestamp as timestamp,
+       all.attack_time as attack_time,
+       match.good_conversation_id as good_conversation_id
+FROM wikidetox_conversations.6_bad_convs as all
+JOIN wikidetox_conversations.6_6_cutoff_matched_convs as match
+ON all.conversation_id = match.bad_conversation_id
+
+# Matched good
+SELECT all.id as id, all.score as toxicity_score, all.conversation_id as conversation_id, all.page_title as page_title,
+       all.user_text as user_text, all.rev_id as rev_id, 
+       all.timestamp as timestamp,
+       match.bad_conversation_id as bad_conversation_id,
+       match.bad_length as bad_length
+FROM wikidetox_conversations.6_good_convs as all
+JOIN wikidetox_conversations.6_6_cutoff_matched_convs as match
 ON all.conversation_id = match.good_conversation_id
 
