@@ -178,6 +178,11 @@ WHERE all.timestamp < stats.end_time
 GROUP BY all.conversation_id, stats.end_time) as b
 ON a.conversation_id == b.all.conversation_id and a.end_time == b.stats.end_time
 
+# Last commentator in good conv
+SELECT *
+FROM wikidetox_conversations.6_good_convs_stats
+WHERE no_users_before == no_users
+
 # Attacker must be in the conversation before
 SELECT *
 FROM wikidetox_conversations.6_bad_convs_stats
