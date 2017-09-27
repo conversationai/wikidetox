@@ -144,9 +144,18 @@ FROM wikidetox_conversations.6_bad_convs
 GROUP BY conversation_id
 
 # Get Statistics of good conversation table
-SELECT COUNT(*) as length, MIN(timestamp) as start_time, conversation_id, FIRST(page_id) as page_id, MAX(timestamp) as end_time
-FROM wikidetox_conversations.4_good_convs
-GROUP BY conversation_id
+SELECT COUNT(*) as conversation_length, conversation_id, end_time, FIRST(page_id) as page_id, COUNT(DISTINCT user_text) as no_users, MIN(timestamp) as start_time, MAX(score) as max_toxicity
+FROM
+(SELECT end_times.timestamp as end_time, all.timestamp as timestamp, end_times.conversation_id as conversation_id, all.page_id as page_id, all.user_text as user_text, all.score as score
+FROM wikidetox_conversations.6_good_convs as all
+JOIN
+(SELECT conversation_id as conversation_id, timestamp
+FROM wikidetox_conversations.6_good_convs
+GROUP BY conversation_id, timestamp) as end_times
+ON all.conversation_id = end_times.conversation_id)
+WHERE timestamp <= end_time
+GROUP BY conversation_id, end_time
+
 
 # Filter out conversations only have attacks
 SELECT *
