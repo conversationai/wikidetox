@@ -1,6 +1,7 @@
 import json
 from collections import defaultdict
 import pickle as cPickle
+import os
 
 def generate_bow_features(constraint, documents):
     unigram_counts, bigram_counts = defaultdict(int), defaultdict(int)
@@ -45,6 +46,8 @@ def process(constraint):
 
 constraints = ['none', 'attacker_in_conv', 'no_users', 'no_users_attacker_in_conv']
 for c in constraints:
+    os.system('mkdir /scratch/wiki_dumps/expr_with_matching/%s/bow_features/'%(c))
     process(c)
+    print(c)
 
 
