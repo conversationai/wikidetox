@@ -2,7 +2,7 @@ import json
 from collections import defaultdict
 import pickle as cPickle
 
-def generate_bow_features(documents):
+def generate_bow_features(constraint, documents):
     unigram_counts, bigram_counts = defaultdict(int), defaultdict(int)
 
     for pair in documents:
@@ -29,17 +29,22 @@ def generate_bow_features(documents):
     for uni_min in [10, 15, 20, 50, 100]:
         unigram_features = list(filter(lambda x: unigram_counts[x] > uni_min, unigram_counts.keys()))
         print(len(unigram_features))
-        cPickle.dump(unigram_features, open('4-6_bow_features/unigram%d.pkl'%(uni_min), 'wb'))
+        cPickle.dump(unigram_features, open('/scratch/wiki_dumps/expr_with_matching/%s/bow_features/unigram%d.pkl'%(constraint, uni_min), 'wb'))
     for bi_min in [10, 20, 50, 100, 500]:
         bigram_features = list(filter(lambda x: bigram_counts[x] > bi_min, bigram_counts.keys()))
         print(len(bigram_features))
-        cPickle.dump(bigram_features, open('4-6_bow_features/bigram%d.pkl'%(bi_min), 'wb'))
+        cPickle.dump(bigram_features, open('/scratch/wiki_dumps/expr_with_matching/%s/bow_features/bigram%d.pkl'%(constraint, bi_min), 'wb'))
    
-documents = []
-with open('/scratch/wiki_dumps/4-6_bad_convs/train.json') as f:
-    for line in f:
-        conv_id, clss, conversation = json.loads(line)
-        documents.append((conversation, clss))       
-generate_bow_features(documents)
+def process(constraint):
+    documents = []
+    with open('/scratch/wiki_dumps/expr_with_matching/%s/data/train.json'%(constraint)) as f:
+        for line in f:
+            conv_id, clss, conversation = json.loads(line)
+            documents.append((conversation, clss))       
+    generate_bow_features(constraint, documents)
+
+constraints = ['none', 'attacker_in_conv', 'no_users', 'no_users_attacker_in_conv']
+for c in constraints:
+    process(c)
 
 

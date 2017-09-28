@@ -158,8 +158,9 @@ def process(conv_id, actions):
     ret_features['conversational_features'] = conv_feature
     return ret_features 
              
-def execute(number):
-    with open('/scratch/wiki_dumps/matched/data%d.json'%number) as f:
+def execute(args):
+    constraint, number = args
+    with open('/scratch/wiki_dumps/expr_with_matching/%s/raw_data/data%d.json'%(constraint, number)) as f:
         for line in f:
             conv_id, conversation = json.loads(line)
             try:
@@ -167,11 +168,17 @@ def execute(number):
             except:
                print(conv_id)
                continue
-            with open('/scratch/wiki_dumps/features/data%d.json'%number, 'a') as w:
+            with open('/scratch/wiki_dumps/expr_with_matching/%s/features/data%d.json'%(constraint, number), 'a') as w:
                  w.write(json.dumps((conv_id, ret))+'\n')
 
 with open('lexicons') as f:
     LEXICONS = json.load(f)
+constraints = ['none', 'attacker_in_conv', 'no_users', 'no_users_attacker_in_conv']
+lst = []
+for c in constraints:
+    os.system('mkdir /scratch/wiki_dumps/expr_with_matching/%s/features'%(c)) 
+    for i in range(70):
+        lst.append((c, i))
 pool = Pool(70) 
-pool.map(execute, range(70))
+pool.map(execute, lst)
 
