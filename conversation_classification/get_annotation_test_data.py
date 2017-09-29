@@ -4,6 +4,8 @@ import hashlib
 import itertools
 import csv
 import re
+from collections import defaultdict
+import datetime
 
 def clean(s):
     ret = s.replace('\t', ' ')
@@ -143,11 +145,16 @@ def parse_absolute_replyTo(value):
 def main():
     maxl = None
     res = []
+    conversations = defaultdict(list)
     with open('/home/yiqing/test_bad_convs.json') as f:
     #/scratch/wiki_dumps/attacker_in_conv/len5-11_train.json') as f:
         for i, line in enumerate(f):
-            conv_id, clss, conversation = json.loads(line)
-            actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
+            cur = json.loads(line)
+            cur['timestamp_in_sec'] = (datetime.datetime.strptime(cur['timestamp'], '%Y-%m-%d %H:%M:%S UTC') -datetime.datetime(1970,1,1)).total_seconds() 
+            cur['comment_type'] = cur['type']
+            conversations[cur['conversation_id']].append(cur)
+        for conversation in conversations.values():
+            actions = sorted(conversation, key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
 
             # not including the last action
     #        end_time = max([a['timestamp_in_sec'] for a in actions])
