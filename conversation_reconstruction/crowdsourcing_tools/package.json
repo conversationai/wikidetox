@@ -3,8 +3,10 @@
   "version": "0.0.1",
   "description": "Simple project to help with crowdsourcing.",
   "scripts": {
-    "build": "node fuse && cat build/dist/app.js src/jquery_require_hack.js >build/dist/index.js",
-    "serve": "yarn build && python -m SimpleHTTPServer"
+    "build": "yarn run build:localtest && yarn run build:crowdflower",
+    "build:crowdflower": "node fuse && cat build/dist/app.js src/jquery_crowdflower_require_hack.js >build/dist/crowdflower.js",
+    "build:localtest": "node fuse && cat build/dist/app.js src/jquery_localtest_require_hack.js >build/dist/localtest.js",
+    "serve:localtest": "yarn build:localtest && python -m SimpleHTTPServer"
   },
   "dependencies": {
     "fuse-test-runner": "^1.0.14",
