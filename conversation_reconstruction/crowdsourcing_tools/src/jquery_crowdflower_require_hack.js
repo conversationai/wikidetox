@@ -19,7 +19,9 @@ limitations under the License.
 // and use the runWithJqueryLoaded function from run.ts
 require({
   paths: {
-    // "jquery": "https://code.jquery.com/jquery-3.2.1.min",
-    "jquery-ui": "https://code.jquery.com/ui/1.11.3/jquery-ui.min",
+    "jquery-ui": "https://code.jquery.com/ui/1.11.3/jquery-ui.min"
   },
-}, [ "jquery", "jquery-ui" ], window.runWithJqueryLoaded);
+  map: {
+    "*" : { "jquery" : "jquery-noconflict" }
+  }
+}, [ "jquery-noconflict", "jquery-ui" ], window.runWithJqueryLoaded);
