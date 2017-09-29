@@ -1,0 +1,21 @@
+attacker_in_conv,no_users,no_users_attacker_in_conv,none
+reply_entropy,polarity_entropy,last_three_pron_you,polarity_entropy
+time_gap_entropy,has_reply,UNIGRAM_who,polarity_gap
+last_three_pron_you,directed_graph_nodes_with_incoming_edge,reply_entropy,has_reply
+has_stop_adoption,polarity_gap,time_gap_entropy,directed_graph_nodes_with_incoming_edge
+"BIGRAM_('here', '.')",directed_graph_density,directed_graph_nodes_with_incoming_edge,toxicity_raise
+pron_you,undirected_graph_density,has_reply,undirected_graph_density
+has_all_cap,frac. negative_reply,polarity_gap,has_stop_adoption
+positive,has_stop_adoption,undirected_graph_density,directed_graph_density
+length_entropy,UNIGRAM_Do,UNIGRAM_by,frac. negative_reply
+graph_feature_triad2,toxicity_raise,has_stop_adoption,last_three_pron_you
+last_three_you_start,UNIGRAM_inappropriate,last_three_you_start,UNIGRAM_who
+polarity_gap,UNIGRAM_who,UNIGRAM_gone,"BIGRAM_('here', '.')"
+directed_graph_nodes_with_incoming_edge,directed_graph_self_loops,graph_feature_triad2,UNIGRAM_inappropriate
+has_reply,UNIGRAM_wait,pron_you,last_three_verb start
+UNIGRAM_first,"BIGRAM_('and', 'it')",last_three_verb start,"BIGRAM_(',', 'just')"
+UNIGRAM_English,UNIGRAM_Now,"BIGRAM_('like', 'this')",UNIGRAM_man
+UNIGRAM_perhaps,"BIGRAM_(',', 'for')",UNIGRAM_English,UNIGRAM_summaries
+UNIGRAM_gone,UNIGRAM_policies,has_negative,UNIGRAM_those
+UNIGRAM_most,UNIGRAM_than,UNIGRAM_explain,"BIGRAM_('is', ',')"
+"BIGRAM_('is', ',')",max_length,UNIGRAM_here,"BIGRAM_('point', 'of')"
