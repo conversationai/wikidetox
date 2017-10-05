@@ -19,22 +19,6 @@ Then, from this directory, you can setup the this node package with:
 yarn install
 ```
 
-Link the `wpconvlib` directory into the `node_modules` so it is treated as a node module.
-
-```shell
-cd node_modules
-ln -s ../../wpconvlib ./
-cd ..
-```
-
-You may also need to make sure that library is built with:
-
-```
-cd ../wpconvlib/
-tsc
-cd ../crowdflower
-```
-
 ## Build for CrowdFlower and Local tests
 
 Crowdflower has a special jquery setup, so its different for testing locally than when run in crowdflower. The difference is between concatenating these two files after the generated `app.js` (which has the main part of the code):

@@ -1,0 +1,20 @@
+{
+  "name": "wpconvlib",
+  "version": "0.0.1",
+  "description": "Simple library for wikipedia conversation management.",
+  "main": "./build/tsc/conversation.js",
+  "types": "./build/tsc/conversation.d.ts",
+  "scripts": {
+    "build": "node fuse"
+  },
+  "dependencies": {
+    "fuse-test-runner": "^1.0.14"
+  },
+  "devDependencies": {
+    "fuse-box": "^2.2.31",
+    "typescript": "^2.1.6"
+  },
+  "type": "git",
+  "url": "https://github.com/conversationai/wikidetox.git",
+  "license": "Apache-2.0"
+}

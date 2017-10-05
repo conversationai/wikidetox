@@ -8,14 +8,13 @@
     "noFallthroughCasesInSwitch": true,
     "outDir": "./build/tsc/",
     "sourceMap": true,
-    "target": "ES5"
+    "target": "ES5",
+    "declaration": true
   },
   "include": [
-    "src/**/*.ts",
-    "../convlib/src/**/*.ts"
+    "src/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "**/*.spec.ts"
+    "node_modules"
   ]
 }
