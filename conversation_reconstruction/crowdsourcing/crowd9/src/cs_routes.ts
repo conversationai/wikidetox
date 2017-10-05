@@ -96,8 +96,8 @@ export function setup(app : express.Express,
       console.log('Answer added.');
       res.status(httpcodes.OK).send('Answer added.');
     } catch(e) {
-      console.error('Error: Cannot add answer (maybe dup key?): ', e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot add answer (maybe dup key?): ' + e.message);
+      console.error('Error: Cannot add answer: ', e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot add answer: ' + e.message);
       return;
     }
   });
@@ -231,13 +231,14 @@ export function setup(app : express.Express,
     console.log('number of entries: ' + req.body.length);
 
     try {
-      await crowdsourcedb.addQuestions(questionRows);
+      await crowdsourcedb.updateQuestions(questionRows);
+      // await crowdsourcedb.addQuestions(questionRows);
       console.log('Questions added.');
       res.status(httpcodes.OK).send('Questions added.');
     } catch(e) {
       // TODO(ldixon): make error messages and codes consistent.
-      console.error('Error: Cannot add questions (maybe dup key?): ', e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot add questions (maybe dup key?): ' + e.message);
+      console.error('Error: Cannot add questions: ', e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot add questions: ' + e.message);
       return;
     }
   });
@@ -268,16 +269,14 @@ export function setup(app : express.Express,
       res.status(httpcodes.FORBIDDEN).send('permission failure');
       return;
     }
-    res.status(httpcodes.NOT_IMPLEMENTED).send('not yet implemented');
-    return;
-    // let questionGroupRows : crowdsourcedb.QuestionGroupRow[];
-    // try {
-    //   questionGroupRows = await crowdsourcedb.getAllQuestionGroups();
-    //   res.status(httpcodes.OK).send(JSON.stringify(questionGroupRows, null, 2));
-    // } catch(e) {
-    //   console.error(`*** Failed: `, e);
-    //   res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
-    // }
+    let questionGroupRows : crowdsourcedb.QuestionGroupRow[];
+    try {
+      questionGroupRows = await crowdsourcedb.getAllQuestionGroups();
+      res.status(httpcodes.OK).send(JSON.stringify(questionGroupRows, null, 2));
+    } catch(e) {
+      console.error(`*** Failed: `, e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+    }
   });
 
   // Admin
@@ -352,4 +351,33 @@ export function setup(app : express.Express,
       return;
     }
   });
+
+  // // [Admin only]. Removes the question with id `:question_id`.
+  app.post('/questions/:question_group_id/:question_id', async (req, res) => {
+    if(requestFailsAuth(serverConfig, req)) {
+      res.status(httpcodes.FORBIDDEN).send('permission failure');
+      return;
+    }
+    if(!req.body) {
+      res.status(httpcodes.BAD_REQUEST).send('no body');
+      return;
+    }
+    let questionRow : db_types.QuestionRow = req.body;
+    console.log('number of questions to update: ' + req.body.length);
+
+    questionRow.question_group_id = req.params.question_group_id;
+    questionRow.question_id = req.params.question_id;
+
+    try {
+      await crowdsourcedb.updateQuestions([questionRow]);
+      console.log('Question deleted.');
+      res.status(httpcodes.OK).send('Question deleted.');
+    } catch(e) {
+      // TODO(ldixon): make error messages and codes consistent.
+      console.error('Error: Cannot delete question: ', e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot delete question: ' + e.message);
+      return;
+    }
+  });
+
 }

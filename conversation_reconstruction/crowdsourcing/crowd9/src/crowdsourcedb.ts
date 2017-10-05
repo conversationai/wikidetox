@@ -45,6 +45,11 @@ export interface ScoredAnswer {
   answer : string;
 }
 
+export interface QuestionGroupRow {
+  question_group_id : string;
+  number_of_questions : number;
+}
+
 export class NoResultsError extends Error {}
 
 export class ResultsError<T> extends Error {
@@ -161,7 +166,7 @@ export class CrowdsourceDB {
       throw new NoResultsError('Resulted in empty query response');
     }
     let scoredAnswerRows = results[0].map(
-      row => parseSpannerOutputRow(row) as any as ScoredAnswer);
+      row => parseSpannerOutputRow<ScoredAnswer>(row));
     return scoredAnswerRows;
   }
 
@@ -183,7 +188,7 @@ export class CrowdsourceDB {
       throw new NoResultsError('Resulted in empty query response');
     }
     let questionRows = results[0].map(
-      row => parseSpannerOutputRow(row) as any as QuestionToAnswer);
+      row => parseSpannerOutputRow<QuestionToAnswer>(row));
     return questionRows;
   }
 
@@ -290,6 +295,18 @@ export class CrowdsourceDB {
     return answerRows;
   }
 
+  public async getAllQuestionGroups() {
+    const query : spanner.Query = {
+      sql: `SELECT question_group_id, COUNT(1) as number_of_questions FROM Questions
+            GROUP BY question_group_id`
+    };
+    let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
+    if(results.length === 0){
+      throw new NoResultsError('getAllQuestionGroups: Resulted in empty query response');
+    }
+    return results[0].map(r => parseSpannerOutputRow<QuestionGroupRow>(r));
+  }
+
   public async getWorkerQuality(client_job_key:string, worker_nonce:string)
       : Promise<WorkerQuality> {
     db_types.assertClientJobKey(client_job_key);
@@ -306,7 +323,7 @@ export class CrowdsourceDB {
     if(results[0].length !== 1){
       throw new ResultsError('Strangely resulted in not 1 row', results);
     }
-    return parseSpannerOutputRow(results[0][0]) as any as WorkerQuality;
+    return parseSpannerOutputRow<WorkerQuality>(results[0][0]);
   }
 
   public async getQuestionAnswers(client_job_key:string, question_id:string)
@@ -350,4 +367,27 @@ export class CrowdsourceDB {
     return answerRows;
   }
 
+  public async updateQuestions(questions:db_types.QuestionRow[])
+    : Promise<void> {
+      return this.questionTable.update(
+        questions.map(q => db_types.prepareQuestionSpannerInputRow(q)));
+  };
+
+  // public async setQuestionAnswers(question_group_id:string, question_id:string,
+  //     question_type:string, accepted_answer:string)
+  //     : Promise<void> {
+
+  //   db_types.assertQuestionType(question_type);
+  //   db_types.assertQuestionId(question_id);
+  //   db_types.assertQuestionGroupId(question_group_id);
+
+  //   return this.questionTable.update([
+  //         { question_group_id: question_group_id,
+  //           question_id: question_id,
+  //           type: question_type,
+  //           accepted_answer: accepted_answer }])
+  //       .then(() => {
+  //         console.log('Updated data.');
+  //       });
+  // }
 }

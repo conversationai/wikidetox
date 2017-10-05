@@ -107,7 +107,7 @@ export function assertQuestionType(type: string) {
 
 
 // Parameters can only contain alphanumeric, underscores, ., -, :, or #.
-export const valid_id_regexp = new RegExp(/^(\w|\.\-\:\#)+$/);
+export const valid_id_regexp = new RegExp(/^(\w|\.|\-|\:|\#)+$/);
 // const regexp_strict_positive_number = new RegExp(/^[1-9]\d*$/);
 
 export class BadIdNameError extends Error {}

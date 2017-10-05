@@ -32,6 +32,7 @@ declare module '@google-cloud/spanner' {
     export interface Table {
       insert(rows:InputRow[]): Promise<void>;
       deleteRows(rowKeys:string[] | string[][]) : Promise<void>;
+      update(rows:InputRow[]) : Promise<void>;
     }
 
     // Rows and Columns.

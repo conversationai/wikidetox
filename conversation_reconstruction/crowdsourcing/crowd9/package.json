@@ -45,8 +45,7 @@
     "recaptcha2": "^1.0.8",
     "request": "^2.78.0",
     "serve-favicon": "^2.3.0",
-    "yargs": "^8.0.2",
-    "wpconvlib": "^0.0.1"
+    "yargs": "^8.0.2"
   },
   "devDependencies": {
     "@types/body-parser": "^1.16.3",

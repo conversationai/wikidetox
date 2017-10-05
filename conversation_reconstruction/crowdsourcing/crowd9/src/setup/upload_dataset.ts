@@ -24,7 +24,7 @@ import * as crowdsourcedb from '../crowdsourcedb';
 /*
 Usage:
   node build/server/setup/upload_dataset.js \
-    --file="./src/testdata/conversations_job2_x5.json"
+    --file="./src/testdata/conversations_job2_x5.json" \
     --question_group="conversations_job2_x5"
 */
 
@@ -35,22 +35,47 @@ interface Params {
   gcloud_project_id:string,
   spanner_instance:string,
   spanner_db:string,
+  update_only: boolean,
 };
 
-function main(args : Params) {
+function batchList<T>(batchSize : number, list :T[]) : T[][] {
+  let batches : T[][] = [];
+  let batch : T[] = [];
+  for(let x of list) {
+    batch.push(x);
+    if(batch.length >= batchSize) {
+      batches.push(batch);
+      batch = [];
+    }
+  }
+  if(batch.length > 0) {
+    batches.push(batch);
+  }
+  return batches;
+}
+
+async function main(args : Params) {
   console.log(args.file);
   if (!fs.existsSync(args.file)) {
     console.error('--file argument does not exist: ' + args.file);
     return;
   }
   if(!db_types.valid_question_type_regexp.test(args.question_type)) {
-    console.error('--question_type must be a valid question type (training|test|toanswer), not: ' + args.type);
+    console.error('--question_type must be a valid question type (training|test|toanswer), not: '
+        + args.question_type);
     return;
   }
   if(!db_types.valid_id_regexp.test(args.question_group)) {
-    console.error('--question_type must be a valid question type (training|test|toanswer), not: ' + args.type);
+    console.error('--question_type must be a valid question type (training|test|toanswer), not: '
+        + args.question_type);
     return;
   }
+
+  let db = new crowdsourcedb.CrowdsourceDB({
+    cloudProjectId: args.gcloud_project_id,
+    spannerInstanceId: args.spanner_instance,
+    spannerDatabaseName: args.spanner_db
+  });
 
   let fileAsString = fs.readFileSync(args.file, 'utf8');
   let data : wpconvlib.Conversation[] = JSON.parse(fileAsString);
@@ -62,6 +87,7 @@ function main(args : Params) {
       console.error('bad conversaion with no root: ' + question);
       break;
     }
+
     questions.push({
       accepted_answers: null,
       question: question,
@@ -72,15 +98,23 @@ function main(args : Params) {
     });
   }
 
-  let db = new crowdsourcedb.CrowdsourceDB({
-      cloudProjectId: args.gcloud_project_id,
-      spannerInstanceId: args.spanner_instance,
-      spannerDatabaseName: args.spanner_db
-    });
+  console.log(`conversations to add: ${data.length}`);
+  console.log(`questions to add: ${questions.length}`);
+  console.log(`(skipped bad conversations: ${data.length - questions.length})`);
 
-  db.addQuestions(questions);
+  let batchedQuestions = batchList(10, questions);
 
-  console.log(`added questions: ${questions.length}`);
+  let total_added = 0;
+  for(let batch of batchedQuestions) {
+    if (args.update_only) {
+      await db.updateQuestions(batch);
+    } else {
+      await db.addQuestions(batch);
+    }
+    total_added += batch.length;
+    console.log(`uploaded questions: ${batch.length}`);
+    console.log(`total of uploaded questions is now: ${total_added}`);
+  }
 }
 
 let args = yargs
@@ -108,6 +142,11 @@ let args = yargs
       alias: 's',
       describe: 'Spanner database name'
     })
+    .option('update_only', {
+      alias: 'u',
+      describe: 'If true, then do an update instead of an insert of the questons.'
+    })
+    .default('update_only', false)
     .default('gcloud_project_id', 'wikidetox')
     .default('spanner_instance', 'crowdsource')
     .default('spanner_db', 'testdb')
@@ -116,4 +155,9 @@ let args = yargs
     .help()
     .argv;
 
-main(args as any as Params);
+main(args as any as Params)
+  .then(() => {
+    console.log('Success!');
+  }).catch(e => {
+    console.error('Failed: ', e);
+  });
