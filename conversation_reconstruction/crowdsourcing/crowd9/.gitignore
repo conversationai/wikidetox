@@ -57,20 +57,6 @@ typings/
 # dotenv environment variables file
 .env
 
-# Json dumps
-viz/**/*.json
-
-# Compiled python
-*.pyc
-
-# Mac files
-.DS_Store
-
-# Configuration files (that may contain keys)
-viz/config/
-
-# Fusebox tmp/cache files
-.fusebox
-
-# conversation_reconstruction crowdsourcing tools build files
+# compiled output
 build/
+tmp/

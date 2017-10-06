@@ -1,5 +1,5 @@
 {
-  "name": "crowdsourcing_tools",
+  "name": "wp_crowdflower_conv",
   "version": "0.0.1",
   "description": "Simple project to help with crowdsourcing.",
   "scripts": {
@@ -9,11 +9,12 @@
     "serve:localtest": "yarn build:localtest && python -m SimpleHTTPServer"
   },
   "dependencies": {
-    "fuse-test-runner": "^1.0.14",
+    "wpconvlib": "^0.0.1",
     "jquery": "^3.1.1",
     "requirejs": "^2.3.5"
   },
   "devDependencies": {
+    "fuse-test-runner": "^1.0.14",
     "@types/jquery": "^3.0.0",
     "fuse-box": "^2.2.31",
     "typescript": "^2.1.6"
