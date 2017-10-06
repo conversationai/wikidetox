@@ -72,6 +72,13 @@ curl -H "x-admin-auth-key: ${ADMIN_AUTH_KEY}" \
   },
   {
     "question_id": "q4",
+    "question_group_id":"foo1",
+    "question":"{\"string\":\"Is this a toxic really comment?\"}",
+    "accepted_answers": null,
+    "type": "toanswer"
+  },
+  {
+    "question_id": "q4",
     "question_group_id":"foo2",
     "question":"{\"string\":\"foo2! q4?\"}",
     "accepted_answers": null,
@@ -127,6 +134,13 @@ curl -H "x-admin-auth-key: ${ADMIN_AUTH_KEY}" -X DELETE \
   ${SERVER}/questions/foo2/q6
 curl -H "x-admin-auth-key: ${ADMIN_AUTH_KEY}" -X GET \
      ${SERVER}/question_groups/foo2
+```
+
+See the list of all question groups:
+
+```
+curl -H "x-admin-auth-key: ${ADMIN_AUTH_KEY}" -X GET \
+     ${SERVER}/question_groups
 ```
 
 You can also look at the questions to answer as if you are a client:
@@ -217,7 +231,7 @@ curl -H "Content-Type: application/json" -X GET \
   ${SERVER}/client_jobs/job1_for_foo1/workers/user_fuzbar2
 ```
 
-Look at the workers' quality summary (for a given job):
+Look at the workers' quality summary (for a given job, only on training questions):
 
 ```
 curl -H "Content-Type: application/json" -X GET \
@@ -229,6 +243,13 @@ Look at all answers to the job:
 ```
 curl -H "Content-Type: application/json" -X GET \
   ${SERVER}/client_jobs/job1_for_foo1/answers
+```
+
+Look at overall quality on secret questions:
+
+```
+curl -H "Content-Type: application/json" -X GET \
+  ${SERVER}/client_jobs/job1_for_foo1/quality_summary
 ```
 
 Look at the answers by question id:

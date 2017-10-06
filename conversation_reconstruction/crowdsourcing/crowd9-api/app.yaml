@@ -15,7 +15,7 @@
 runtime: nodejs
 env: flex
 threadsafe: true
-service: crowd9
+service: crowd9api
 
 env_variables:
   NODE_ENV: 'production'

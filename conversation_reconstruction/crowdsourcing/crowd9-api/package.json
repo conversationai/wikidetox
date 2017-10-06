@@ -21,6 +21,7 @@
     "@google-cloud/trace-agent": "^1.0.3",
     "@types/chai": "^4.0.4",
     "@types/passport": "^0.3.4",
+    "@types/request": "^2.0.4",
     "@types/yargs": "^8.0.2",
     "body-parser": "^1.17.1",
     "compression": "^1.6.2",

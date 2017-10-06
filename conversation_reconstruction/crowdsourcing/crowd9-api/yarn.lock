@@ -450,6 +450,12 @@
     "@types/express-serve-static-core" "*"
     "@types/serve-static" "*"
 
+"@types/form-data@*":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@types/form-data/-/form-data-2.2.0.tgz#a98aac91dc99857b6af24caef7ca6df302f31565"
+  dependencies:
+    "@types/node" "*"
+
 "@types/fs-extra@0.0.33":
   version "0.0.33"
   resolved "https://registry.yarnpkg.com/@types/fs-extra/-/fs-extra-0.0.33.tgz#a8719c417b080c012d3497b28e228ac09745fdf2"
@@ -499,6 +505,13 @@
   resolved "https://registry.yarnpkg.com/@types/passport/-/passport-0.3.4.tgz#82929c7427091ba73273fcb963fdef8056bddbe7"
   dependencies:
     "@types/express" "*"
+
+"@types/request@^2.0.4":
+  version "2.0.4"
+  resolved "https://registry.yarnpkg.com/@types/request/-/request-2.0.4.tgz#7691a9d1d1bbc5b26e7c83c47318d86a94877c1d"
+  dependencies:
+    "@types/form-data" "*"
+    "@types/node" "*"
 
 "@types/serve-static@*":
   version "1.7.32"

@@ -33,7 +33,7 @@ export interface AnswerToQuestion {
   worker_nonce: string;
 }
 
-export interface WorkerQuality {
+export interface QualitySummary {
   mean_score : string;
 }
 
@@ -199,16 +199,17 @@ export class CrowdsourceDB {
       client_job_key:string, limit:number) : Promise<QuestionToAnswer[]> {
     db_types.assertClientJobKey(client_job_key)
     const query : spanner.Query = {
-      sql: `SELECT q.question_id, q.question, c.answers_per_question, COUNT(1) as answer_count
+      sql: `SELECT q.question_id, q.question, c.answers_per_question,
+              COUNT(1) as answer_count
             FROM ClientJobs as c
               JOIN Questions as q
                 ON c.question_group_id = q.question_group_id
-              JOIN Answers as a
+              LEFT JOIN Answers as a
                 ON a.question_id = q.question_id
             WHERE c.client_job_key = "${client_job_key}"
               AND q.type != "training"
-            GROUP BY q.question_id, q.question, c.answers_per_question
-            HAVING answer_count < c.answers_per_question
+            GROUP BY q.question_id, q.question, c.answers_per_question, a.question_id
+            HAVING (answer_count < c.answers_per_question) OR (a.question_id IS NULL)
             LIMIT ${limit}
             `
     };
@@ -358,14 +359,16 @@ export class CrowdsourceDB {
     return results[0].map(r => parseSpannerOutputRow<QuestionGroupRow>(r));
   }
 
-  public async getWorkerQuality(client_job_key:string, worker_nonce:string)
-      : Promise<WorkerQuality> {
+  public async getJobQuality(client_job_key:string)
+      : Promise<QualitySummary> {
     db_types.assertClientJobKey(client_job_key);
-    db_types.assertWorkerNonce(worker_nonce);
     const query : spanner.Query = {
-      sql: `SELECT AVG(answer_score) as mean_score FROM Answers
-            WHERE client_job_key="${client_job_key}" AND
-                  worker_nonce="${worker_nonce}"`
+      sql: `SELECT AVG(answer_score) as mean_score
+            FROM Answers as a
+                 JOIN Questions as q
+                   ON a.question_id = q.question_id
+            WHERE a.client_job_key="${client_job_key}" AND
+                  q.type != 'training'`
     };
     let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
     if(results.length === 0 || results[0].length === 0){
@@ -374,7 +377,30 @@ export class CrowdsourceDB {
     if(results[0].length !== 1){
       throw new ResultsError('Strangely resulted in not 1 row', results);
     }
-    return parseSpannerOutputRow<WorkerQuality>(results[0][0]);
+    return parseSpannerOutputRow<QualitySummary>(results[0][0]);
+  }
+
+  public async getWorkerQuality(client_job_key:string, worker_nonce:string)
+      : Promise<QualitySummary> {
+    db_types.assertClientJobKey(client_job_key);
+    db_types.assertWorkerNonce(worker_nonce);
+    const query : spanner.Query = {
+      sql: `SELECT AVG(answer_score) as mean_score
+            FROM Answers as a
+                 JOIN Questions as q
+                 ON a.question_id = q.question_id
+            WHERE a.client_job_key="${client_job_key}" AND
+                  q.type = 'training' AND
+                  a.worker_nonce="${worker_nonce}"`
+    };
+    let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
+    if(results.length === 0 || results[0].length === 0){
+      throw new NoResultsError('getWorkerAnswers: Resulted in empty query response');
+    }
+    if(results[0].length !== 1){
+      throw new ResultsError('Strangely resulted in not 1 row', results);
+    }
+    return parseSpannerOutputRow<QualitySummary>(results[0][0]);
   }
 
   public async getQuestionAnswers(client_job_key:string, question_id:string)
