@@ -72,6 +72,37 @@ export function setup(app : express.Express,
     }
   });
 
+  // If the `:client_job_key` exists, returns a JSON object with 10 questions
+  // that still need answers.
+  app.get('/client_jobs/:client_job_key/next10_unanswered_questions', async (req, res) => {
+    let questionToAnswer : crowdsourcedb.QuestionToAnswer[];
+    try {
+      questionToAnswer = await crowdsourcedb.getClientJobNextOpenQuestions(req.params.client_job_key, 10);
+      // TODO(ldixon): fix lying about type.
+      res.status(httpcodes.OK).send(JSON.stringify(questionToAnswer, null, 2));
+    } catch(e) {
+      console.error(`*** Failed: `, e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+    }
+  });
+
+  // If the `:client_job_key` exists, returns a JSON object with all questions
+  // that now have enough answers.
+  app.get('/client_jobs/:client_job_key/answered_questions', async (req, res) => {
+    let questionToAnswer : crowdsourcedb.QuestionToAnswer[];
+    try {
+      questionToAnswer = await crowdsourcedb.getClientJobClosedQuestions(req.params.client_job_key);
+      // TODO(ldixon): fix lying about type.
+      res.status(httpcodes.OK).send(JSON.stringify(questionToAnswer, null, 2));
+    } catch(e) {
+      console.error(`*** Failed: `, e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+    }
+  });
+
+
+
+
   // If `:client_job_key` exists, and `:question_id` is a question from the
   // client job's question group, then add an answer to that question for the
   // associated worker nonce according to the JSON body of the POST request.
@@ -166,6 +197,22 @@ export function setup(app : express.Express,
     }
   });
 
+  // If `:client_job_key` exists, returns quality on hidden questions.
+  // TODO(ldixon): consider using URL:
+  //   client_jobs/:client_job_key/questions/*/answers
+  app.get('/client_jobs/:client_job_key/quality_summary',
+      async (_req, res) => {
+    try {
+      // let answers = await crowdsourcedb.getJobAnswers(
+      //   req.params.client_job_key);
+      res.status(httpcodes.NOT_IMPLEMENTED).send('Not yet implemented.');
+    } catch(e) {
+      console.error('Error: Cannot get worker answers: ', e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot get worker answers: ' + e.message);
+      return;
+    }
+  });
+
 
   // Admin
   app.get('/active_jobs', async (req, res) => {
@@ -231,10 +278,37 @@ export function setup(app : express.Express,
     console.log('number of entries: ' + req.body.length);
 
     try {
-      await crowdsourcedb.updateQuestions(questionRows);
-      // await crowdsourcedb.addQuestions(questionRows);
+      // await crowdsourcedb.updateQuestions(questionRows);
+      await crowdsourcedb.addQuestions(questionRows);
       console.log('Questions added.');
       res.status(httpcodes.OK).send('Questions added.');
+    } catch(e) {
+      // TODO(ldixon): make error messages and codes consistent.
+      console.error('Error: Cannot add questions: ', e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot add questions: ' + e.message);
+      return;
+    }
+  });
+
+  // [Admin only]. create a set of questions from the specified JSON.
+  // Body of the request should be a JSON in format crowdsourcedb.QuestionRow[]
+  app.patch('/questions', async (req, res) => {
+    if(requestFailsAuth(serverConfig, req)) {
+      res.status(httpcodes.FORBIDDEN).send('permission failure');
+      return;
+    }
+    if(!req.body) {
+      res.status(httpcodes.BAD_REQUEST).send('no body');
+      return;
+    }
+
+    let questionRows : db_types.QuestionRow[] = req.body;
+    console.log('number of entries: ' + req.body.length);
+
+    try {
+      await crowdsourcedb.updateQuestions(questionRows);
+      console.log('Questions updated.');
+      res.status(httpcodes.OK).send('Questions updated.');
     } catch(e) {
       // TODO(ldixon): make error messages and codes consistent.
       console.error('Error: Cannot add questions: ', e);
