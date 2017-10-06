@@ -1,3 +1,4 @@
+//
 /*
 Copyright 2017 Google Inc.
 
@@ -20,7 +21,7 @@ declare var global: any;
 // Scaffolding code for runnin in CrowdFlower
 export function runWithJqueryLoaded(this:any, $:any) : void {
   //jQuery goes here
-  global.$ = $;
+  // global.$ = $;
 
   let rootComment : conversation.Comment | null;
   $('.json-data').each( function (this:any) {

@@ -1,3 +1,4 @@
+//
 /*
 Copyright 2017 Google Inc.
 
@@ -13,18 +14,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-const { FuseBox } = require("fuse-box");
 
-const fuse = FuseBox.init({
-    homeDir: "src",
-    output: "build/dist/$name.js",
-    sourceMaps: true,
-    target: "browser"
-});
-fuse.bundle("app")
-    .instructions(`>run.ts`);
-
-fuse.bundle("test")
-    .test("[**/**.test.ts]");
-
-fuse.run();
+// For use in a web-environment where requirejs exists, to load jquery,
+// and use the runWithJqueryLoaded function from run.ts
+require({
+  paths: {
+    "jquery-ui": "https://code.jquery.com/ui/1.11.3/jquery-ui.min"
+  },
+  map: {
+    "*" : { "jquery" : "jquery-noconflict" }
+  }
+}, [ "jquery-noconflict", "jquery-ui" ], window.runWithJqueryLoaded);

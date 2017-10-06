@@ -19,23 +19,37 @@ Then, from this directory, you can setup the this node package with:
 yarn install
 ```
 
-## Build
+## Build for CrowdFlower and Local tests
+
+Crowdflower has a special jquery setup, so its different for testing locally than when run in crowdflower. The difference is between concatenating these two files after the generated `app.js` (which has the main part of the code):
+
+* src/jquery_crowdflower_require_hack.js
+* src/jquery_localtest_require_hack.js
+
+### Build for crowdflower
 
 ```shell
-yarn run build
+yarn run build:crowdflower
 ```
 
-Generated files end up in `build/dist`.
+Generated files end up in `build/dist/crowdflower.js`. This is what should be copied to the crowdflower JS text box.
 
 ## Test Locally
 
 ```shell
-yarn run serve
+yarn run build:localtest
 ```
 
-Then open this URL in your browser:
+Generated files end up in `build/dist/localtest.js`.
 
-http://localhost:8000/src/testdata/test.html
+```shell
+yarn run serve:localtest
+```
+
+In your browser, then open the URL for the corresponding crowdsourcing job i.e.:
+
+*  http://localhost:8000/src/testdata/test1.html
+*  http://localhost:8000/src/testdata/test2.html
 
 And observe the test conversations look right, and that no errors appear in the
 JavaScript console.
@@ -44,11 +58,15 @@ JavaScript console.
 
 CrowdFlower has 3 sections that need files from this directory need to be copied to the relevant UI input boxes in a CrowdFlower's Job page (afer you run the build command):
 
-* CML: `src/cml.html`
-* JavaScript: `build/dist/index.js`
-* CSS: `src/style.css`
+* CML: `src/cml{N}.html`
+* CSS: `src/style{N}.css`
+* JavaScript: `build/dist/crowdflower.js`
+
+Where `{N}` is the corresponding crowdsourcing job.
 
 ## Job 1: Conversation Selection Method: ask questions.
+
+TODO(ldixon): update.
 
 Bad:
  - First N comments are OK (score <0.6)
@@ -69,3 +87,4 @@ Good and bad are matched:
 
 ## Job 2: Conversation Selection Method: Ask on Tail of comments about is there a toxic comment.
 
+TODO(ldixon): write and update.
