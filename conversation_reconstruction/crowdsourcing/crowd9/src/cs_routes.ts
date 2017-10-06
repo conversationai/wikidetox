@@ -352,8 +352,8 @@ export function setup(app : express.Express,
     }
   });
 
-  // // [Admin only]. Removes the question with id `:question_id`.
-  app.post('/questions/:question_group_id/:question_id', async (req, res) => {
+  // [Admin only]. Updates a question's fields.
+  app.patch('/questions/:question_group_id/:question_id', async (req, res) => {
     if(requestFailsAuth(serverConfig, req)) {
       res.status(httpcodes.FORBIDDEN).send('permission failure');
       return;
