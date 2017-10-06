@@ -5,16 +5,20 @@ comments.
 
 ## Setup
 
-This project assumes you have [a Google Cloud Project setup]() setup; you need
-that to deploy an instance of the this crowdsourcing service.
+This project assumes you have [a Google Cloud Project setup](https://cloud.google.com/) setup; you need
+that for deployment.
 
-### Repository Setup
+### Installing Dependencies
 
-Global node dependencies for development: gcloud, node (suggest you use nvm to install it),
+Global node dependencies for development: gcloud, node (suggest you use nvm to install it) are [typescript](https://www.typescriptlang.org/) to write sensible JS code, and [yarn](https://yarnpkg.com/lang/en/), and of course node (which is usually most easily installed and managed using [nvm](https://github.com/creationix/nvm/blob/master/README.md)):
+
+After you have installed node/npm using nvm, you can install the other global dependencies using:
 
 ```
 npm install -g typescript yarn
 ```
+
+Then from this directory, use yarn to install the local package dependencies:
 
 ```
 yarn install
@@ -30,17 +34,18 @@ cd ..
 
 ### Config file setup
 
-Before you can deploy, you need to
+Before you can deploy, you need to:
 
-Copy the `server_config.template.json` file to `build/config/server_config.json`. You will need to set these values:
+1. Copy the `server_config.template.json` file to `build/config/server_config.json`.
+2. In the `build/config/server_config.json` file, set these values:
 
-* `cloudProjectId` This is the name of your google cloud project.
-* `spannerInstanceId` This is your google cloud project's spanner instance name (the service than runs your spanner database)
-* `spannerDatabaseName` This is the name of a spanner database in your instance that will hold the tables.
-* `adminKey` This is a secret key that will be used to perform administrative actions. In particular, you should create an secret value for `adminKey`. e.g. using output of the command:
-    ```
-    dd if=/dev/urandom bs=1 count=32 | base64
-    ```
+    * `cloudProjectId` This is the name of your google cloud project.
+    * `spannerInstanceId` This is your google cloud project's spanner instance name (the service than runs your spanner database)
+    * `spannerDatabaseName` This is the name of a spanner database in your instance that will hold the tables.
+    * `adminKey` This is a secret key that will be used to perform administrative actions. In particular, you should create an secret value for `adminKey`. e.g. using output of the command:
+        ```
+        dd if=/dev/urandom bs=1 count=32 | base64
+        ```
 
 TODO(ldixon): in future we'll move to using OAuth and project credentials.
 
@@ -75,9 +80,9 @@ Note: at any point you can delete the DB and run this script again.
 
 TODO(ldixon): generalize script above to take use env-vars for instance and dbname.
 
-### GCloud project deployment
+### Deployment to Google Cloud Project
 
-This project uses appengine flexible environment for deployment, which is configured in the app.yml file.
+This project uses appengine flexible environment for deployment, which is configured in the `app.yml` file.
 
 To deploy, make sure your cloud project is set appropriately, and run;
 
@@ -87,12 +92,14 @@ gcloud app deploy
 
 ## Development
 
-To start a dev server, but also watch all the files and rebuild and restart the server when anything
-changes, use:
+To start a local dev server:
 
 ```
 yarn run start:watch
 ```
+
+This will also watch all the files, rebuilding and restarting the server when anything
+changes.
 
 ## Design
 
