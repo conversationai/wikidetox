@@ -66,7 +66,9 @@ def get_data(constraint):
         with open('/scratch/wiki_dumps/%s/raw_data/data%d.json'%(constraint, ind%70), 'a') as f:
              f.write(json.dumps(line) +'\n')
     
-constraints = ['none', 'attacker_in_conv', 'no_users', 'no_users_attacker_in_conv']    
+constraints = ['delta2_none', 'delta2_no_users', 'delta3_none', 'delta3_no_users']
+
+#['none', 'attacker_in_conv', 'no_users', 'no_users_attacker_in_conv']    
 for c in constraints:
     get_data(c)
     print(c)

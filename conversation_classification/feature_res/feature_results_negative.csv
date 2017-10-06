@@ -1,0 +1,21 @@
+delta2_attacker_in_conv,delta2_no_users_attacker_in_conv,delta3_attacker_in_conv,delta3_no_users_attacker_in_conv
+last_three_LEXICON_pron_you,last_three_LEXICON_pron_you,last_three_LEXICON_pron_you,last_three_LEXICON_pron_you
+reply_entropy,reply_entropy,reply_entropy,reply_entropy
+time_gap_entropy,graph_feature_triad2,graph_feature_triad2,graph_feature_triad2
+graph_feature_triad2,has_consecutive_?or!,has_consecutive_?or!,UNIGRAM_from
+has_stop_adoption,last_three_verb start,last_three_verb start,last_three_has_negative
+UNIGRAM_like,UNIGRAM_who,UNIGRAM_who,UNIGRAM_those
+"BIGRAM_('know', 'that')",UNIGRAM_editors,undirected_graph_density,undirected_graph_density
+UNIGRAM_who,undirected_graph_density,has_stop_adoption,last_three_LEXICON_positive
+UNIGRAM_So,UNIGRAM_here,UNIGRAM_editors,last_three_verb start
+UNIGRAM_almost,has_stop_adoption,time_gap_entropy,UNIGRAM_places
+has_consecutive_?or!,directed_graph_nodes_with_incoming_edge,UNIGRAM_here,has_stop_adoption
+"BIGRAM_('As', 'for')",has_reply,has_reply,UNIGRAM_who
+toxicity_raise,polarity_gap,directed_graph_nodes_with_incoming_edge,last_three_you_start
+UNIGRAM_ahead,time_gap_entropy,polarity_gap,UNIGRAM_here
+"BIGRAM_('you', 'are')",last_three_has_all_cap,last_three_has_all_cap,polarity_gap
+directed_graph_nodes_with_incoming_edge,UNIGRAM_clearly,UNIGRAM_clearly,directed_graph_nodes_with_incoming_edge
+polarity_gap,UNIGRAM_by,UNIGRAM_by,has_reply
+has_reply,last_three_you_start,last_three_you_start,has_consecutive_?or!
+"BIGRAM_(',', 'please')",has_negative,has_negative,toxicity_raise
+"BIGRAM_(',', 'a')",toxicity_raise,"BIGRAM_(',', 'and')","BIGRAM_('it', '?')"

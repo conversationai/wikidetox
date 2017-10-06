@@ -37,6 +37,11 @@ def get_data(constraint):
                    f.write(json.dumps(conversations[id1]) + '\n')
                    f.write(json.dumps(conversations[id2]) + '\n')
      
-constraints = ['none', 'attacker_in_conv', 'no_users', 'no_users_attacker_in_conv']  
+constraints = ['delta2_none', 'delta2_no_users', 'delta3_none', 'delta3_no_users']
+#['delta2_no_users_attacker_in_conv']
+#['delta2_attacker_in_conv',  'delta3_attacker_in_conv', 'delta3_no_users_attacker_in_conv']
+
+
 for c in constraints:
+    print(c)
     get_data(c)

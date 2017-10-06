@@ -4,7 +4,8 @@ import hashlib
 import itertools
 import csv
 import re
-import os
+from collections import defaultdict
+import datetime
 
 def clean(s):
     ret = s.replace('\t', ' ')
@@ -39,7 +40,7 @@ def update(snapshot, action):
         for ind, act in enumerate(snapshot):
             if 'parent_id' in action and action['parent_id'] in act['parent_ids']:
                 act['status'] = 'restored'
-                act['content'] = clean(action['content'])
+                act['content'] = action['content']
                 status = 'restored'
                 snapshot[ind] = act
                 Found = True
@@ -141,25 +142,21 @@ def parse_absolute_replyTo(value):
     else:
         return value
 
-def main(constraint):
+def main():
     maxl = None
     res = []
-    max_len = 0
-    path = '/scratch/wiki_dumps/expr_with_matching/' + constraint  + '/data'
-    os.system('cat %s/develop.json %s/train.json %s/develop.json > %s/all.json'%(path, path, path, path))
-    cnt = 0
-#    accepted = []
-    with open('conversations_with_reasonable_length.json') as w:
-         accepted = json.load(w) 
-
-
-    with open('/scratch/wiki_dumps/expr_with_matching/%s/data/all.json'%(constraint)) as f:
+    conversations = defaultdict(list)
+    with open('/home/yiqing/test_bad_convs.json') as f:
     #/scratch/wiki_dumps/attacker_in_conv/len5-11_train.json') as f:
         for i, line in enumerate(f):
-            conv_id, clss, conversation = json.loads(line)
-            if not(conv_id in accepted):
+            cur = json.loads(line)
+            cur['timestamp_in_sec'] = (datetime.datetime.strptime(cur['timestamp'], '%Y-%m-%d %H:%M:%S UTC') -datetime.datetime(1970,1,1)).total_seconds() 
+            cur['comment_type'] = cur['type']
+            conversations[cur['conversation_id']].append(cur)
+        for conversation in conversations.values():
+            actions = sorted(conversation, key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
+            if not(actions[0]['comment_type'] == 'SECTION_CREATION'):
                continue
-            actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
 
             # not including the last action
             end_time = max([a['timestamp_in_sec'] for a in actions])
@@ -170,30 +167,15 @@ def main(constraint):
                 if 'relative_replyTo' in act and not(act['relative_replyTo'] == -1):
                    act['absolute_replyTo'] = snapshot[act['relative_replyTo']]['id']
             ret = {act['id']:reformat(act) for act in snapshot if not(act['status'] == 'removed')}
-            length = len(ret.keys())
-#            if length > 10:
-#               cnt += 1
-#            else:
-#               accepted.append(conv_id)
             res.append(json.dumps(ret))
-            max_len = max(max_len, length) 
             if maxl and i > maxl:
                 break
-#    with open('conversations_with_reasonable_length.json', 'w') as w:
-#         json.dump(accepted, w)
+    print(len(res))
 
-
-    print(max_len)
-    print(cnt)
     df = pd.DataFrame(res)
     df.columns = ['conversations']
     #conversations_as_json_job1.csv
-    os.system('mkdir /scratch/wiki_dumps/expr_with_matching/%s/annotations'%(constraint))
-    df.to_csv('/scratch/wiki_dumps/expr_with_matching/%s/annotations/conversations_as_json_job1.csv'%(constraint), chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
+    df.to_csv('/scratch/wiki_dumps/annotations/conversations_as_json_test_bad_job1.csv', chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
     
 if __name__ == '__main__':
-    constraints = ['delta2_no_users_attacker_in_conv'] #'delta2_no_users', 
-    for c in constraints:
-        main(c)
-        print(c)
-
+    main()

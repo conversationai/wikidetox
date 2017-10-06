@@ -44,7 +44,10 @@ def process(constraint):
             documents.append((conversation, clss))       
     generate_bow_features(constraint, documents)
 
-constraints = ['none', 'attacker_in_conv', 'no_users', 'no_users_attacker_in_conv']
+
+constraints = ['delta2_none', 'delta2_no_users', 'delta3_none', 'delta3_no_users']
+#['delta2_no_users_attacker_in_conv']
+#['delta2_attacker_in_conv',  'delta3_attacker_in_conv', 'delta3_no_users_attacker_in_conv']
 for c in constraints:
     os.system('mkdir /scratch/wiki_dumps/expr_with_matching/%s/bow_features/'%(c))
     process(c)
