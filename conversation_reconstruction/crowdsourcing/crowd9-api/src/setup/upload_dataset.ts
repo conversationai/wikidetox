@@ -18,7 +18,7 @@ limitations under the License.
 import * as yargs from 'yargs';
 import * as fs from 'fs';
 import * as db_types from '../db_types';
-import * as wpconvlib from 'wpconvlib';
+import * as wpconvlib from '@conversationai/wpconvlib';
 import * as crowdsourcedb from '../crowdsourcedb';
 
 /*

@@ -1,4 +1,4 @@
-import * as wpconvlib from "wpconvlib";
+import * as wpconvlib from "@conversationai/wpconvlib";
 
 // Note: this is a hacked-up, simple, and not real conversation.
 export const example_conversation1: wpconvlib.Conversation = {

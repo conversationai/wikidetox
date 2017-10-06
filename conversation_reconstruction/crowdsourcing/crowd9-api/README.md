@@ -24,14 +24,6 @@ Then from this directory, use yarn to install the local package dependencies:
 yarn install
 ```
 
-Link in the Wikipedia conversations library (to treat it as a node package):
-
-```shell
-cd node_modules
-ln -s ../../wpconvlib ./
-cd ..
-```
-
 ### Config file setup
 
 Before you can deploy, you need to:
