@@ -65,7 +65,7 @@ interface SpannerOutputRow { [key:string] : string | number | null };
 function parseSpannerOutputRow<T>(row: spanner.ResultRow) : T {
   let parsedRow : SpannerOutputRow = {};
   for(let entry of row) {
-    console.log(row);
+    // console.log(row);
     if(entry.value === null) {
       parsedRow[entry.name] = null;
     } else if(typeof(entry.value) === 'string') {
@@ -75,7 +75,7 @@ function parseSpannerOutputRow<T>(row: spanner.ResultRow) : T {
     } else if(typeof(entry.value.value) === 'string') {
       // TODO(this isn't safe for big INTs: probably need to change schema to be INT32?)
       let parsedInt = parseInt(entry.value.value);
-      if (parsedInt) {
+      if (parsedInt !== null && parsedInt !== undefined) {
         parsedRow[entry.name] = parsedInt;
       } else {
         console.warn('*** entry value type being treated as string: ' + entry.value.value);
@@ -200,7 +200,7 @@ export class CrowdsourceDB {
     db_types.assertClientJobKey(client_job_key)
     const query : spanner.Query = {
       sql: `SELECT q.question_id, q.question, c.answers_per_question,
-              COUNT(1) as answer_count
+              COUNT(a.question_id) as answer_count
             FROM ClientJobs as c
               JOIN Questions as q
                 ON c.question_group_id = q.question_group_id
