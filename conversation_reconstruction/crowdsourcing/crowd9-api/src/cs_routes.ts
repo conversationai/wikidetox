@@ -72,6 +72,37 @@ export function setup(app : express.Express,
     }
   });
 
+  // If the `:client_job_key` exists, returns a JSON object with 10 questions
+  // that still need answers.
+  app.get('/client_jobs/:client_job_key/next10_unanswered_questions', async (req, res) => {
+    let questionToAnswer : crowdsourcedb.QuestionToAnswer[];
+    try {
+      questionToAnswer = await crowdsourcedb.getClientJobNextOpenQuestions(req.params.client_job_key, 10);
+      // TODO(ldixon): fix lying about type.
+      res.status(httpcodes.OK).send(JSON.stringify(questionToAnswer, null, 2));
+    } catch(e) {
+      console.error(`*** Failed: `, e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+    }
+  });
+
+  // If the `:client_job_key` exists, returns a JSON object with all questions
+  // that now have enough answers.
+  app.get('/client_jobs/:client_job_key/answered_questions', async (req, res) => {
+    let questionToAnswer : crowdsourcedb.QuestionToAnswer[];
+    try {
+      questionToAnswer = await crowdsourcedb.getClientJobClosedQuestions(req.params.client_job_key);
+      // TODO(ldixon): fix lying about type.
+      res.status(httpcodes.OK).send(JSON.stringify(questionToAnswer, null, 2));
+    } catch(e) {
+      console.error(`*** Failed: `, e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+    }
+  });
+
+
+
+
   // If `:client_job_key` exists, and `:question_id` is a question from the
   // client job's question group, then add an answer to that question for the
   // associated worker nonce according to the JSON body of the POST request.

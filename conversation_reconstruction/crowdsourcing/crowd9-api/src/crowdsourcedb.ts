@@ -170,6 +170,57 @@ export class CrowdsourceDB {
     return scoredAnswerRows;
   }
 
+  public async getClientJobClosedQuestions(
+      client_job_key:string) : Promise<QuestionToAnswer[]> {
+    db_types.assertClientJobKey(client_job_key)
+    const query : spanner.Query = {
+      sql: `SELECT q.question_id, q.question, c.answers_per_question, COUNT(1) as answer_count
+            FROM ClientJobs as c
+              JOIN Questions as q
+                ON c.question_group_id = q.question_group_id
+              JOIN Answers as a
+                ON a.question_id = q.question_id
+            WHERE c.client_job_key = "${client_job_key}"
+              AND q.type != "training"
+            GROUP BY q.question_id, q.question, c.answers_per_question
+            HAVING answer_count >= c.answers_per_question
+            `
+    };
+    let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
+    if(results.length === 0){
+      throw new NoResultsError('Resulted in empty query response');
+    }
+    let questionRows = results[0].map(
+      row => parseSpannerOutputRow<QuestionToAnswer>(row));
+    return questionRows;
+  }
+
+  public async getClientJobNextOpenQuestions(
+      client_job_key:string, limit:number) : Promise<QuestionToAnswer[]> {
+    db_types.assertClientJobKey(client_job_key)
+    const query : spanner.Query = {
+      sql: `SELECT q.question_id, q.question, c.answers_per_question, COUNT(1) as answer_count
+            FROM ClientJobs as c
+              JOIN Questions as q
+                ON c.question_group_id = q.question_group_id
+              JOIN Answers as a
+                ON a.question_id = q.question_id
+            WHERE c.client_job_key = "${client_job_key}"
+              AND q.type != "training"
+            GROUP BY q.question_id, q.question, c.answers_per_question
+            HAVING answer_count < c.answers_per_question
+            LIMIT ${limit}
+            `
+    };
+    let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
+    if(results.length === 0){
+      throw new NoResultsError('Resulted in empty query response');
+    }
+    let questionRows = results[0].map(
+      row => parseSpannerOutputRow<QuestionToAnswer>(row));
+    return questionRows;
+  }
+
 
   public async getClientJobQuestions(
       client_job_key:string,

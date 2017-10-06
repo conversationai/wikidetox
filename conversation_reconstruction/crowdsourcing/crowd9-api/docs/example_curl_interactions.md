@@ -194,6 +194,20 @@ curl -H "Content-Type: application/json" -X POST -d \
   ${SERVER}/client_jobs/job1_for_foo1/questions/q3/answers/user_fuzbar2
 ```
 
+Look at the questions that still need more answers:
+
+```
+curl -H "Content-Type: application/json" -X GET \
+  ${SERVER}/client_jobs/job1_for_foo1/next10_unanswered_questions
+```
+
+Look at the questions that have enough answers:
+
+```
+curl -H "Content-Type: application/json" -X GET \
+  ${SERVER}/client_jobs/job1_for_foo1/answered_questions
+```
+
 Look at the answers by workers:
 
 ```
