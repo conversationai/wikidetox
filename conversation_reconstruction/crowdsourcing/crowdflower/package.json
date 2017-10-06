@@ -9,11 +9,11 @@
     "serve:localtest": "yarn build:localtest && python -m SimpleHTTPServer"
   },
   "dependencies": {
-    "wpconvlib": "^0.0.1",
     "jquery": "^3.1.1",
     "requirejs": "^2.3.5"
   },
   "devDependencies": {
+    "@conversationai/wpconvlib": "^0.0.1",
     "fuse-test-runner": "^1.0.14",
     "@types/jquery": "^3.0.0",
     "fuse-box": "^2.2.31",

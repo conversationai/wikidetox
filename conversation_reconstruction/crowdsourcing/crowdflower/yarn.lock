@@ -2,6 +2,12 @@
 # yarn lockfile v1
 
 
+"@conversationai/wpconvlib@^0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@conversationai/wpconvlib/-/wpconvlib-0.0.1.tgz#7ae49dc3fb8feb253cda97e705cba523aa580464"
+  dependencies:
+    fuse-test-runner "^1.0.14"
+
 "@types/jquery@^3.0.0":
   version "3.2.12"
   resolved "https://registry.yarnpkg.com/@types/jquery/-/jquery-3.2.12.tgz#f496823108c3874c97c9a822e675a3926ee64b46"
