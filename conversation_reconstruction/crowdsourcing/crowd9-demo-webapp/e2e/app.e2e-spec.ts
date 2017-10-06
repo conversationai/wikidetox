@@ -1,6 +1,6 @@
 import { Crowd9DemoPage } from './app.po';
 
-describe('crowd9-demo App', () => {
+describe('crowd9-demo-webapp App', () => {
   let page: Crowd9DemoPage;
 
   beforeEach(() => {
