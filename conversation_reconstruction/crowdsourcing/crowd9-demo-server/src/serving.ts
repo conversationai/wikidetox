@@ -16,7 +16,7 @@ limitations under the License.
 import * as bodyParser from 'body-parser';
 import * as compression from 'compression';
 import * as express from 'express';
-import * as cors from 'cors';
+// import * as cors from 'cors';
 import * as http from 'http';
 import * as request from 'request';
 import * as path from 'path';
@@ -48,17 +48,17 @@ export class Server {
 
     this.app = express();
 
-    var whitelist = ['http://localhost:4200']
-    var corsOptions = {
-      origin: function (origin:string, callback: (e:Error | null, b?:boolean) => void) {
-        if (whitelist.indexOf(origin) !== -1) {
-          callback(null, true)
-        } else {
-          callback(new Error('Not allowed by CORS'))
-        }
-      }
-    }
-    this.app.use(cors(corsOptions));
+    // var whitelist = ['http://localhost:4200']
+    // var corsOptions = {
+    //   origin: function (origin:string, callback: (e:Error | null, b?:boolean) => void) {
+    //     if (whitelist.indexOf(origin) !== -1) {
+    //       callback(null, true)
+    //     } else {
+    //       callback(new Error('Not allowed by CORS'))
+    //     }
+    //   }
+    // }
+    // this.app.use(cors(corsOptions));
 
     // Trust proxies so that DDoS tools can see original IP addresses.
     // TODO(ldixon): check is this what we want.
@@ -77,13 +77,13 @@ export class Server {
     });
 
     // Returns some work to do, using/hiding the client config
-    this.app.get('/work', async (_req, res) => {
+    this.app.get('/api/work', async (_req, res) => {
       try {
         let url = `${this.config.crowd9ApiUrl}/client_jobs/` +
                   `${this.config.clientJobKey}/next10_unanswered_questions`;
         let result = await new Promise<{status: number, body:string}>(
             (resolve, reject) => {
-          request(url, function (error, response, body) {
+          request.get(url, function (error, response, body) {
             if(!(response && response.statusCode !== undefined)) {
               reject(new Error('no response/response code'));
             } else if(error) {
@@ -91,6 +91,38 @@ export class Server {
             } else {
               resolve({status: response.statusCode, body: body});
             }
+          });
+        });
+        res.status(result.status).send(result.body);
+      } catch(e) {
+        console.error(`*** Failed: `, e);
+        res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      }
+    });
+
+    // Returns some work to do, using/hiding the client config
+    this.app.post('/api/answer', async (req, res) => {
+      try {
+        let url = `${this.config.crowd9ApiUrl}/client_jobs/` +
+                  `${this.config.clientJobKey}/questions/` +
+                  `${req.body.questionId}/answers/${req.body.userNonce}`;
+        delete(req.body.questionId);
+        delete(req.body.userNonce);
+        let result = await new Promise<{status: number, body:string}>(
+            (resolve, reject) => {
+          request({
+              method: 'POST',
+              uri: url,
+              json: { answer: JSON.stringify(req.body) }
+            },
+            function (error, response, body) {
+              if(!(response && response.statusCode !== undefined)) {
+                reject(new Error('no response/response code'));
+              } else if(error) {
+                reject(error);
+              } else {
+                resolve({status: response.statusCode, body: body});
+              }
           });
         });
         res.status(result.status).send(result.body);
