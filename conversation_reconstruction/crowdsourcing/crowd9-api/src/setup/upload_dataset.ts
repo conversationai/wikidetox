@@ -18,7 +18,7 @@ limitations under the License.
 import * as yargs from 'yargs';
 import * as fs from 'fs';
 import * as db_types from '../db_types';
-import * as wpconvlib from '@conversationai/wpconvlib';
+// import * as wpconvlib from '@conversationai/wpconvlib';
 import * as crowdsourcedb from '../crowdsourcedb';
 
 /*
@@ -26,6 +26,12 @@ Usage:
   node build/server/setup/upload_dataset.js \
     --file="./src/testdata/conversations_job2_x5.json" \
     --question_group="conversations_job2_x5"
+  node build/server/setup/upload_dataset.js \
+    --file="./src/testdata/wp_goodish_x1000.json" \
+    --question_group="wp_x2000"
+  node build/server/setup/upload_dataset.js \
+    --file="./src/testdata/wp_badish_x1000.json" \
+    --question_group="wp_x2000"
 */
 
 interface Params {
@@ -36,6 +42,12 @@ interface Params {
   spanner_instance:string,
   spanner_db:string,
   update_only: boolean,
+};
+
+// type DataShape = wpconvlib.Conversation;
+interface DataShape {
+  revision_id : string,
+  revision_text : string,
 };
 
 function batchList<T>(batchSize : number, list :T[]) : T[][] {
@@ -78,21 +90,23 @@ async function main(args : Params) {
   });
 
   let fileAsString = fs.readFileSync(args.file, 'utf8');
-  let data : wpconvlib.Conversation[] = JSON.parse(fileAsString);
+  let data : DataShape[] = JSON.parse(fileAsString);
   let questions : db_types.QuestionRow[] = [];
   for (let i = 0; i < data.length; i++) {
     let question = JSON.stringify(data[i]);
-    let structured_conv = wpconvlib.structureConversaton(data[i]);
-    if(!structured_conv) {
-      console.error('bad conversaion with no root: ' + question);
-      break;
-    }
+    // let structured_conv = wpconvlib.structureConversaton(data[i]);
+    // if(!structured_conv) {
+    //   console.error('bad conversaion with no root: ' + question);
+    //   break;
+    // }
+    // let id = structured_conv.id + ':' + i;
+    let id = data[i].revision_id;
 
     questions.push({
       accepted_answers: null,
       question: question,
       question_group_id: args.question_group,
-      question_id: structured_conv.id + ':' + i,
+      question_id: id,
       // TODO(ldixon): make nice typescript interence helper function.
       type: args.question_type as any,
     });
