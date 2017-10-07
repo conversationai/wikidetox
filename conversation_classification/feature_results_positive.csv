@@ -1,21 +1,21 @@
-attacker_in_conv,no_users,no_users_attacker_in_conv,none
-UNIGRAM_exactly,UNIGRAM_confused,UNIGRAM_should,"BIGRAM_('to', 'find')"
-has_pos_repeat,UNIGRAM_The,UNIGRAM_recent,positive_increase
-UNIGRAM_took,UNIGRAM_last,UNIGRAM_good,UNIGRAM_''
-UNIGRAM_best,UNIGRAM_similar,positive_decrease,pron_me
-UNIGRAM_where,UNIGRAM_link,UNIGRAM_on,graph_feature_triad1
-"BIGRAM_('for', 'a')",UNIGRAM_'',UNIGRAM_The,UNIGRAM_Sorry
-UNIGRAM_section,has_pos_repeat,has_polite,has_content_repeat
-negative_increase,has_content_repeat,UNIGRAM_No,UNIGRAM_similar
-has_content_repeat,"BIGRAM_(""'"", ""''"")",UNIGRAM_Thanks,UNIGRAM_Cheers
-"BIGRAM_('to', 'your')","BIGRAM_('Thanks', 'for')",has_pos_repeat,"BIGRAM_('made', 'to')"
-"BIGRAM_('may', 'be')",positive_increase,has_thank,"BIGRAM_(""'"", ""''"")"
-UNIGRAM_Thanks,graph_feature_triad1,UNIGRAM_there,UNIGRAM_confused
-has_stop_repeat,no_users,UNIGRAM_an,has_modification
-has_thank,"BIGRAM_(""''"", ""'"")","BIGRAM_('for', 'a')",UNIGRAM_Have
-toxicity_entropy,time_gap_entropy,UNIGRAM_section,"BIGRAM_(""''"", ""'"")"
-positive_increase,has_modification,has_stop_repeat,no_users
-has_modification,last_three_has_modification,has_content_repeat,last_three_has_modification
-last_three_has_modification,repeat_percentage,last_three_has_modification,repeat_percentage
-directed_graph_self_loops,max_time_gap,repeat_percentage,graph_feature_triad0
-repeat_percentage,graph_feature_triad0,has_modification,max_time_gap
+delta2_no_users,delta2_none,delta3_no_users,delta3_none
+has_polite,UNIGRAM_release,UNIGRAM_disagree,"BIGRAM_('You', 'may')"
+UNIGRAM_leave,UNIGRAM_Have,"BIGRAM_('far', 'as')",has_content_repeat
+"BIGRAM_('has', 'a')",UNIGRAM_incorrect,last_three_has_greetings,UNIGRAM_both
+UNIGRAM_section,"BIGRAM_('page', 'to')",UNIGRAM_Well,"BIGRAM_('as', 'the')"
+negative_decrease,UNIGRAM_move,UNIGRAM_both,UNIGRAM_necessary
+"BIGRAM_('for', 'a')","BIGRAM_('wiki_link', ':')",UNIGRAM_'',time_gap_entropy
+UNIGRAM_statements,"BIGRAM_('the', 'section')","BIGRAM_('I', 'thought')",UNIGRAM_meant
+has_content_repeat,has_content_repeat,"BIGRAM_('you', 'think')","BIGRAM_('to', 'your')"
+"BIGRAM_('Thanks', 'for')",time_gap_entropy,has_content_repeat,"BIGRAM_('you', 'for')"
+"BIGRAM_(""'"", ""''"")","BIGRAM_('removed', 'the')",positive_increase,UNIGRAM_link
+UNIGRAM_'',UNIGRAM_'',UNIGRAM_request,positive_increase
+positive_increase,positive_increase,"BIGRAM_(""'"", ""''"")","BIGRAM_(""'"", ""''"")"
+no_users,"BIGRAM_(""'"", ""''"")",graph_feature_triad1,UNIGRAM_''
+time_gap_entropy,graph_feature_triad1,time_gap_entropy,graph_feature_triad1
+graph_feature_triad1,no_users,last_three_has_modification,no_users
+last_three_has_modification,has_modification,no_users,has_modification
+has_modification,last_three_has_modification,has_modification,last_three_has_modification
+repeat_percentage,repeat_percentage,repeat_percentage,repeat_percentage
+max_time_gap,graph_feature_triad0,max_time_gap,graph_feature_triad0
+graph_feature_triad0,max_time_gap,graph_feature_triad0,max_time_gap
