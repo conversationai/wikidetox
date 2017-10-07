@@ -112,7 +112,7 @@ export class CrowdsourceDB {
     // setting vars?
     this.spanner = spanner({ projectId: config.cloudProjectId });
     this.spannerInstance = this.spanner.instance(config.spannerInstanceId);
-    this.spannerDatabase = this.spannerInstance.database(config.spannerDatabaseName);
+    this.spannerDatabase = this.spannerInstance.database(config.spannerDatabaseName, { keepAlive: 5 });
     // Instantiate Spanner table objects
     this.answerTable = this.spannerDatabase.table('Answers');
     this.questionTable = this.spannerDatabase.table('Questions');
