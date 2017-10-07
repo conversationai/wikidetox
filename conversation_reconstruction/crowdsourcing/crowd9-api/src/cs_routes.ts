@@ -42,7 +42,7 @@ export function setup(app : express.Express,
       res.status(httpcodes.OK).send(JSON.stringify(clientJobRow, null, 2));
     } catch(e) {
       console.error(`*** Failed: `, e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
     }
   });
 
@@ -55,7 +55,7 @@ export function setup(app : express.Express,
       res.status(httpcodes.OK).send(JSON.stringify(questionToAnswer, null, 2));
     } catch(e) {
       console.error(`*** Failed: `, e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
     }
   });
 
@@ -68,7 +68,7 @@ export function setup(app : express.Express,
       res.status(httpcodes.OK).send(JSON.stringify(questionToAnswer, null, 2));
     } catch(e) {
       console.error(`*** Failed: `, e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
     }
   });
 
@@ -82,7 +82,7 @@ export function setup(app : express.Express,
       res.status(httpcodes.OK).send(JSON.stringify(questionToAnswer, null, 2));
     } catch(e) {
       console.error(`*** Failed: `, e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
     }
   });
 
@@ -96,7 +96,7 @@ export function setup(app : express.Express,
       res.status(httpcodes.OK).send(JSON.stringify(questionToAnswer, null, 2));
     } catch(e) {
       console.error(`*** Failed: `, e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
     }
   });
 
@@ -112,7 +112,7 @@ export function setup(app : express.Express,
   app.post('/client_jobs/:client_job_key/questions/:question_id/answers/:worker_nonce',
       async (req, res) => {
     if(!req.body) {
-      res.status(httpcodes.BAD_REQUEST).send('no body');
+      res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({ error: 'no body' }));
       return;
     }
     let answerToQuestion : crowdsourcedb.AnswerToQuestion = req.body;
@@ -125,10 +125,10 @@ export function setup(app : express.Express,
     try {
       await crowdsourcedb.addAnswer(answerToQuestion);
       console.log('Answer added.');
-      res.status(httpcodes.OK).send('Answer added.');
+      res.status(httpcodes.OK).send(JSON.stringify({ result: 'Answer added' }));
     } catch(e) {
       console.error('Error: Cannot add answer: ', e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot add answer: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
       return;
     }
   });
@@ -142,7 +142,7 @@ export function setup(app : express.Express,
       res.status(httpcodes.OK).send(JSON.stringify(answers, null, 2));
     } catch(e) {
       console.error('Error: Cannot get worker answers: ', e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot get worker answers: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
       return;
     }
   });
@@ -161,7 +161,7 @@ export function setup(app : express.Express,
       res.status(httpcodes.OK).send(JSON.stringify(workerQuality, null, 2));
     } catch(e) {
       console.error('Error: Cannot get worker answers: ', e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot get worker answers: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
       return;
     }
   });
@@ -177,7 +177,7 @@ export function setup(app : express.Express,
       res.status(httpcodes.OK).send(JSON.stringify(answers, null, 2));
     } catch(e) {
       console.error('Error: Cannot get worker answers: ', e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot get worker answers: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
       return;
     }
   });
@@ -192,7 +192,7 @@ export function setup(app : express.Express,
       res.status(httpcodes.OK).send(JSON.stringify(answers, null, 2));
     } catch(e) {
       console.error('Error: Cannot get worker answers: ', e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot get worker answers: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
       return;
     }
   });
@@ -205,10 +205,10 @@ export function setup(app : express.Express,
     try {
       // let answers = await crowdsourcedb.getJobAnswers(
       //   req.params.client_job_key);
-      res.status(httpcodes.NOT_IMPLEMENTED).send('Not yet implemented.');
+      res.status(httpcodes.NOT_IMPLEMENTED).send(JSON.stringify({ error: 'Not yet implemented.' }));
     } catch(e) {
       console.error('Error: Cannot get worker answers: ', e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot get worker answers: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
       return;
     }
   });
@@ -217,7 +217,7 @@ export function setup(app : express.Express,
   // Admin
   app.get('/active_jobs', async (req, res) => {
     if(requestFailsAuth(serverConfig, req)) {
-      res.status(httpcodes.FORBIDDEN).send('permission failure');
+      res.status(httpcodes.FORBIDDEN).send(JSON.stringify({ error: 'permission failure' }));
       return;
     }
     let clientJobRows : db_types.ClientJobRow[];
@@ -226,17 +226,17 @@ export function setup(app : express.Express,
       res.status(httpcodes.OK).send(JSON.stringify(clientJobRows, null, 2));
     } catch(e) {
       console.error(`*** Failed: `, e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
     }
   });
 
   app.post('/active_jobs/:client_job_key', async (req, res) => {
     if(requestFailsAuth(serverConfig, req)) {
-      res.status(httpcodes.FORBIDDEN).send('permission failure');
+      res.status(httpcodes.FORBIDDEN).send(JSON.stringify({ error: 'permission failure' }));
       return;
     }
     if(!req.body) {
-      res.status(httpcodes.BAD_REQUEST).send('no body');
+      res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({ error: 'no body' }));
       return;
     }
 
@@ -247,17 +247,17 @@ export function setup(app : express.Express,
       clientJobRow.client_job_key = req.params.client_job_key;
     } catch(e) {
       console.error(`Failed to parse body: ${req.body}`, e);
-      res.status(httpcodes.BAD_REQUEST).send('bad body');
+      res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({ error: e.message }));
       return;
     }
 
     try {
       await crowdsourcedb.addClientJob(clientJobRow);
       console.log('New client job created!');
-      res.status(httpcodes.OK).send('New client job created');
+      res.status(httpcodes.OK).send(JSON.stringify({ result: 'New client job created' }));
     } catch(e) {
       console.error('Error: Cannot insert (maybe dup key): ', e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot insert (maybe dup key): ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
       return;
     }
   });
@@ -266,11 +266,11 @@ export function setup(app : express.Express,
   // Body of the request should be a JSON in format crowdsourcedb.QuestionRow[]
   app.post('/questions', async (req, res) => {
     if(requestFailsAuth(serverConfig, req)) {
-      res.status(httpcodes.FORBIDDEN).send('permission failure');
+      res.status(httpcodes.FORBIDDEN).send(JSON.stringify({ error: 'permission failure' }));
       return;
     }
     if(!req.body) {
-      res.status(httpcodes.BAD_REQUEST).send('no body');
+      res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({ error: 'no body' }));
       return;
     }
 
@@ -281,11 +281,11 @@ export function setup(app : express.Express,
       // await crowdsourcedb.updateQuestions(questionRows);
       await crowdsourcedb.addQuestions(questionRows);
       console.log('Questions added.');
-      res.status(httpcodes.OK).send('Questions added.');
+      res.status(httpcodes.OK).send(JSON.stringify({ result: 'Questions added.' }));
     } catch(e) {
       // TODO(ldixon): make error messages and codes consistent.
       console.error('Error: Cannot add questions: ', e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot add questions: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
       return;
     }
   });
@@ -294,11 +294,13 @@ export function setup(app : express.Express,
   // Body of the request should be a JSON in format crowdsourcedb.QuestionRow[]
   app.patch('/questions', async (req, res) => {
     if(requestFailsAuth(serverConfig, req)) {
-      res.status(httpcodes.FORBIDDEN).send('permission failure');
+      res.status(httpcodes.FORBIDDEN).send(JSON.stringify({ error: 'permission failure' }));
       return;
     }
     if(!req.body) {
-      res.status(httpcodes.BAD_REQUEST).send('no body');
+      res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({ error: 'no body' }));
+      res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({ error: 'no body' }));
+
       return;
     }
 
@@ -312,7 +314,7 @@ export function setup(app : express.Express,
     } catch(e) {
       // TODO(ldixon): make error messages and codes consistent.
       console.error('Error: Cannot add questions: ', e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot add questions: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
       return;
     }
   });
@@ -321,7 +323,7 @@ export function setup(app : express.Express,
   app.delete('/active_jobs/:client_job_key',
       async (req, res) => {
     if(requestFailsAuth(serverConfig, req)) {
-      res.status(httpcodes.FORBIDDEN).send('permission failure');
+      res.status(httpcodes.FORBIDDEN).send(JSON.stringify({ error: 'permission failure' }));
       return;
     }
     try {
@@ -331,7 +333,7 @@ export function setup(app : express.Express,
     } catch(e) {
       // TODO(ldixon): make error messages and codes consistent.
       console.error('Error: Cannot delete ClientJob: ', e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot delete ClientJob: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
       return;
     }
   });
@@ -340,7 +342,7 @@ export function setup(app : express.Express,
   // Admin
   app.get('/question_groups', async (req, res) => {
     if(requestFailsAuth(serverConfig, req)) {
-      res.status(httpcodes.FORBIDDEN).send('permission failure');
+      res.status(httpcodes.FORBIDDEN).send(JSON.stringify({ error: 'permission failure' }));
       return;
     }
     let questionGroupRows : crowdsourcedb.QuestionGroupRow[];
@@ -349,14 +351,14 @@ export function setup(app : express.Express,
       res.status(httpcodes.OK).send(JSON.stringify(questionGroupRows, null, 2));
     } catch(e) {
       console.error(`*** Failed: `, e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
     }
   });
 
   // Admin
   app.get('/scored_answers', async (req, res) => {
     if(requestFailsAuth(serverConfig, req)) {
-      res.status(httpcodes.FORBIDDEN).send('permission failure');
+      res.status(httpcodes.FORBIDDEN).send(JSON.stringify({ error: 'permission failure' }));
       return;
     }
     let scoredAnswerRows : crowdsourcedb.ScoredAnswer[];
@@ -365,14 +367,14 @@ export function setup(app : express.Express,
       res.status(httpcodes.OK).send(JSON.stringify(scoredAnswerRows, null, 2));
     } catch(e) {
       console.error(`*** Failed: `, e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
     }
   });
 
   // Admin
   app.get('/question_groups/:question_group_id', async (req, res) => {
     if(requestFailsAuth(serverConfig, req)) {
-      res.status(httpcodes.FORBIDDEN).send('permission failure');
+      res.status(httpcodes.FORBIDDEN).send(JSON.stringify({ error: 'permission failure' }));
       return;
     }
     let questionRows : db_types.QuestionRow[];
@@ -381,35 +383,15 @@ export function setup(app : express.Express,
       res.status(httpcodes.OK).send(JSON.stringify(questionRows, null, 2));
     } catch(e) {
       console.error(`*** Failed: `, e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
     }
-  });
-
-  // [Admin only]. Removes the question with id `:question_id`.
-  app.delete('/question_groups/:question_group_id',
-      async (req, res) => {
-    if(requestFailsAuth(serverConfig, req)) {
-      res.status(httpcodes.FORBIDDEN).send('permission failure');
-      return;
-    }
-    res.status(httpcodes.NOT_IMPLEMENTED).send('no implemented');
-    // try {
-    //   await crowdsourcedb.deleteQuestionGroup(req.params.question_group_id);
-    //   console.log('Questions deleted.');
-    //   res.status(httpcodes.OK).send('Questions deleted.');
-    // } catch(e) {
-    //   // TODO(ldixon): make error messages and codes consistent.
-    //   console.error('Error: Cannot delete question-group: ', e);
-    //   res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot delete question-group: ' + e.message);
-    //   return;
-    // }
   });
 
   // [Admin only]. Removes the question with id `:question_id`.
   app.delete('/questions/:question_group_id/:question_id',
       async (req, res) => {
     if(requestFailsAuth(serverConfig, req)) {
-      res.status(httpcodes.FORBIDDEN).send('permission failure');
+      res.status(httpcodes.FORBIDDEN).send(JSON.stringify({ error: 'permission failure' }));
       return;
     }
     try {
@@ -417,11 +399,11 @@ export function setup(app : express.Express,
         [{question_group_id: req.params.question_group_id,
           question_id: req.params.question_id}]);
       console.log('Question deleted.');
-      res.status(httpcodes.OK).send('Question deleted.');
+      res.status(httpcodes.OK).send(JSON.stringify({ result: 'Question deleted.' }));
     } catch(e) {
       // TODO(ldixon): make error messages and codes consistent.
       console.error('Error: Cannot delete question: ', e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot delete question: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
       return;
     }
   });
@@ -429,27 +411,24 @@ export function setup(app : express.Express,
   // [Admin only]. Updates a question's fields.
   app.patch('/questions/:question_group_id/:question_id', async (req, res) => {
     if(requestFailsAuth(serverConfig, req)) {
-      res.status(httpcodes.FORBIDDEN).send('permission failure');
+      res.status(httpcodes.FORBIDDEN).send(JSON.stringify({ error: 'permission failure' }));
       return;
     }
     if(!req.body) {
-      res.status(httpcodes.BAD_REQUEST).send('no body');
+      res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({ error: 'no body' }));
       return;
     }
     let questionRow : db_types.QuestionRow = req.body;
-    console.log('number of questions to update: ' + req.body.length);
-
     questionRow.question_group_id = req.params.question_group_id;
     questionRow.question_id = req.params.question_id;
-
     try {
       await crowdsourcedb.updateQuestions([questionRow]);
-      console.log('Question deleted.');
-      res.status(httpcodes.OK).send('Question deleted.');
+      console.log('Question patched.');
+      res.status(httpcodes.OK).send(JSON.stringify({ result: 'Question patched.' }));
     } catch(e) {
       // TODO(ldixon): make error messages and codes consistent.
       console.error('Error: Cannot delete question: ', e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: Cannot delete question: ' + e.message);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
       return;
     }
   });

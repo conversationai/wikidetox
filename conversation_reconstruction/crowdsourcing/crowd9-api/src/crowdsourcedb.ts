@@ -90,6 +90,11 @@ function parseSpannerOutputRow<T>(row: spanner.ResultRow) : T {
   return parsedRow as any as T;
 }
 
+// TODO(ldixon): when/if sessions expire, we need to reconnet.
+// See: https://cloud.google.com/spanner/docs/sessions#keep_an_idle_session_alive
+// (Yes, we do try to keep it alive, but we should still fail and recover
+// gracefully if connections drop).
+
 // CrowdsourceDB takes responsibility for checking parameters won't
 // result in SQL injection or other bad things.
 export class CrowdsourceDB {
