@@ -13,6 +13,12 @@
   <cml:radio label="Uncertain" value="-1"></cml:radio>
 </cml:radios>
 
+<cml:radios only-if="na:unchecked" label="Do the participants in this conversation disagree with one another?" name="disagreement" validates="required">
+  <cml:radio label="Yes" value="1"></cml:radio>
+  <cml:radio label="No" value="0"></cml:radio>
+  <cml:radio label="Uncertain" value="-1"></cml:radio>
+</cml:radios>
+
 <cml:radios only-if="na:unchecked" label="Is the next comment in this conversation likely to be toxic?" name="lead_to_toxic" validates="required">
   <cml:radio label="Very Likely" value="2"></cml:radio>
   <cml:radio label="Somewhat Likely" value="1"></cml:radio>
