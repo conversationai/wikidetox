@@ -34,9 +34,9 @@ import {
   MatTooltipModule,
   MatStepperModule,
 } from '@angular/material';
-import { AppComponent } from './app.component';
+import { HttpClientModule } from '@angular/common/http';
 
-import {HttpClientModule} from '@angular/common/http';
+import { AppComponent } from './app.component';
 
 @NgModule({
   imports: [

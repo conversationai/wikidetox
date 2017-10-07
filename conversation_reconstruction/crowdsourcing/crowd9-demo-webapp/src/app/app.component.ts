@@ -26,7 +26,7 @@ interface WikiCommentQuestion {
   styleUrls: ['./app.component.css']
 })
 export class AppComponent {
-  userNonce : string;
+  userNonce : string | null;
 
   selectedWork : WorkToDo;
   questionId : string;
