@@ -1,5 +1,66 @@
 <!--The content below is only a placeholder and can be replaced.-->
 <h1>The Wikidetox-Crowd9-demo WebApp</h1>
-<div>
-  <pre>{{results}}</pre>
+<div *ngIf="!question">
+  Loading...
+</div>
+
+<div *ngIf="question">
+  <div class="id">id: {{question.revision_id}}</div>
+
+  <div class="text-header">Comment to rate:</div>
+  <div class="text">{{question.revision_text}}</div>
+
+  <mat-checkbox [(ngModel)]="readableAndInEnglish">The comment is in English and understandable</mat-checkbox>
+
+  <div *ngIf="readableAndInEnglish" class="questions">
+    <div class="three-question-group">
+      <mat-radio-group [(ngModel)]="toxicityAnswer">
+        <div class="toxicity-selected-value"><span class="label-heading">Toxic?</span></div>
+        <div><mat-radio-button class="toxicity-radio-button" value="Very">Very</mat-radio-button></div>
+        <div><mat-radio-button class="toxicity-radio-button" value="Somewhat">Somewhat</mat-radio-button></div>
+        <div><mat-radio-button class="toxicity-radio-button" value="NotAtAll">Not at all</mat-radio-button></div>
+      </mat-radio-group>
+    </div>
+
+    <div class="three-question-group">
+      <mat-radio-group [(ngModel)]="insultAnswer">
+        <div class="insult-selected-value"><span class="label-heading">Insulting?</span></div>
+        <div><mat-radio-button class="insult-radio-button" value="Very">Very Toxic</mat-radio-button></div>
+        <div><mat-radio-button class="insult-radio-button" value="Somewhat">Somewhat</mat-radio-button></div>
+        <div><mat-radio-button class="insult-radio-button" value="NotAtAll">Not at all</mat-radio-button></div>
+      </mat-radio-group>
+    </div>
+
+    <div class="three-question-group">
+      <mat-radio-group [(ngModel)]="obsceneAnswer">
+        <div class="obscene-selected-value"><span class="label-heading">Obscene?</span></div>
+        <div><mat-radio-button class="obscene-radio-button" value="Very">Very</mat-radio-button></div>
+        <div><mat-radio-button class="obscene-radio-button" value="Somewhat">Somewhat</mat-radio-button></div>
+        <div><mat-radio-button class="obscene-radio-button" value="NotAtAll">Not at all</mat-radio-button></div>
+      </mat-radio-group>
+    </div>
+
+    <div class="three-question-group">
+      <mat-radio-group [(ngModel)]="threatAnswer">
+        <div class="threat-selected-value"><span class="label-heading">Threatening?</span></div>
+        <div><mat-radio-button class="threat-radio-button" value="Very">Very</mat-radio-button></div>
+        <div><mat-radio-button class="threat-radio-button" value="Somewhat">Somewhat</mat-radio-button></div>
+        <div><mat-radio-button class="threat-radio-button" value="NotAtAll">Not at all</mat-radio-button></div>
+      </mat-radio-group>
+    </div>
+
+    <div class="three-question-group">
+      <mat-radio-group [(ngModel)]="hateAnswer">
+        <div class="hate-selected-value"><span class="label-heading">Hateful to an identity?</span></div>
+        <div><mat-radio-button class="hate-radio-button" value="Very">Very</mat-radio-button></div>
+        <div><mat-radio-button class="hate-radio-button" value="Somewhat">Somewhat</mat-radio-button></div>
+        <div><mat-radio-button class="hate-radio-button" value="NotAtAll">Not at all</mat-radio-button></div>
+      </mat-radio-group>
+    </div>
+  </div>
+
+  <div>
+    <button mat-raised-button color="primary" (click)="sendScoreToApi()">Submit</button>
+  </div>
+
 </div>
