@@ -1,0 +1,3 @@
+Unstaged changes after reset:
+M	get_revisions/ingest_utils/wikipedia_revisions_ingester_bak.py
+D	get_revisions/wikipedia_revisions_ingester.py
