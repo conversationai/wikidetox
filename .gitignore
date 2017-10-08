@@ -60,3 +60,5 @@ typings/
 # Json dumps
 *.json
 
+# Python cache
+*.pyc
