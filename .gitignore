@@ -60,6 +60,8 @@ typings/
 # Json dumps
 *.json
 
-# Python cache
+# Compiled python
 *.pyc
-*/__pycache__/
+
+# Mac files
+.DS_Store
