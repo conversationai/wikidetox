@@ -141,29 +141,38 @@ def parse_absolute_replyTo(value):
     else:
         return value
 
-def main(constraint):
+def main(constraint, job):
     maxl = None
     res = []
     max_len = 0
     path = '/scratch/wiki_dumps/expr_with_matching/' + constraint  + '/data'
     os.system('cat %s/develop.json %s/train.json %s/develop.json > %s/all.json'%(path, path, path, path))
     cnt = 0
-#    accepted = []
-    with open('conversations_with_reasonable_length.json') as w:
-         accepted = json.load(w) 
+    with open('annotated.json') as w:
+         annotated = json.load(w) 
+    if job == 2:
+        accepted = []
+    else:
+        with open('%s_conversations_with_reasonable_length.json'%(constraint)) as w:
+           accepted = json.load(w) 
+
 
 
     with open('/scratch/wiki_dumps/expr_with_matching/%s/data/all.json'%(constraint)) as f:
     #/scratch/wiki_dumps/attacker_in_conv/len5-11_train.json') as f:
         for i, line in enumerate(f):
             conv_id, clss, conversation = json.loads(line)
-            if not(conv_id in accepted):
+            if conv_id in annotated:
                continue
+            if job == 1:
+               if not(conv_id  in accepted):
+                  continue
             actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
 
             # not including the last action
-            end_time = max([a['timestamp_in_sec'] for a in actions])
-            actions = [a for a in actions if a['timestamp_in_sec'] < end_time]
+            if job == 1:
+               end_time = max([a['timestamp_in_sec'] for a in actions])
+               actions = [a for a in actions if a['timestamp_in_sec'] < end_time]
 
             snapshot = generate_snapshots(actions)
             for act in snapshot:
@@ -171,16 +180,21 @@ def main(constraint):
                    act['absolute_replyTo'] = snapshot[act['relative_replyTo']]['id']
             ret = {act['id']:reformat(act) for act in snapshot if not(act['status'] == 'removed')}
             length = len(ret.keys())
-#            if length > 10:
-#               cnt += 1
-#            else:
-#               accepted.append(conv_id)
-            res.append(json.dumps(ret))
+
+            if job == 2:
+                if length > 10:
+                   cnt += 1
+                else:
+                   accepted.append(conv_id)
+                   res.append(json.dumps(ret))
+            else:
+               res.append(json.dumps(ret))
             max_len = max(max_len, length) 
             if maxl and i > maxl:
                 break
-#    with open('conversations_with_reasonable_length.json', 'w') as w:
-#         json.dump(accepted, w)
+    if job == 2:
+       with open('%s_conversations_with_reasonable_length.json'%constraint, 'w') as w:
+          json.dump(accepted, w)
 
 
     print(max_len)
@@ -189,11 +203,12 @@ def main(constraint):
     df.columns = ['conversations']
     #conversations_as_json_job1.csv
     os.system('mkdir /scratch/wiki_dumps/expr_with_matching/%s/annotations'%(constraint))
-    df.to_csv('/scratch/wiki_dumps/expr_with_matching/%s/annotations/conversations_as_json_job1.csv'%(constraint), chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
+    df.to_csv('/scratch/wiki_dumps/expr_with_matching/%s/annotations/conversations_as_json_job%d.csv'%(constraint, job), chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
     
 if __name__ == '__main__':
-    constraints = ['delta2_no_users_attacker_in_conv'] #'delta2_no_users', 
+    constraints = ['delta2_no_users']
     for c in constraints:
-        main(c)
+        main(c, 2)
+        main(c, 1)
         print(c)
 
