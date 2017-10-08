@@ -124,7 +124,7 @@ define(['three', './controls/lightUp', '../../libs/OBJLoader'], function (THREE,
             container.append(renderer.domElement);
 
             $(function () {
-                $(ele).append(container);
+                $(ele).html('').append(container);
             });
         }
         function animate() {

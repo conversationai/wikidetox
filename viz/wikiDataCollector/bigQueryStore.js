@@ -26,7 +26,7 @@ class BigQueryStore {
             namespace: true,
             author: false,
             page: true,
-            revision_text: true,
+            //revision_text: true,
             attack: true,
             revision_id: true,
             // revert_id: true,
@@ -52,11 +52,14 @@ class BigQueryStore {
         const dataset = this.bigquery.dataset(this.dataSetId);
         const table = dataset.table(this.revisionsTable);
 
-        let invalidData = rows.filter((d) => this.validateSchema(d));
-        if (invalidData.length) {
-            cb('Invalid data : ', invalidData);
-            return;
-        }
+        rows = rows.filter((d) => {
+            if (this.validateSchema(d)) {
+                console.log('Invalid data : ', d);
+                return false
+            } else {
+                return true;
+            }
+        });
 
         // Inserts data into a table
         table.insert(rows)

@@ -96,6 +96,17 @@ class GetToxicScore {
             }
         });
 
+        commentsData = commentsData.filter((d) => {
+            if (d.sha1 === undefined) {
+                return false;
+            }
+            if (d.sha1 === null) {
+                return false;
+            }
+
+            return true;
+        });
+
         if (!commentsData.length) {
             cb("No comments data to add toxicscore");
             return;
