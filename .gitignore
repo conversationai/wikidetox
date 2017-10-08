@@ -60,3 +60,6 @@ typings/
 # Json dumps
 *.json
 
+# Python cache
+*.pyc
+*/__pycache__/
