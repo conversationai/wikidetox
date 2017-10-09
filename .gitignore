@@ -58,10 +58,19 @@ typings/
 .env
 
 # Json dumps
-*.json
+viz/**/*.json
 
 # Compiled python
 *.pyc
 
 # Mac files
 .DS_Store
+
+# Configuration files (that may contain keys)
+viz/config/
+
+# Fusebox tmp/cache files
+.fusebox
+
+# conversation_reconstruction crowdsourcing tools build files
+build/

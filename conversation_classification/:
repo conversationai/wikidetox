@@ -1,0 +1,36 @@
+import json
+import pandas as pd
+
+def clean(action)
+
+maxl = 10
+res = []
+with open("len5-11_train.json") as f:
+     for line in f:
+         conv_id, clss, conversation = line
+         actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
+         comments = {}
+         cnt = 0
+         comment_lst = {} 
+         comment_lst['id'] = conv_id
+         for action in actions:          
+             if action['comemnt_type'] == 'COMMENT_ADDING': 
+                comment_lst[cnt] = clean(action['content'])
+                cnt += 1
+                comments[cnt] = action['id']
+             if action['comment_type'] == 'SECTION_CREATION': 
+                comment_lst[cnt] = clean(action['content'])
+                cnt += 1
+                comments[cnt] = action['id']
+             if action['comment_type'] == 'COMMENT_MODIFICATION':
+                for key,val in comments.items():
+                    if val == action['parent_id']: 
+                       comment_lst[key] = clean(action['content'])
+         while cnt < maxl: 
+              comment_lst[cnt] = None
+              cnt += 1
+         res.append(coment_lst)
+
+
+df = pd.DataFrame(d) 
+df.to_csv("/scratch/wiki_dumps/annotation/data.csv", chunksize=1000, encoding = "utf-8", index_label='id', sep = "\t")

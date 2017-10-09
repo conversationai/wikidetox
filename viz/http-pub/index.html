@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toxicity on wikipedia</title>
+
+    <link href="https://fonts.googleapis.com/css?family=Work+Sans:300,400,500&amp;subset=latin-ext" rel="stylesheet">
+    <link href="styles/style.css" rel="stylesheet" />
+
+    <script data-main="src/app" src="libs/require.js"></script>
+
+
+</head>
+
+<body>
+
+    <div id="loadingScreen" class="page active">
+        <div class="logo-2"></div>
+        <!--<h1 class="center_align">WIKIDETOX</h1> -->
+
+        <div>
+            <p class="center_align light main_content">Visualizing Wikipedia talk page comments, scored by toxicity.</p>
+        </div>
+        <div class="iconLoading center_align leftMarginIcon">
+            <div class="iconNonToxic loadingNontoxic active"></div>
+            <div class="iconReverted x2 loadingReverted"></div>
+            <div class="iconToxic x2 loadingToxic"></div>
+        </div>
+        <div class="iconLoading center_align leftMarginText">
+            <div class="loadingNontoxic active"><span class="light loading">Loading...</span> <span class="medium nontoxicText">Nontoxic</span></div>
+            <div class="loadingReverted"><span class="light loading">Loading...</span> <span class="medium nontoxicText">Reverted</span></div>
+            <div class="loadingToxic"><span class="light loading">Loading...</span> <span class="medium nontoxicText">Toxic</span></div>
+        </div>
+
+        <footer>
+            <div class="float-left footLeft createdBy"></div>
+            <div class="float-right footRight">
+                <p class="inline-block"><a>About</a></p>
+                <p class="inline-block"><a>Privacy & Terms</a></p>
+            </div>
+        </footer>
+    </div>
+
+    <div id="sphereScreen" class="page active-out">
+        <header>
+            <div class="logo"></div>
+            <h1 class="titleMain light">
+                <span> Wikipedia talk page comments for</span>
+                <span class="subHeading"><a id="currentMonth"></a></span>
+            </h1>
+        </header>
+        <div class="leftInfoBar">
+            <ul>
+                <li>
+                    <div class="iconToxic"></div>
+                    <span class="infoBarDash"></span>
+                    <div class="infoNumText">
+                        <div class="infoNumber toxicNumber light" id="toxicNumber"></div>
+                        <span class="infoText toxic regular">Toxic</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="iconReverted"></span>
+                    <span class="infoBarDash"></span>
+                    <div class="infoNumText">
+                        <div class="infoNumber light" id="revertedNumber"></div>
+                        <span class="infoText toxic regular">Reverted</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="iconNonToxic"></span>
+                    <span class="infoBarDash"></span>
+                    <div class="infoNumText">
+                        <div class="infoNumber light" id="nonToxicNumber"></div>
+                        <span class="infoText toxic regular">Nontoxic</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <footer>
+            <div class="float-left footLeft createdBy"></div>
+            <div class="float-right footRight">
+                <p class="inline-block"><span id="abouLink">About</span></p>
+                <p class="inline-block"><span id="abouLink">Privacy & Terms</span></p>
+            </div>
+        </footer>
+        <div id="container"></div>
+    </div>
+
+    <div id="commentScreen" class="page">
+        <div class="toparrow" id="top-arrow">
+            <img src="images/arrow.svg" id="up-arrow-id" alt="uparrow">
+        </div>
+        <div class="backToSphereView close-icon"></div>
+
+        <div class="commentsContent">
+            <div class="infoPanel leftInfo">
+                <div class="attackWrapper">
+                    <label class="infoHead labelContent regular">Attack score</label>
+                    <span id="comment_attackScore" class="infotext large dataContent light"></span>
+                </div>
+                <div class="seemsWrongBtn labelContent top100 medium">SEEMS WRONG</div>
+                <div class="revertedLabel labelContent top100 medium">Reverted</div>
+                <div class="feedBackThanks labelContent top100 medium">Thanks for your feedback!</div>
+            </div>
+            <div class="infoPanel rightInfo">
+                <div class="holder commentSection">
+                    <label id="comment_date" class="infoHead dataContent topZero labelContent regular"></label>
+                    <div id="comment_comment" class="infotext truncate dataContent regular"></div>
+                </div>
+                <!--<p class="holder">
+                    <label class="infoHead labelContent regular">User</label>
+                    <span id="comment_user" class="infotext small dataContent light"></span>
+                </p>-->
+                <p class="holder">
+                    <label class="infoHead labelContent regular">Page</label>
+                    <span id="comment_page" class="infotext small dataContent light"></span>
+                </p>
+                <div class="holder">
+                    <a class="viewRevisionBtn labelContent" id="revisionLink" target="_blank" href="">VIEW REVISiON HISTORY</a>
+                </div>
+            </div>
+        </div>
+        <div class="bottomarrow" id="bottom-arrow">
+            <img src="images/arrow.svg" id="down-arrow-id" alt="downarrow">
+        </div>
+        <div class="confirmationWrapper">
+            <div class="confirmationDialogue">
+
+                <div class="close-icon black"></div>
+                <h2>Is this comment toxic?</h2>
+                <p>Your feedback is appreciated. We want to make sure that out models score comments accurately.</p>
+                <a id="cancelDialogue">CANCEL</a>
+                <a id="yesToxic">YES</span>
+                <a id="notToxic">NO</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="aboutScreen" class="page">
+        <div class="backToSphereView close-icon black"></div>
+
+        <div id="about_wrapper">
+            <h2 class="about_h2 light">About</h2>
+            <div id="abt_cont_wrap">
+                <p class="about_content light">
+                    This is an experimental visualization of toxic comments on Wikipedia by <a href="https://meta.wikimedia.org/wiki/Research:Index"
+                        target="_blank">Wikimedia Research </a> and <a href="https://conversationai.github.io/" target="_blank">Conversation AI </a>.
+                    You can share feedback and thoughts on our <a href="https://meta.wikimedia.org/wiki/Research:Detox" target="_blank">WikiDetox</a>                    project page.
+                </p>
+            </div>
+            <p id="project_by" class="regular">Wikidetox is a project by</p>
+            <img id="about_jigsaw" src="images/Jigsaw_logo_2x.png" width="50px" />
+        </div>
+    </div>
+
+    <div id="calendarScreen" class="page">
+        <div class="backToSphereView close-icon black"></div>
+        <ul id="calendarList">
+        </ul>
+    </div>
+
+</body>
+
+</html>

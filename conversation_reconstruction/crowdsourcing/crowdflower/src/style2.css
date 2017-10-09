@@ -1,0 +1,94 @@
+hr {
+  display: block;
+  height: 1px;
+}
+
+last {
+  color: blue;
+}
+
+.hidden {
+  display: none;
+}
+
+.conversation {
+  border: 1px solid #CCC;
+  padding: 5px;
+  background: #EEE;
+}
+
+.action {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+
+.comment {
+  padding: 5px;
+  margin: 2px;
+  margin-left: 10px;
+  flex: auto;
+}
+
+.index{
+  border: 1px solid #CCC;
+  padding: 5px;
+  width: 2em;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.finalcomment {
+  border: 2px dotted #88F;
+}
+
+.content{
+  padding: 5px;
+  background: #FFF;
+  width: 100%;
+  /* border: 1px solid #CCC; */
+}
+
+/* TODO: figure out how to make vertical line that
+   scales with the heigh of the containing element */
+.sep {
+}
+
+.whenandwho {
+  width: 100px;
+  text-align: right;
+  font-size: 80%;
+  flex: none;
+  display: block;
+
+  /* padding-right: 5px;
+  border-right: 2px solid #CCC; */
+  margin-right: 5px;
+}
+
+.author {
+  color: #44B;
+  font-weight: bold;
+}
+
+.timestamp {
+  font-size: 80%;
+  color: #BBB;
+}
+
+.convid {
+  text-align: right;
+}
+
+.convid-text {
+  font-size: 80%;
+  color: #BBB;
+}
+
+.convid-comment-index-header {
+  border: 1px solid #CCC;
+  padding: 5px;
+  border-radius: 5px;
+  text-align: center;
+}

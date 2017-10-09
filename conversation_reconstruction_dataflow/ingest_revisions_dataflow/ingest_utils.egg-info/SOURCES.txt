@@ -2,9 +2,10 @@ setup.py
 ingest_utils/__init__.py
 ingest_utils/filter.py
 ingest_utils/formatting.py
+ingest_utils/run_ingester.py
+ingest_utils/test_ingester.py
 ingest_utils/wikipedia_revisions_download.py
 ingest_utils/wikipedia_revisions_ingester.py
-ingest_utils/wikipedia_revisions_ingester_bak.py
 ingest_utils/xml_path.py
 ingest_utils.egg-info/PKG-INFO
 ingest_utils.egg-info/SOURCES.txt

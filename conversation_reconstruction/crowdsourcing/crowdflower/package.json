@@ -1,0 +1,25 @@
+{
+  "name": "wp_crowdflower_conv",
+  "version": "0.0.1",
+  "description": "Simple project to help with crowdsourcing.",
+  "scripts": {
+    "build": "yarn run build:localtest && yarn run build:crowdflower",
+    "build:crowdflower": "node fuse && cat build/dist/app.js src/jquery_crowdflower_require_hack.js >build/dist/crowdflower.js",
+    "build:localtest": "node fuse && cat build/dist/app.js src/jquery_localtest_require_hack.js >build/dist/localtest.js",
+    "serve:localtest": "yarn build:localtest && python -m SimpleHTTPServer"
+  },
+  "dependencies": {
+    "jquery": "^3.1.1",
+    "requirejs": "^2.3.5"
+  },
+  "devDependencies": {
+    "@conversationai/wpconvlib": "^0.0.1",
+    "fuse-test-runner": "^1.0.14",
+    "@types/jquery": "^3.0.0",
+    "fuse-box": "^2.2.31",
+    "typescript": "^2.1.6"
+  },
+  "type": "git",
+  "url": "https://github.com/conversationai/wikidetox.git",
+  "license": "Apache-2.0"
+}

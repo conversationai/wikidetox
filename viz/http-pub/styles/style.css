@@ -1,0 +1,959 @@
+body {
+    padding: 0px;
+    margin: 0px;
+    font-family: 'Work Sans', sans-serif;
+    color: #000000;
+    background: #F2F2F2;
+}
+
+a {
+    text-decoration: none;
+}
+
+
+/* Controls */
+
+.dg.main {
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 2;
+}
+
+#stats {
+    bottom: 0px;
+    top: auto !important;
+}
+
+
+/* Page styles */
+
+.page {
+    display: none;
+}
+
+.page.active {
+    z-index: 2 !important;
+    opacity: 2 !important;
+    display: block;
+    visibility: visible;
+}
+
+.active-out {
+    z-index: 0;
+    opacity: 0;
+    display: block;
+    visibility: hidden;
+}
+
+#sphereScreen {
+    width: 100%;
+    height: 100%;
+}
+
+#container {
+    top: 0;
+    left: 0;
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background: #F2F2F2;
+    right: 0;
+    margin: auto;
+}
+
+header {
+    position: absolute;
+    margin: auto;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+
+#currentMonth {
+    pointer-events: all;
+    position: relative;
+}
+
+#currentMonth::after {
+    content: '';
+    width: 100%;
+    position: absolute;
+    left: 0;
+    bottom: 1px;
+    border-width: 0 0 1px;
+    border-style: solid;
+}
+
+
+/*.menu {
+    position: absolute;
+    margin: 20px 0 0 30px;
+    padding: 0px;
+    background: url('../images/menu.svg') no-repeat 0 0;
+    height: 30px;
+    width: 30px;
+}                                                                  (--SS) */
+
+.logo {
+    background: url('../images/logo.svg') no-repeat center center;
+    height: 58px;
+}
+
+.titleMain {
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+    margin-top: 27px;
+    font-size: 24px;
+    color: #000000;
+    /*font-weight: normal;                                        (--SS) */
+}
+
+.titleMain span {
+    opacity: 0.54;
+}
+
+.titleMain span.subHeading {
+    opacity: 0.87;
+}
+
+.leftInfoBar {
+    position: absolute;
+    top: 25%;
+    margin: 0 0 0 30px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.leftInfoBar ul {
+    padding: 0 !important;
+    list-style: none;
+}
+
+.leftInfoBar ul li {
+    margin: 45px 0;
+}
+
+.iconNonToxic {
+    width: 20px;
+    height: 10px;
+    background: url(../images/nontoxic.png) no-repeat 9px 5px;
+    display: inline-block;
+}
+
+.iconReverted {
+    width: 20px;
+    height: 22px;
+    /*background: url(../images/reverted@1x.png) no-repeat 0px 0px;*/
+    display: inline-block;
+    top: 5px;
+    position: relative;
+}
+
+.infoBarDash {
+    background: url(../images/dash.svg) no-repeat 0 0;
+    height: 4px;
+    width: 30px;
+    display: inline-block;
+    margin: 0 13px;
+}
+
+.infoText {
+    font-size: 14px;
+    opacity: .54;
+}
+
+.infoNumber {
+    color: #000;
+    font-size: 24px;
+    opacity: .87;
+}
+
+.iconToxic {
+    position: relative;
+    top: 5px;
+    width: 20px;
+    height: 20px;
+    /*background: url(../images/toxic@1x.png) no-repeat 0px 0px;*/
+    display: inline-block;
+}
+
+.infoNumber.toxicNumber {
+    color: #F44336 !important;
+}
+
+.jigsaw {
+    background: url("../images/Jigsaw_IncubatedBy.svg") no-repeat;
+}
+
+
+/** Comments **/
+
+#commentScreen {
+    width: 100%;
+    height: 100%;
+    background: #F44336;
+    position: absolute;
+    z-index: -2;
+    opacity: 0;
+    transition: all ease-out .3s;
+    top: 0;
+    left: 0;
+}
+
+.close-icon {
+    width: 32px;
+    height: 32px;
+    background: url(../images/close.svg) no-repeat 0 0;
+    position: fixed;
+    top: 25px;
+    right: 25px;
+    transition: all ease-out .5s;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.close-icon.black {
+    background: url(../images/close-black.svg) no-repeat 0 0;
+}
+
+.commentsContent {
+    width: 70%;
+    margin: auto;
+    max-width: 1000px;
+    position: relative;
+    top: 26%;
+}
+
+.infoPanel {
+    float: left;
+}
+
+.leftInfo {
+    width: 40%;
+    box-sizing: border-box;
+    position: relative;
+    height: 200px;
+    right: 5%;
+}
+
+.rightInfo {
+    width: 60%;
+    box-sizing: border-box;
+    position: relative;
+    left: 5%;
+}
+
+.rightInfo p {
+    height: 70px;
+}
+
+.rightInfo p span {
+    word-break: break-all;
+}
+
+.infoHead {
+    font-size: 12px;
+    color: #000000;
+    opacity: .54;
+    display: block;
+}
+
+.infotext {
+    font-size: 24px;
+    opacity: .87;
+    color: #ffffff;
+}
+
+.infotext.large {
+    font-size: 48px !important;
+}
+
+.infotext.small {
+    font-size: 18px;
+}
+
+.commentsContent::after {
+    content: '';
+    clear: both;
+}
+
+.truncate {
+    width: 100%;
+    line-height: 30px;
+    word-wrap: break-word;
+    height: 130px;
+    overflow-x: scroll;
+}
+
+#top-arrow {
+    transform: rotate(-90deg);
+}
+
+#bottom-arrow {
+    transform: rotate(90deg);
+}
+
+.toparrow,
+.bottomarrow {
+    position: fixed;
+    left: calc(50% - 0px);
+    cursor: pointer;
+}
+
+.toparrow {
+    top: 30px;
+}
+
+.bottomarrow {
+    bottom: 30px;
+}
+
+.dataContent,
+.labelContent {
+    position: absolute;
+    left: 0;
+    transform: translateY(60px);
+    opacity: 0;
+    z-index: -1;
+    transition: all ease 0.5s;
+}
+
+.topZero {
+    transform: translateY(60px);
+}
+
+.holder {
+    position: relative
+}
+
+.dataContent.slideIn {
+    opacity: .87;
+    z-index: 1;
+    transform: translateY(14px);
+}
+
+.labelContent.slideIn {
+    opacity: .54;
+    z-index: 1;
+    top: 0px;
+    transform: translateY(0);
+}
+
+.dataContent.slideIn.topZero {
+    transform: translateY(0px);
+}
+
+.seemsWrongBtn.slideIn,
+.revertedLabel.slideIn,
+.eedBackThanks.slideIn {
+    transform: translateY(100px) !important;
+    opacity: 0.87 !important;
+}
+
+.commentSection {
+    height: 142px;
+}
+
+.inCopy {
+    transform: translateY(-60px) !important;
+    opacity: 0 !important;
+}
+
+.inCopy.seemsWrogBtn {
+    transform: translateY(100px) !important;
+    opacity: 0 !important;
+}
+
+.labelContent.seemsWrongBtn {
+    font-size: 13px;
+    opacity: 0;
+    color: #ffffff;
+    background-color: #9b1d1d;
+    width: 120px;
+    padding: 10px 20px;
+    text-align: center;
+    border-radius: 100px;
+    transform: translateY(140px);
+    cursor: pointer;
+}
+
+.viewRevisionBtn {
+    font-size: 13px;
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    display: inline-block;
+    padding: 13px 25px;
+    border-radius: 50px;
+    color: #ffffff;
+}
+
+.viewRevisionBtn.slideIn {
+    opacity: 1;
+}
+
+.infoText.toxic {
+    font-size: 12px;
+    opacity: .54;
+    color: #000;
+}
+
+
+/*.search {
+    background: url(../images/search.svg) no-repeat;
+    width: 30px;
+    height: 30px;
+    position: fixed;
+    top: 30px;
+    right: 30px;
+    cursor: pointer;
+}                                                                  (--SS) */
+
+.light {
+    font-weight: 300;
+}
+
+.regular {
+    font-weight: 400;
+}
+
+.medium {
+    font-weight: 500;
+}
+
+
+/* CSS - Loading Screen */
+
+#loadingScreen {
+    width: 100%;
+    height: 100%;
+}
+
+.headContainer {
+    display: none;
+}
+
+.center_align {
+    text-align: center;
+}
+
+.auto-margin {
+    margin: 0 auto;
+}
+
+.float-left {
+    float: left;
+}
+
+.float-right {
+    float: right;
+}
+
+.inline-block {
+    display: inline-block;
+}
+
+.iconToxic.x2 {
+    /*background: url(../images/toxic@2x.png) no-repeat 0px 0px;*/
+    height: 45px;
+    width: 40px;
+}
+
+.iconReverted.x2 {
+    /*background: url(../images/reverted@2x.png) no-repeat 0px 0px;*/
+    height: 45px;
+    width: 40px;
+}
+
+.iconLoading {
+    position: relative;
+    top: 16px;
+    height: 100px;
+}
+
+.loadingNontoxic,
+.loadingReverted,
+.loadingToxic {
+    position: absolute;
+    opacity: 0;
+    visibility: hidden;
+    transition: all ease 0.5s;
+    display: inline-block;
+}
+
+.loadingNontoxic.active,
+.loadingReverted.active,
+.loadingToxic.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.leftMarginText {
+    margin-left: -130px;
+}
+
+.leftMarginIcon {
+    margin-left: -50px;
+}
+
+.iconNonToxic.loadingNontoxic {
+    top: 30px;
+    margin-left: 10px;
+}
+
+.logo-2 {
+    margin-top: 200px;
+    background: url('../images/logo.svg') no-repeat center center;
+    height: 58px;
+}
+
+.main_content {
+    font-size: 25px;
+    opacity: .87;
+}
+
+.list_item {
+    background: url('../images/nontoxic.png') no-repeat center center;
+    height: 30px;
+}
+
+.loading {
+    font-size: 16px;
+}
+
+.nontoxicText {
+    font-size: 16px;
+}
+
+footer {
+    position: fixed;
+    bottom: 10px;
+    font-size: 10px;
+    opacity: .23;
+    width: 100%;
+    z-index: 10;
+}
+
+footer p {
+    margin: 0 5px;
+}
+
+footer span {
+    cursor: pointer;
+}
+
+.footLeft {
+    background: url("../images/Jigsaw.svg") no-repeat;
+    height: 15px;
+    width: 110px;
+    margin-left: 20px;
+}
+
+.footRight {
+    margin-right: 20px;
+}
+
+footer:after {
+    clear: both;
+}
+
+
+/* CSS - ABOUT PAGE */
+
+#aboutScreen {
+    text-align: center;
+    height: 100%;
+}
+
+#about_wrapper {
+    position: relative;
+    top: 50%;
+    transform: translateY(20%);
+    max-width: 645px;
+    width: 90%;
+    margin: auto;
+}
+
+.about_h2 {
+    opacity: .54;
+}
+
+#abt_cont_wrap {
+    margin: 70px auto 0 auto;
+}
+
+.about_content {
+    width: 100%;
+    margin-top: 90px;
+    font-size: 20px;
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.about_content a {
+    text-decoration: none;
+    color: rgb(0, 0, 0);
+    position: relative;
+}
+
+.about_content a:after {
+    content: '';
+    width: 100%;
+    position: absolute;
+    left: 0;
+    bottom: 1px;
+    border-width: 0 0 1px;
+    border-style: solid;
+}
+
+#project_by {
+    margin-top: 60px;
+    font-size: 12px;
+    margin-bottom: 25px;
+}
+
+#about_jigsaw {
+    margin-top: -8px;
+}
+
+
+/* COMMENTS PAGE MOBILE (--ends--) */
+
+.infoNumText {
+    margin-left: 87px;
+    margin-top: -20px;
+}
+
+.headerMonth {
+    width: 100%;
+    text-align: center;
+    text-decoration: underline;
+    color: #000 !important;
+    opacity: .87;
+    font-size: 24px;
+    margin-top: -10px;
+}
+
+a {
+    color: inherit;
+    cursor: pointer;
+}
+
+
+/* 3d icons */
+
+.icons3d {
+    position: absolute;
+    top: -19px;
+    left: -9px;
+    z-index: 100;
+}
+
+.leftInfoBar .icons3d {
+    top: -27px;
+    left: -24px;
+}
+
+
+/* Calendar */
+
+#calendarScreen {
+    margin: 0 auto;
+}
+
+#calendarScreen ul {
+    width: 100%;
+}
+
+#calendarScreen ul,
+#calendarScreen li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+#calendarScreen li {
+    border-bottom: 1px solid #d4d4d4;
+    font-size: 18px;
+}
+
+#calendarScreen li:hover {
+    background: rgba(212, 212, 212, 0.23);
+}
+
+#calendarScreen h2 {
+    color: #222222;
+    opacity: .87;
+    font-size: 48px;
+    font-weight: normal;
+    margin: 0px;
+}
+
+.month {
+    text-align: center;
+    margin: 0 auto;
+    max-width: 600px;
+    cursor: pointer;
+    padding: 45px 0;
+}
+
+.monthsDetails {
+    margin: 30px 0 0 0;
+}
+
+.monthsDetails .items {
+    display: inline-block;
+    width: 30%;
+    text-align: center;
+}
+
+.monthsDetails .items .iconBox {
+    width: 33%;
+    height: 60px;
+    display: block;
+    margin: 0 auto;
+    font-size: 18px;
+    font-weight: 300;
+}
+
+.monthsDetails .items span {
+    width: 33%;
+    display: block;
+    margin: 0 auto;
+    font-size: 18px;
+    opacity: 0.87;
+}
+
+#calendarScreen span.toxicScore {
+    font-size: 18px;
+    color: #F44366;
+    font-weight: 300;
+}
+
+#calendarScreen .yearLabel {
+    padding: 30px;
+    display: block;
+    text-align: center;
+    font-size: 24px;
+    opacity: 0.54;
+}
+
+#calendarScreen .iconNonToxic {
+    background: url(../images/nontoxic.png) no-repeat 50% 50%;
+}
+
+
+/* reverted */
+
+#commentScreen.revertedScreen {
+    background: #737373;
+}
+
+#commentScreen.revertedScreen .seemsWrongBtn {
+    display: none;
+}
+
+.revertedLabel {
+    display: none;
+    width: 120px;
+    padding: 10px 0x;
+    transform: translateY(140px);
+}
+
+#commentScreen.revertedScreen .revertedLabel {
+    display: block;
+}
+
+.confirmationWrapper {
+    background: rgba(0, 0, 0, 0.4);
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    bottom: 0px;
+    right: 0px;
+    z-index: 1;
+    display: none;
+}
+
+.confirmationDialogue {
+    width: 47%;
+    margin: 20% auto;
+    background: #ffffff;
+    padding: 2%;
+    position: relative;
+    box-shadow: 5px 5px 50px rgba(0, 0, 0, 0.5);
+}
+
+.confirmationDialogue h2 {
+    margin: 0;
+    padding: 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.confirmationDialogue p {
+    opacity: 0.6;
+    padding: 0 0 50px;
+}
+
+.confirmationDialogue a {
+    color: #F44336;
+    font-weight: 500;
+    padding: 0 20px;
+}
+
+.confirmationDialogue .close-icon {
+    position: absolute;
+    width: 25px;
+}
+
+#notToxic {
+    float: right;
+}
+
+#yesToxic {
+    float: right;
+    margin: 0 0 0 30px;
+}
+
+.feedBackThanks {
+    transform: translateY(100px) !important;
+    opacity: 0.87 !important;
+    color: #ffffff;
+    display: none;
+}
+
+.seemsWrongBtn.showFeedBack {
+    display: none;
+}
+
+@media only screen and (max-width: 450px) {
+    .main_content {
+        font-size: 14px;
+    }
+    .loading {
+        font-size: 12px;
+    }
+    .nontoxicText {
+        font-size: 12px;
+    }
+    .about_content {
+        font-size: 12px !important;
+    }
+    .leftMarginText {
+        margin-left: -85px;
+    }
+    .leftMarginIcon {
+        margin-left: -47px;
+    }
+    .iconNonToxic.loadingNontoxic {
+        top: 30px;
+        margin-left: 10px;
+    }
+    .iconLoading {
+        position: relative;
+        top: 16px;
+        height: 85px;
+    }
+    .confirmationDialogue {
+        width: 80%;
+        margin: 50% auto;
+        padding: 20px;
+    }
+    #yesToxic {
+        margin: 0px;
+    }
+}
+
+@media only screen and (max-width: 450px) {
+    /*  MOBILE VIEW CSS FOR LOADING PAGE  (--starts--)  */
+    .leftInfoBar {
+        width: 100%;
+        position: absolute;
+        top: auto;
+        bottom: 6%;
+        margin: 0 auto !important;
+    }
+    .infoBarDash {
+        display: none;
+    }
+    .leftInfoBar li {
+        display: inline-block;
+        margin: 0 3% !important;
+        width: 80px;
+    }
+    .leftInfoBar ul {
+        text-align: center;
+    }
+    .iconToxic,
+    .infoNumber,
+    .infoText {
+        text-align: center;
+    }
+    .infoNumber {
+        font-size: 18px !important;
+        margin-top: 10px;
+    }
+    .infoText {
+        font-size: 10px !important;
+    }
+    .infoNumText {
+        margin: auto !important;
+    }
+    .titleMain {
+        font-size: 18px;
+        margin-top: 5px;
+    }
+    .headerMonth {
+        font-size: 18px !important;
+    }
+    /*  MOBILE VIEW CSS FOR LOADING PAGE  (--ends--)  */
+    /* COMMENTS PAGE MOBILE (--start--) */
+    .infoPanel {
+        float: none !important;
+    }
+    .leftInfo {
+        width: 100%;
+        height: 100px;
+        right: auto;
+    }
+    .rightInfo {
+        width: 100%;
+        left: auto;
+    }
+    .commentsContent {
+        width: 85%;
+    }
+    .attackWrapper {
+        float: left;
+    }
+    .seemsWrongBtn,
+    .revertedLabel {
+        float: right;
+        top: -90px !important;
+        right: -5px !important;
+        left: auto;
+    }
+    .infotext.small {
+        font-size: 14px !important;
+    }
+    .infotext {
+        font-size: 22px !important;
+    }
+    .commentsContent {
+        top: 19%;
+    }
+    #calendarScreen h2 {
+        font-size: 36px;
+    }
+    #calendarScreen span.toxicScore,
+    #calendarScreen .monthsDetails .items span {
+        font-size: 14px;
+    }
+    #calendarScreen .month {
+        padding: 25px 0;
+    }
+    #calendarScreen .yearLabel {
+        padding: 20px;
+    }
+}

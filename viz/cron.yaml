@@ -1,0 +1,4 @@
+cron:
+- description: stream wiki every hour
+  url: /tasks/hourly
+  schedule: every 1 hours
