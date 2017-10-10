@@ -1,6 +1,8 @@
 {
-  "name": "crowd9-demo-webapp",
-  "version": "0.0.0",
+  "name": "@conversationai/conversationai-crowd9demo-webapp",
+  "description": "Experimental UI code to illustrate how we might crowdsource annotations.",
+  "repository": "https://github.com/conversationai/wikidetox",
+  "version": "0.0.1",
   "license": "Apache-2.0",
   "scripts": {
     "ng": "ng",

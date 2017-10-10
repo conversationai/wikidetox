@@ -52,6 +52,7 @@ export interface ClientJobRow {
   client_job_key: string; // /^\w+$/
   description: string;
   title: string;
+  answer_schema : string;  // JSON schema for kinds of acceptable answers.
   question_group_id: string; // /^\w+$/
   status: 'setup' | 'inprogress' | 'paused' | 'completed';
 }

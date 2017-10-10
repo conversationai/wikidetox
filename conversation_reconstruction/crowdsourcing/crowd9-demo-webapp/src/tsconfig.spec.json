@@ -8,16 +8,7 @@
     "types": [
       "jasmine",
       "node"
-    ],
-    "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": true,
-    "noImplicitThis": true,
-    "noImplicitUseStrict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "removeComments": true,
-    "strictNullChecks": true
+    ]
   },
   "files": [
     "test.ts"

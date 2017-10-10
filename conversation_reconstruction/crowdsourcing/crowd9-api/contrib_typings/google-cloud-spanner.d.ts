@@ -47,6 +47,7 @@ declare module '@google-cloud/spanner' {
     export interface Database {
       table(tableName:string): Table;
       run(query:Query):Promise<QueryResult[]>;
+      close(cb : () => void) : void;
     }
     export interface DatabaseOptions {
       keepAlive: number;  // number of minutes between pings to the DB.

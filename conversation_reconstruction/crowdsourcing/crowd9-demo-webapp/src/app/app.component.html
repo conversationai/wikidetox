@@ -25,7 +25,7 @@
     <div class="three-question-group">
       <mat-radio-group [(ngModel)]="insultAnswer">
         <div class="insult-selected-value"><span class="label-heading">Insulting?</span></div>
-        <div><mat-radio-button class="insult-radio-button" value="Very">Very Toxic</mat-radio-button></div>
+        <div><mat-radio-button class="insult-radio-button" value="Very">Very</mat-radio-button></div>
         <div><mat-radio-button class="insult-radio-button" value="Somewhat">Somewhat</mat-radio-button></div>
         <div><mat-radio-button class="insult-radio-button" value="NotAtAll">Not at all</mat-radio-button></div>
       </mat-radio-group>
@@ -57,6 +57,14 @@
         <div><mat-radio-button class="hate-radio-button" value="NotAtAll">Not at all</mat-radio-button></div>
       </mat-radio-group>
     </div>
+  </div>
+
+  <div class="remarks">
+    <form class="example-form">
+    <mat-form-field class="example-full-width">
+        <textarea matInput placeholder="Other comments and reactions"></textarea>
+    </mat-form-field>
+    </form>
   </div>
 
   <div>

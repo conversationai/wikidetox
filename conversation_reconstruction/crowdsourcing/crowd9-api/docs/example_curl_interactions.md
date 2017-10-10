@@ -28,7 +28,10 @@ curl -H "x-admin-auth-key: ${ADMIN_AUTH_KEY}" \
   "description":"a beautiful soliloquy of a description this",
   "question_group_id":"foo1",
   "status":"setup",
-  "answers_per_question":3 }' ${SERVER}/active_jobs/job1_for_foo1
+  "answers_per_question":3,
+  "answer_schema": { "comments": { "stringInput" : {} },
+                     "toxicity": { "validEnumValues": ["ok", "unsure", "toxic"] } }
+  }' ${SERVER}/active_jobs/job1_for_foo1
 ```
 
 You may now list the jobs again to see the one you just added.

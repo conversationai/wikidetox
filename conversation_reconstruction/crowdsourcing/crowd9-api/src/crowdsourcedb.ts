@@ -52,6 +52,8 @@ export interface QuestionGroupRow {
 
 export class NoResultsError extends Error {}
 
+export class InValidAnswerError extends Error {}
+
 export class ResultsError<T> extends Error {
   constructor(message:string, public results: T[][]) {
     super(message);
@@ -124,6 +126,9 @@ export class CrowdsourceDB {
     this.clientJobTable = this.spannerDatabase.table('ClientJobs');
   }
 
+  public close() : Promise<void> {
+    return new Promise((resolve, _reject) => this.spannerDatabase.close(resolve));
+  }
 
   public async getClientJob(client_job_key:string) : Promise<db_types.ClientJobRow> {
     db_types.assertClientJobKey(client_job_key);
@@ -232,6 +237,12 @@ export class CrowdsourceDB {
       client_job_key:string,
       training: boolean) : Promise<QuestionToAnswer[]> {
     db_types.assertClientJobKey(client_job_key)
+
+    // TODO(ldixon) make this part of a transaction: this is
+    // mostly used to make sure the job actually exists. It
+    // will also allow us to not use the join below, for whatever
+    // that's worth.
+    this.getClientJob(client_job_key);
     const query : spanner.Query = {
       sql: `SELECT q.question_id, q.question ${training ? ', q.accepted_answers' : ''}
             FROM ClientJobs as c
@@ -288,8 +299,14 @@ export class CrowdsourceDB {
   }
 
   public async addAnswer(answer:AnswerToQuestion) {
+    db_types.assertQuestionId(answer.question_id);
     let question : db_types.QuestionRow = await this.getQuestion(answer.question_id);
     db_types.assertClientJobKey(answer.client_job_key);
+    let clientJob : db_types.ClientJobRow = await this.getClientJob(answer.client_job_key);
+    let answerSchema = JSON.parse(clientJob.answer_schema);
+    if(!questionaire.answerMatchesSchema(answerSchema, JSON.parse(answer.answer))) {
+      throw new InValidAnswerError('answer does not match schema: ' + clientJob.answer_schema);
+    }
     let answer_score :number | null = null;
     if (question.accepted_answers) {
       answer_score = questionaire.answerScoreFromJson(question.accepted_answers, answer.answer);
@@ -312,6 +329,9 @@ export class CrowdsourceDB {
   public async addClientJob(clientJob:db_types.ClientJobRow) {
     db_types.assertClientJobKey(clientJob.client_job_key);
     db_types.assertQuestionGroupId(clientJob.question_group_id);
+    // TODO(ldixon): use smarter JSON to allow comments in JSON.
+    // Validate the answer schema is valid JSON.
+    JSON.parse(clientJob.answer_schema);
     // TODO(ldixon): check answers_per_question & give nice error.
     // if(!regexp_strict_positive_number.test(client_job_row.answers_per_question)) {
     //   res.status(400).send('bad param: answers_per_question: ' +

@@ -26,7 +26,7 @@ interface WikiCommentQuestion {
   styleUrls: ['./app.component.css']
 })
 export class AppComponent {
-  userNonce : string;
+  userNonce : string | null;
 
   selectedWork : WorkToDo;
   questionId : string;
@@ -38,6 +38,7 @@ export class AppComponent {
   insultAnswer : string;
   threatAnswer : string;
   hateAnswer : string;
+  comments : string;
 
   loading : boolean;
 
@@ -51,6 +52,7 @@ export class AppComponent {
     this.insultAnswer = '';
     this.threatAnswer = '';
     this.hateAnswer = '';
+    this.comments = '';
     this.question = null;
 
     // Make the HTTP request:
@@ -78,14 +80,15 @@ export class AppComponent {
   public sendScoreToApi() {
     console.log('test click');
     this.http.post('/api/answer', {
-      questionId : this.questionId,
-      userNonce : this.userNonce,
-      readableAndInEnglish : {enumAnswer: this.readableAndInEnglish ? 'Yes' : 'No'},
-      toxicityAnswer : {enumAnswer: this.toxicityAnswer},
-      obsceneAnswer : {enumAnswer: this.obsceneAnswer},
-      insultAnswer : {enumAnswer: this.insultAnswer},
-      threatAnswer : {enumAnswer: this.threatAnswer},
-      hateAnswer : {enumAnswer: this.hateAnswer},
+      questionId: this.questionId,
+      userNonce: this.userNonce,
+      readableAndInEnglish: this.readableAndInEnglish ? 'Yes' : 'No',
+      toxic: this.toxicityAnswer,
+      obscene: this.obsceneAnswer,
+      insult: this.insultAnswer,
+      threat: this.threatAnswer,
+      identityHate: this.hateAnswer,
+      comments: this.comments
     }).subscribe((data : {}) => {
       console.log(`send score, response:` + JSON.stringify(data, null, 2));
       this.getNextWorkItem();
