@@ -21,7 +21,7 @@
     "noImplicitThis": true,
     "noImplicitUseStrict": true,
     // "noUnusedLocals": true,
-    // "noUnusedParameters": true,
+    "noUnusedParameters": true,
     "removeComments": true,
     "strictNullChecks": true
   }

@@ -1,7 +1,7 @@
 {
-  "name": "@conversationai/conversationai-crowdsource",
-  "description": "Experimental code to illustrate how we might crowdsource annotations.",
-  "repository": "https://github.com/conversationai/conversationai-crowdsource",
+  "name": "@conversationai/conversationai-crowd9demo-server",
+  "description": "Experimental server code to illustrate how we might crowdsource annotations.",
+  "repository": "https://github.com/conversationai/wikidetox",
   "version": "0.0.1",
   "license": "Apache-2.0",
   "scripts": {
