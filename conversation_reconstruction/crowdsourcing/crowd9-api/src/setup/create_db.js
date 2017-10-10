@@ -45,6 +45,7 @@ const request = {
       client_job_key          STRING(1024),
       description             STRING(MAX),
       question_group_id       STRING(1024),
+      answer_schema           STRING(MAX),
       title                   STRING(MAX),
       status                  STRING(1024),
     ) PRIMARY KEY (client_job_key)`,

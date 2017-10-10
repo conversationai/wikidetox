@@ -19,28 +19,49 @@ import { expect } from 'chai';
 describe('Testing questionaire', function() {
   it('Simple answer test', function() {
 
-    let acceptedAnswersJson = `{ \"toxicity\": { \"enumScores\": { \"ok\": 0, \"not sure\": -1, \"toxic\": -1 } } }`;
-    let answerJson = "{ \"toxicity\": { \"enumAnswer\": \"toxic\" } }";
+    let acceptedAnswersJson = `{ "toxicity": { "enum": { "ok": 0, "unsure": -1, "very": -1 } } }`;
+    let answerJson = `{ "toxicity": "very" }`;
 
     let score = questionaire.answerScoreFromJson(acceptedAnswersJson, answerJson);
     expect(score).to.equal(-1);
   });
 
-  it('Non-existent entry without a noValue score throws exception', function() {
-    let acceptedAnswersJson = `{ \"toxicity\": { \"enumScores\": { \"ok\": 0, \"not sure\": -1, \"toxic\": -1 } } }`;
-    let answerJson = "{ \"toxicity\": { \"enumAnswer\": \"foo\" } }";
+  it('Non-existent answer entry throws exception', function() {
+    let acceptedAnswersJson = `{ "toxicity": { "enum": { "ok": 0, "unsure: -1, "very": -1 } } }`;
+    let answerJson = `{ "nosuchquestion": "foo" }`;
 
     expect(() => questionaire.answerScoreFromJson(acceptedAnswersJson, answerJson)).to.throw;
   });
 
-  it('Non-existent entry with set noValue scire is noValue score', function() {
-    let acceptedAnswersJson = `{ \"toxicity\": {
-        \"noValueScore\": -2,
-        \"enumScores\": { \"ok\": 0, \"not sure\": -1, \"toxic\": -1 } } }`;
-    let answerJson = "{ \"toxicity\": { \"enumAnswer\": \"foo\" } }";
-
+  it('Non-existent answer for optional question gives 0 score', function() {
+    let acceptedAnswersJson = `{ "toxicity": {
+        "optional": true,
+        "enum": { "ok": 0, "unsure": -1, "toxic": -1 } } }`;
+    let answerJson = `{ "nosuchquestion": "foo" }`;
     let score = questionaire.answerScoreFromJson(acceptedAnswersJson, answerJson);
-    expect(score).to.equal(-2);
+    expect(score).to.equal(0);
+  });
+
+  it('Non-existent enum entry throws exception', function() {
+    let acceptedAnswersJson = `{ "toxicity": { "enum": { "ok": 0, "unsure": -1, "very": -1 } } }`;
+    let answerJson = `{ "toxicity": "foo" }`;
+
+    expect(() => questionaire.answerScoreFromJson(acceptedAnswersJson, answerJson)).to.throw;
+  });
+
+  it('RegExp matching', function() {
+    let acceptedAnswersJson = `{ "thingMaybeDigits": {
+        "stringRegExp": { "regexp": "\\\\d+", "regexpFlags": "g", "matchScore": 1, "noMatchScore": -1 } } }`;
+    let answer1Json = `{ "thingMaybeDigits": "foo bar \\n123 bugs" }`;
+    let answer2Json = `{ "thingMaybeDigits": "foo bar" }`;
+    expect(questionaire.answerScoreFromJson(acceptedAnswersJson, answer1Json)).to.equal(1);
+    expect(questionaire.answerScoreFromJson(acceptedAnswersJson, answer2Json)).to.equal(-1);
+  });
+
+  it('Free text string', function() {
+    let acceptedAnswersJson = `{ "comments": { "freeStringConstScore": 1 } }`;
+    let answerJson = `{ "comments": "foo bar" }`;
+    expect(questionaire.answerScoreFromJson(acceptedAnswersJson, answerJson)).to.equal(1);
   });
 });
 

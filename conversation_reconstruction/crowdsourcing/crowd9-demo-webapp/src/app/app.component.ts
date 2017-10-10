@@ -83,11 +83,11 @@ export class AppComponent {
       questionId: this.questionId,
       userNonce: this.userNonce,
       readableAndInEnglish: this.readableAndInEnglish ? 'Yes' : 'No',
-      toxicityAnswer: this.toxicityAnswer,
-      obsceneAnswer: this.obsceneAnswer,
-      insultAnswer: this.insultAnswer,
-      threatAnswer: this.threatAnswer,
-      hateAnswer: this.hateAnswer,
+      toxic: this.toxicityAnswer,
+      obscene: this.obsceneAnswer,
+      insult: this.insultAnswer,
+      threat: this.threatAnswer,
+      identityHate: this.hateAnswer,
       comments: this.comments
     }).subscribe((data : {}) => {
       console.log(`send score, response:` + JSON.stringify(data, null, 2));
