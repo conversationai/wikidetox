@@ -17,11 +17,11 @@ import os
 from multiprocessing import Pool
 import time
 from pathlib import Path
-from politeness_with_spacy import politeness_model, request_utils
-from constructive.agree import has_agreement, has_disagreement
+from utils.politeness_with_spacy import politeness_model, request_utils
+from utils.constructive.agree import has_agreement, has_disagreement
 import re
 from spacy.en import English
-from constructive.stopwords import stopwords
+from utils.constructive.stopwords import stopwords
 
 """
 DEVELOPING NOTES:
@@ -171,7 +171,7 @@ def execute(args):
             with open('/scratch/wiki_dumps/expr_with_matching/%s/features/data%d.json'%(constraint, number), 'a') as w:
                  w.write(json.dumps((conv_id, ret))+'\n')
 
-with open('lexicons') as f:
+with open('utils/lexicons') as f:
     LEXICONS = json.load(f)
 constraints = ['delta2_none', 'delta2_no_users', 'delta3_none', 'delta3_no_users'] 
 #['delta2_no_users_attacker_in_conv']

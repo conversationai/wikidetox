@@ -1,0 +1,10 @@
+scipy
+numpy
+scikit-learn
+nltk
+spacy
+nose
+future
+importlib
+unittest2
+argparse
