@@ -144,6 +144,7 @@ def parse_absolute_replyTo(value):
 def main(constraint, job):
     maxl = None
     res = []
+<<<<<<< HEAD
     max_len = 0
     path = '/scratch/wiki_dumps/expr_with_matching/' + constraint  + '/data'
     os.system('cat %s/develop.json %s/train.json %s/develop.json > %s/all.json'%(path, path, path, path))
@@ -159,6 +160,9 @@ def main(constraint, job):
 
 
     with open('/scratch/wiki_dumps/expr_with_matching/%s/data/all.json'%(constraint)) as f:
+=======
+    with open('/home/yiqing/test_bad_convs.json') as f:
+>>>>>>> master
     #/scratch/wiki_dumps/attacker_in_conv/len5-11_train.json') as f:
         for i, line in enumerate(f):
             conv_id, clss, conversation = json.loads(line)
@@ -170,9 +174,14 @@ def main(constraint, job):
             actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
 
             # not including the last action
+<<<<<<< HEAD
             if job == 1:
                end_time = max([a['timestamp_in_sec'] for a in actions])
                actions = [a for a in actions if a['timestamp_in_sec'] < end_time]
+=======
+    #        end_time = max([a['timestamp_in_sec'] for a in actions])
+    #        actions = [a for a in actions if a['timestamp_in_sec'] < end_time]
+>>>>>>> master
 
             snapshot = generate_snapshots(actions)
             for act in snapshot:
@@ -204,7 +213,7 @@ def main(constraint, job):
     #conversations_as_json_job1.csv
     os.system('mkdir /scratch/wiki_dumps/expr_with_matching/%s/annotations'%(constraint))
     df.to_csv('/scratch/wiki_dumps/expr_with_matching/%s/annotations/conversations_as_json_job%d.csv'%(constraint, job), chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
-    
+   
 if __name__ == '__main__':
     constraints = ['delta2_no_users']
     for c in constraints:

@@ -1,0 +1,16 @@
+<div class="html-element-wrapper">
+  <h1> The conversation to read: </h1>
+  <div class="json-data hidden">{{conversations}}</div>
+</div>
+
+<br />
+
+<cml:checkbox label="This conversation is not primarily in English or is not human readable." name="na" gold="true" aggregation="agg"></cml:checkbox>
+
+<cml:radios only-if="na:unchecked" label="Is the highlighted comment toxic?" name="toxic" validates="required" gold="true">
+  <cml:radio label="Yes" value="1"></cml:radio>
+  <cml:radio label="No" value="0"></cml:radio>
+  <cml:radio label="Uncertain" value="-1"></cml:radio>
+</cml:radios>
+
+<cml:text only-if="na:unchecked" label="Enter the comment numbers, separated by spaces, of any comments the highlighted comment disagrees with:" name = "disagreement" />

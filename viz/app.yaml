@@ -1,0 +1,7 @@
+# [START app_yaml]
+runtime: nodejs
+env: flex
+skip_files:
+- data/*
+- wikiDataCollector/data/*
+# [END app_yaml]
