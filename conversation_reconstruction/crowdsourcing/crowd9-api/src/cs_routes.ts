@@ -256,7 +256,39 @@ export function setup(app : express.Express,
       console.log('New client job created!');
       res.status(httpcodes.OK).send(JSON.stringify({ result: 'New client job created' }));
     } catch(e) {
-      console.error('Error: Cannot insert (maybe dup key): ', e);
+      console.error('Error: Cannot insert: ', e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
+      return;
+    }
+  });
+
+  app.patch('/active_jobs/:client_job_key', async (req, res) => {
+    if(requestFailsAuth(serverConfig, req)) {
+      res.status(httpcodes.FORBIDDEN).send(JSON.stringify({ error: 'permission failure' }));
+      return;
+    }
+    if(!req.body) {
+      res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({ error: 'no body' }));
+      return;
+    }
+
+    let clientJobRow : db_types.ClientJobRow;
+    try {
+      console.log(JSON.stringify(req.body));
+      clientJobRow = req.body;
+      clientJobRow.client_job_key = req.params.client_job_key;
+    } catch(e) {
+      console.error(`Failed to parse body: ${req.body}`, e);
+      res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({ error: e.message }));
+      return;
+    }
+
+    try {
+      await crowdsourcedb.updateClientJob(clientJobRow);
+      console.log('client updated!');
+      res.status(httpcodes.OK).send(JSON.stringify({ result: 'Client job updated' }));
+    } catch(e) {
+      console.error('Error: Cannot update: ', e);
       res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
       return;
     }
@@ -299,8 +331,6 @@ export function setup(app : express.Express,
     }
     if(!req.body) {
       res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({ error: 'no body' }));
-      res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({ error: 'no body' }));
-
       return;
     }
 

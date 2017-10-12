@@ -57,12 +57,20 @@ export interface ClientJobRow {
   status: 'setup' | 'inprogress' | 'paused' | 'completed';
 }
 
+export function deleteUndefindValueKeys(row : spanner.InputRow) : spanner.InputRow {
+  for (let k in row) {
+    if (row[k] === undefined) {
+      delete row[k];
+    }
+  }
+  return row;
+}
 
 // Converstion from the output format of spanner queries back into the
 // format that can be inserted into spanner.
 // TODO(ldixon): see if this can be pushed into the spanner client library.
 export function prepareAnswerSpannerInputRow(answer:AnswerRow) : spanner.InputRow {
-  return {
+  return deleteUndefindValueKeys({
     answer: answer.answer,
     answer_id: answer.answer_id,
     client_job_key: answer.client_job_key,
@@ -71,28 +79,28 @@ export function prepareAnswerSpannerInputRow(answer:AnswerRow) : spanner.InputRo
     answer_score: spanner.float(answer.answer_score),
     worker_nonce: answer.worker_nonce,
     timestamp: answer.timestamp
-  };
+  });
 }
 
 export function prepareClientJobSpannerInputRow(clientJob:ClientJobRow) : spanner.InputRow {
-  return {
+  return deleteUndefindValueKeys({
     answers_per_question: spanner.int(clientJob.answers_per_question),
     client_job_key: clientJob.client_job_key,
     description: clientJob.description,
     question_group_id: clientJob.question_group_id,
     status: clientJob.status,
     title: clientJob.title,
-  };
+  });
 }
 
 export function prepareQuestionSpannerInputRow(questionRow:QuestionRow) : spanner.InputRow {
-  return {
+  return deleteUndefindValueKeys({
     accepted_answers: questionRow.accepted_answers,
     question: questionRow.question,
     question_group_id: questionRow.question_group_id,
     question_id: questionRow.question_id,
     type: questionRow.type
-  };
+  });
 }
 
 
