@@ -260,10 +260,12 @@ export class CrowdsourceDB {
     return questionRows;
   }
 
-  public async getQuestion(question_id:string) : Promise<db_types.QuestionRow> {
+  public async getQuestion(question_group_id:string, question_id:string) : Promise<db_types.QuestionRow> {
     db_types.assertQuestionId(question_id)
+    db_types.assertQuestionGroupId(question_group_id)
     const query : spanner.Query = {
-      sql: `SELECT * FROM Questions WHERE question_id="${question_id}"`
+      sql: `SELECT * FROM Questions
+            WHERE question_group_id="${question_group_id}" AND question_id="${question_id}"`
     };
     let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
     if(results.length === 0 || results[0].length === 0){
@@ -299,10 +301,11 @@ export class CrowdsourceDB {
   }
 
   public async addAnswer(answer:AnswerToQuestion) {
-    db_types.assertQuestionId(answer.question_id);
-    let question : db_types.QuestionRow = await this.getQuestion(answer.question_id);
     db_types.assertClientJobKey(answer.client_job_key);
     let clientJob : db_types.ClientJobRow = await this.getClientJob(answer.client_job_key);
+    db_types.assertQuestionId(answer.question_id);
+    let question : db_types.QuestionRow = await this.getQuestion(
+        clientJob.question_group_id, answer.question_id);
     let answerSchema = JSON.parse(clientJob.answer_schema);
     if(!questionaire.answerMatchesSchema(answerSchema, JSON.parse(answer.answer))) {
       throw new InValidAnswerError('answer does not match schema: ' + clientJob.answer_schema);
@@ -339,6 +342,21 @@ export class CrowdsourceDB {
     //   return;
     // }
     return this.clientJobTable.insert([db_types.prepareClientJobSpannerInputRow(clientJob)]);
+  }
+
+  public async updateClientJob(clientJob:db_types.ClientJobRow) {
+    db_types.assertClientJobKey(clientJob.client_job_key);
+    db_types.assertQuestionGroupId(clientJob.question_group_id);
+    // TODO(ldixon): use smarter JSON to allow comments in JSON.
+    // Validate the answer schema is valid JSON.
+    JSON.parse(clientJob.answer_schema);
+    // TODO(ldixon): check answers_per_question & give nice error.
+    // if(!regexp_strict_positive_number.test(client_job_row.answers_per_question)) {
+    //   res.status(400).send('bad param: answers_per_question: ' +
+    //       JSON.stringify(client_job_row.answers_per_question));
+    //   return;
+    // }
+    return this.clientJobTable.update([db_types.prepareClientJobSpannerInputRow(clientJob)]);
   }
 
   public async addQuestions(questions:db_types.QuestionRow[]) {

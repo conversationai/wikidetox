@@ -66,7 +66,8 @@ export function answerScore(q:QuestionPartScores, answer:string | undefined | nu
   if(q.enum !== undefined) {
     let lowerCaseAnswer = answer.toLowerCase();
     if (!(lowerCaseAnswer in q.enum)) {
-      throw Error('Answer does not match enum values: ' + JSON.stringify(Object.keys(q.enum)));
+      throw Error(`Answer ${lowerCaseAnswer} does not match enum values:` +
+        ` ${JSON.stringify(Object.keys(q.enum))}`);
     }
     return q.enum[lowerCaseAnswer];
   } else if(q.stringRegExp !== undefined) {

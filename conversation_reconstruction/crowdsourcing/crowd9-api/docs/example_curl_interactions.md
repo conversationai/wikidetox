@@ -29,8 +29,7 @@ curl -H "x-admin-auth-key: ${ADMIN_AUTH_KEY}" \
   "question_group_id":"foo1",
   "status":"setup",
   "answers_per_question":3,
-  "answer_schema": { "comments": { "stringInput" : {} },
-                     "toxicity": { "validEnumValues": ["ok", "unsure", "toxic"] } }
+  "answer_schema": "{"comments":{"stringInput":{}},"toxic":{"validEnumValues":["ok","unsure","toxic"]},"threat":{"validEnumValues":["ok","unsure","toxic"]},"insult":{"validEnumValues":["ok","unsure","toxic"]},"identityHate":{"validEnumValues":["ok","unsure","toxic"]},"obscene":{"validEnumValues":["ok","unsure","toxic"]}}"
   }' ${SERVER}/active_jobs/job1_for_foo1
 ```
 

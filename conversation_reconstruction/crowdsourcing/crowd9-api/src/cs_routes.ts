@@ -417,6 +417,24 @@ export function setup(app : express.Express,
     }
   });
 
+  // [Admin only]. Get full details about a question.
+  app.get('/questions/:question_group_id/:question_id',
+      async (req, res) => {
+    if(requestFailsAuth(serverConfig, req)) {
+      res.status(httpcodes.FORBIDDEN).send(JSON.stringify({ error: 'permission failure' }));
+      return;
+    }
+    try {
+      let questionRow = await crowdsourcedb.getQuestion(req.params.question_group_id, req.params.question_id);
+      res.status(httpcodes.OK).send(JSON.stringify(questionRow));
+    } catch(e) {
+      // TODO(ldixon): make error messages and codes consistent.
+      console.error('Error: Cannot get question: ', e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
+      return;
+    }
+  });
+
   // [Admin only]. Removes the question with id `:question_id`.
   app.delete('/questions/:question_group_id/:question_id',
       async (req, res) => {

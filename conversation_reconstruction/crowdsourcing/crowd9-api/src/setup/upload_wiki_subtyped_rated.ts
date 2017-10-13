@@ -25,6 +25,26 @@ import * as crowdsourcedb from '../crowdsourcedb';
 Usage:
 
   node build/server/setup/upload_wiki_subtyped_rated.js \
+    --file="./tmp/subtypesdata/bad_test_x150.json" \
+    --question_group="wp_x2000" \
+    --question_type="test" \
+    --update_only
+
+  node build/server/setup/upload_wiki_subtyped_rated.js \
+    --file="./tmp/subtypesdata/unsure_test_x150.json" \
+    --question_group="wp_x2000" \
+    --question_type="test" \
+    --update_only
+
+  node build/server/setup/upload_wiki_subtyped_rated.js \
+    --file="./tmp/subtypesdata/good_test_x150.json" \
+    --question_group="wp_x2000" \
+    --question_type="test" \
+    --update_only
+
+
+
+  node build/server/setup/upload_wiki_subtyped_rated.js \
     --file="./src/setup/subtypesdata/bad_train_x50.json" \
     --question_group="wp_x2000" \
     --question_type="training" \
@@ -87,7 +107,7 @@ function batchList<T>(batchSize : number, list :T[]) : T[][] {
 //
 function makeScoreEnum(frac : number){
   return {
-    ok: (frac < 0.3) ? 1 : (frac < 0.5 ? 0 : -1),
+    notatall: (frac < 0.3) ? 1 : (frac < 0.5 ? 0 : -1),
     somewhat: (frac < 0.2) ? -0.5 : (frac < 0.8 ? 1 : -0.5),
     very: (frac < 0.5) ? -1 : (frac < 0.7 ? 0 : 1),
   }
