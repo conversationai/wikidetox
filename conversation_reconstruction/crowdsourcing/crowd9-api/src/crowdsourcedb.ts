@@ -50,6 +50,14 @@ export interface QuestionGroupRow {
   number_of_questions : number;
 }
 
+export interface TestAnswerRow {
+  question_group_id : string;
+  question_id : string;
+  answer_id : string;
+  worker_nonce : string;
+  answer_score : string;
+}
+
 export class NoResultsError extends Error {}
 
 export class InValidAnswerError extends Error {}
@@ -307,15 +315,18 @@ export class CrowdsourceDB {
     let question : db_types.QuestionRow = await this.getQuestion(
         clientJob.question_group_id, answer.question_id);
     let answerSchema = JSON.parse(clientJob.answer_schema);
-    if(!questionaire.answerMatchesSchema(answerSchema, JSON.parse(answer.answer))) {
+    let answerObj = JSON.parse(answer.answer);
+    if(!questionaire.answerMatchesSchema(answerSchema, answerObj)) {
       throw new InValidAnswerError('answer does not match schema: ' + clientJob.answer_schema);
     }
     let answer_score :number | null = null;
     if (question.accepted_answers) {
-      answer_score = questionaire.answerScoreFromJson(question.accepted_answers, answer.answer);
+      let accepted_answers = JSON.parse(question.accepted_answers)
+      console.log(answerObj);
+      answer_score = questionaire.answerScore(accepted_answers, answerObj);
     }
 
-    // TODO(ldixon): don't allow multiple submission per user.
+    // TODO(ldixon): don't allow multiple submission per user?
     let answerRow : db_types.AnswerRow = {
       answer: answer.answer,
       answer_id: answer.answer_id,
@@ -411,7 +422,7 @@ export class CrowdsourceDB {
                  JOIN Questions as q
                    ON a.question_id = q.question_id
             WHERE a.client_job_key="${client_job_key}" AND
-                  q.type != 'training'`
+                  q.type != 'toanswer'`
     };
     let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
     if(results.length === 0 || results[0].length === 0){
@@ -421,6 +432,27 @@ export class CrowdsourceDB {
       throw new ResultsError('Strangely resulted in not 1 row', results);
     }
     return parseSpannerOutputRow<QualitySummary>(results[0][0]);
+  }
+
+  public async getJobTestAnswers(client_job_key:string)
+      : Promise<TestAnswerRow[]> {
+    db_types.assertClientJobKey(client_job_key);
+    const query : spanner.Query = {
+      sql: `SELECT
+              q.question_group_id, q.question_id,
+              a.answer_id, a.worker_nonce,
+              a.answer_score
+            FROM Answers as a
+                 JOIN Questions as q
+                   ON a.question_id = q.question_id
+            WHERE a.client_job_key="${client_job_key}" AND
+                  q.type != 'toanswer'`
+    };
+    let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
+    if(results.length === 0){
+      throw new NoResultsError('getJobTestAnswers: Resulted in empty query response');
+    }
+    return results[0].map(r => parseSpannerOutputRow<TestAnswerRow>(r));
   }
 
   public async getWorkerQuality(client_job_key:string, worker_nonce:string)

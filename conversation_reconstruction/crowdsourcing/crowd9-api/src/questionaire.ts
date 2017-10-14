@@ -54,7 +54,7 @@ export interface Answer {
   [questionairePartId:string] : string;
 }
 
-export function answerScore(q:QuestionPartScores, answer:string | undefined | null) : number {
+export function answerPartScore(q:QuestionPartScores, answer:string | undefined | null) : number {
   if(answer === undefined || answer === null) {
     if(!q.optional) {
       throw Error('Answer must be provided, but was not.');
@@ -84,13 +84,10 @@ export function answerScore(q:QuestionPartScores, answer:string | undefined | nu
   }
 }
 
-// May throw an JSON parse exception.
-export function answerScoreFromJson(questionScoresJson:string, answersJson:string) : number {
-    let questionScores = JSON.parse(questionScoresJson);
-    let answers = JSON.parse(answersJson);
+export function answerScore(questionScores:QuestionScores, answer:Answer) : number {
     let score = 0;
     for (let q in questionScores) {
-      score += answerScore(questionScores[q], answers[q]);
+      score += answerPartScore(questionScores[q], answer[q]);
     }
     return score;
 }

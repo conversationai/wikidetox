@@ -197,15 +197,12 @@ export function setup(app : express.Express,
     }
   });
 
-  // If `:client_job_key` exists, returns quality on hidden questions.
-  // TODO(ldixon): consider using URL:
-  //   client_jobs/:client_job_key/questions/*/answers
+  // If `:client_job_key` exists, returns quality on hidden test questions.
   app.get('/client_jobs/:client_job_key/quality_summary',
-      async (_req, res) => {
+      async (req, res) => {
     try {
-      // let answers = await crowdsourcedb.getJobAnswers(
-      //   req.params.client_job_key);
-      res.status(httpcodes.NOT_IMPLEMENTED).send(JSON.stringify({ error: 'Not yet implemented.' }));
+      let quality = await crowdsourcedb.getJobQuality(req.params.client_job_key);
+      res.status(httpcodes.OK).send(quality);
     } catch(e) {
       console.error('Error: Cannot get worker answers: ', e);
       res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
@@ -213,6 +210,22 @@ export function setup(app : express.Express,
     }
   });
 
+  // If `:client_job_key` exists, returns quality on hidden test questions.
+  app.get('/active_jobs/:client_job_key/test_answers',
+      async (req, res) => {
+    if(requestFailsAuth(serverConfig, req)) {
+      res.status(httpcodes.FORBIDDEN).send(JSON.stringify({ error: 'permission failure' }));
+      return;
+    }
+    try {
+      let test_answers = await crowdsourcedb.getJobTestAnswers(req.params.client_job_key);
+      res.status(httpcodes.OK).send(test_answers);
+    } catch(e) {
+      console.error('Error: Cannot get worker answers: ', e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
+      return;
+    }
+  });
 
   // Admin
   app.get('/active_jobs', async (req, res) => {
