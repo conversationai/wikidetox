@@ -251,11 +251,11 @@ let handlers : SpannerFieldHandler<{}>[] = [
   // Other fields
   new IntFieldHandler('question_count'),
   // Job Quality summary
-  new FloatFieldHandler('mean_score'),
-  new IntFieldHandler('answer_count'),
+  new FloatFieldHandler('toanswer_mean_score'),
+  new IntFieldHandler('toanswer_count'),
   // Worker quality summary
-  new IntFieldHandler('to_answer_count'),
-  new FloatFieldHandler('mean_training_score'),
+  new IntFieldHandler('answer_count'),
+  new FloatFieldHandler('mean_score'),
 ];
 
 function addHandler(handlers : HandlerSet, handler : SpannerFieldHandler<{}>)

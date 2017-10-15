@@ -92,15 +92,6 @@ export class Server {
       res.status(httpcodes.OK).send('ok');
     });
 
-    this.app.post('/suggest_score', (req, res) => {
-      if(!req.body) {
-        res.status(httpcodes.BAD_REQUEST).send('poop, no body');
-        return;
-      }
-      console.log(`Request: ${JSON.stringify({headers: req.rawHeaders, body: req.body})}`);
-      res.send('hello hello?');
-    });
-
     cs_client_routes.setup(this.app, this.crowdsourcedb);
     cs_admin_routes.setup(this.app, this.config, this.crowdsourcedb);
 

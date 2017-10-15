@@ -385,14 +385,13 @@ export class CrowdsourceDB {
     db_types.assertClientJobKey(client_job_key);
     const query : spanner.Query = {
       sql: `SELECT * FROM
-              (SELECT COUNT(*) as answer_count
+              (SELECT COUNT(*) as toanswer_count
                 FROM Answers as a
                     JOIN Questions as q
                       ON a.question_id = q.question_id
-                WHERE a.client_job_key="${client_job_key}" AND
-                      q.type != 'training')
+                WHERE a.client_job_key="${client_job_key}")
               CROSS JOIN
-              (SELECT AVG(answer_score) as mean_score
+              (SELECT AVG(a.answer_score) as toanswer_mean_score
                 FROM Answers as a
                     JOIN Questions as q
                       ON a.question_id = q.question_id
@@ -437,20 +436,19 @@ export class CrowdsourceDB {
     const query : spanner.Query = {
       sql: `
       SELECT * FROM
-        (SELECT COUNT(*) as to_answer_count
+        (SELECT COUNT(*) as answer_count
           FROM Answers as a
               JOIN Questions as q
                 ON a.question_id = q.question_id
           WHERE a.client_job_key="${client_job_key}" AND
-                q.type != 'training' AND
                 a.worker_nonce="${worker_nonce}")
         CROSS JOIN
-        (SELECT AVG(answer_score) as mean_training_score
+        (SELECT AVG(a.answer_score) as mean_score
           FROM Answers as a
               JOIN Questions as q
                 ON a.question_id = q.question_id
           WHERE a.client_job_key="${client_job_key}" AND
-                q.type = 'training' AND
+                q.type != 'toanswer' AND
                 a.worker_nonce="${worker_nonce}")
         `
     };
@@ -463,6 +461,28 @@ export class CrowdsourceDB {
     }
     return db_types.parseOutputRow<QualitySummary>(results[0][0]);
   }
+
+  public async getWorkerScoredAnswers(client_job_key:string, worker_nonce:string)
+      : Promise<ScoredAnswer[]> {
+    db_types.assertClientJobKey(client_job_key);
+    db_types.assertWorkerNonce(worker_nonce);
+    const query : spanner.Query = {
+      sql: `SELECT *
+          FROM Answers as a
+              JOIN Questions as q
+                ON a.question_id = q.question_id
+          WHERE a.client_job_key="${client_job_key}" AND
+                q.type = 'training' AND
+                a.worker_nonce="${worker_nonce}"
+        `
+    };
+    let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
+    if(results.length === 0 || results[0].length === 0){
+      throw new NoResultsError('getWorkerAnswers: Resulted in empty query response');
+    }
+    return results[0].map((row) => db_types.parseOutputRow<ScoredAnswer>(row));
+  }
+
 
   public async getQuestionAnswers(client_job_key:string, question_id:string)
       : Promise<db_types.AnswerRow[]> {
