@@ -15,6 +15,7 @@
     "test": "mocha build/server/*_test.js"
   },
   "dependencies": {
+    "@conversationai/wpconvlib": "^0.0.1",
     "@google-cloud/debug-agent": "^1.0.0",
     "@google-cloud/logging": "^1.0.0",
     "@google-cloud/spanner": "^0.7.1",

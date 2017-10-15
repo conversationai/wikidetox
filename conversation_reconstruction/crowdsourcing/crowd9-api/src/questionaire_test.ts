@@ -17,7 +17,7 @@ import * as questionaire from './questionaire';
 import { expect } from 'chai';
 
 describe('Testing questionaire', function() {
-  
+
   it('Simple answer test', function() {
     let acceptedAnswers = { toxic: { enum: { notatall: 0, somewhat: -1, very: -1 } } };
     let answer = { toxic: 'very' };

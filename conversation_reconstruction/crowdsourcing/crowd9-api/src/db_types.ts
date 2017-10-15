@@ -29,7 +29,7 @@ export interface Question {
 export interface AnswerRow {
   // Optional client specified answer id.
   answer_id: string | null; // /^\w+$/
-  // Details of what this is an answer for
+  // Details of what this is an answer for: the primary index.
   client_job_key: string; // /^\w+$/
   question_group_id: string; // /^\w+$/
   question_id: string; // /^\w+$/
@@ -110,7 +110,7 @@ export let assertWorkerNonce = assertRexExpId.bind(null, 'worker_nonce');
 interface SpannerFieldHandler<T> {
   field_name : string;
   toSpannerInputField(x:T) : spanner.InputField;
-  fromSpannerResultField(row:spanner.ResultField) : T;
+  fromSpannerResultField(row:spanner.ResultField) : T | null;
 }
 
 // TODO(ldixon): add fancier validation, more subtypes, e.g. for checking fields match specific T.
@@ -121,9 +121,14 @@ class JsonFieldHandler<T> implements SpannerFieldHandler<T> {
   public toSpannerInputField(x:T) : spanner.InputField {
     return JSON.stringify(x);
   }
-  public fromSpannerResultField(field:spanner.ResultField) : T {
+  public fromSpannerResultField(field:spanner.ResultField) : T | null {
+    if(field === null) {
+      return null;
+    }
     if(typeof(field) !== 'string') {
-      throw Error('jsonFieldHandler expected field:string, not: ' + typeof(field))
+      console.log('Error: field:');
+      console.dir(field);
+      throw Error(`For ${this.field_name}: expected json field:string, not: ${typeof(field)}`);
     }
     return JSON.parse(field);
   }
@@ -135,11 +140,13 @@ class StringFieldHandler implements SpannerFieldHandler<string> {
     this.field_name = field_name;
   }
   public toSpannerInputField(input:string) : spanner.InputField { return input; }
-  public fromSpannerResultField(field:spanner.ResultField) : string {
-    if(typeof(field) !== 'string') {
-      throw Error('stringFieldHandler expected field:string, not: ' + typeof(field));
+  public fromSpannerResultField(field:spanner.ResultField) : string | null {
+    if(!(field === null || typeof(field) === 'string')) {
+      console.log('Error: field:');
+      console.dir(field);
+      throw Error(`For ${this.field_name}: expected field:string, not: ${typeof(field)}`);
     }
-    return JSON.parse(field);
+    return field;
   }
 }
 
@@ -151,13 +158,13 @@ class IntFieldHandler implements SpannerFieldHandler<number> {
   public toSpannerInputField(input:number) : spanner.InputField {
     return spanner.int(input);
   }
-  public fromSpannerResultField(field:spanner.ResultField) : number {
+  public fromSpannerResultField(field:spanner.ResultField) : number | null {
     if(typeof(field) === 'string') {
-      throw Error('Expected field.value : string, not: ' + typeof(field));
+      throw Error(`For ${this.field_name}: expected field.value:string, but field:string`);
     } else if (field instanceof Date) {
-      throw Error('Expected field.value : string, not: ' + typeof(field));
+      throw Error(`For ${this.field_name}: expected field.value:string, but field:Date`);
     } else if (field === null) {
-      throw Error('Expected field to not be null')
+      return null;
     }
     //  else if (x.value === null) {
     //   throw Error('Expected field.value to not be null')
@@ -173,15 +180,13 @@ class FloatFieldHandler implements SpannerFieldHandler<number> {
   public toSpannerInputField(input:number) : spanner.InputField {
     return spanner.float(input);
   }
-  public fromSpannerResultField(field:spanner.ResultField) : number {
+  public fromSpannerResultField(field:spanner.ResultField) : number | null {
     if(typeof(field) === 'string') {
-      throw Error('floatFieldHandler expected field.value : string, not: ' + typeof(field));
+      throw Error(`For ${this.field_name}: expected field.value:string, but field:string`);
     } else if (field instanceof Date) {
-      throw Error('floatFieldHandler expected field.value : string, not: ' + typeof(field));
+      throw Error(`For ${this.field_name}: expected field.value:string, but field:Date`);
     } else if (field === null) {
-      throw Error('floatFieldHandler expected field to not be null, but it was')
-    } else if (field.value === null) {
-      throw Error('floatFieldHandler expected field.value to not be null')
+      return null;
     }
     return parseFloat(field.value);
   }
@@ -206,14 +211,14 @@ class TimestampFieldHandler implements SpannerFieldHandler<Date> {
   constructor(public field_name: string) {
     this.field_name = field_name;
   }
-  public toSpannerInputField(x:Date) : spanner.InputField {
-    return x.toJSON();
+  public toSpannerInputField(field:Date) : spanner.InputField {
+    return field.toJSON();
   }
-  public fromSpannerResultField(x:spanner.ResultField) : Date {
-    if (!(x instanceof Date)) {
-      throw Error('dateFieldHandler expected field : Date')
+  public fromSpannerResultField(field:spanner.ResultField) : Date | null {
+    if (!(field === null || field instanceof Date)) {
+      throw Error(`For ${this.field_name}: expected field:Date, but field:${typeof(field)}`);
     }
-    return x;
+    return field;
   }
 }
 
@@ -241,8 +246,16 @@ let handlers : SpannerFieldHandler<{}>[] = [
   new StringFieldHandler('description'),
   new StringFieldHandler('title'),
   new JsonFieldHandler<questionaire.QuestionSchema>('answer_schema'),
-  // new StringFieldHandler('question_group_id'),
+  // question_group_id is already defined above.
   new StringFieldHandler('status'),
+  // Other fields
+  new IntFieldHandler('question_count'),
+  // Job Quality summary
+  new FloatFieldHandler('mean_score'),
+  new IntFieldHandler('answer_count'),
+  // Worker quality summary
+  new IntFieldHandler('to_answer_count'),
+  new FloatFieldHandler('mean_training_score'),
 ];
 
 function addHandler(handlers : HandlerSet, handler : SpannerFieldHandler<{}>)
@@ -252,10 +265,15 @@ function addHandler(handlers : HandlerSet, handler : SpannerFieldHandler<{}>)
 }
 const handlerSet = handlers.reduce<HandlerSet>(addHandler, {});
 
+
 // TODO(ldixon): see if this can be pushed into the spanner client library.
 export function prepareInputRow<T>(x:T) : spanner.InputRow {
   let row : spanner.InputRow = {};
   for (let field_name in x) {
+    if(!(field_name in handlerSet)) {
+      console.error(`Field ${field_name} does not have a handler and so cannot be interpreted.`);
+      break;
+    }
     row[field_name] = handlerSet[field_name].toSpannerInputField(x[field_name]);
   }
   return row;
@@ -265,6 +283,10 @@ export function prepareInputRow<T>(x:T) : spanner.InputRow {
 export function parseOutputRow<T>(row: spanner.ResultRow) : T {
   let output : { [field_name:string] : {} } = {};
   for (let field of row) {
+    if(!(field.name in handlerSet)) {
+      console.error(`Field ${field.name} does not have a handler and so cannot be interpreted.`);
+      break;
+    }
     output[field.name] = handlerSet[field.name].fromSpannerResultField(field.value);
   }
   return output as any as T;

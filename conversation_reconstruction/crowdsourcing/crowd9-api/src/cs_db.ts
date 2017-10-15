@@ -21,33 +21,41 @@ import * as db_types from './db_types';
 import * as questionaire from './questionaire';
 
 export interface QuestionToAnswer {
-  question: string;
+  question: db_types.Question;
   question_id: string;
 }
 
 export interface AnswerToQuestion {
   answer_id: string | null; // /^\w+$/
-  answer: string | Object; // JSON
+  answer: questionaire.Answer; // JSON
   client_job_key: string; // /^\w+$/
   question_id: string; // /^\w+$/
   worker_nonce: string;
 }
 
 export interface QualitySummary {
-  mean_score : string;
+  mean_score : number;
+  answer_count : number;
 }
 
 export interface ScoredAnswer {
+  // Primary index:
   answer_id : string;
+  worker_nonce : string;
+  question_group_id : string;
   question_id : string;
-  accepted_answers : string;
+  client_job_key : string;
+  // correct answer
+  accepted_answers : questionaire.QuestionScores;
+  // actual answer
+  answer : questionaire.Answer; // JSON;
+  // score for the answer
   answer_score : number;
-  answer : string;
 }
 
 export interface QuestionGroupRow {
   question_group_id : string;
-  number_of_questions : number;
+  question_count : number;
 }
 
 export interface TestAnswerRow {
@@ -76,10 +84,6 @@ export class ResultsError<T> extends Error {
 // CrowdsourceDB takes responsibility for checking parameters won't
 // result in SQL injection or other bad things.
 export class CrowdsourceDB {
-  // Public to support tests.
-  public spanner: spanner.Spanner;
-  public spannerInstance: spanner.Instance;
-  public spannerDatabase: spanner.Database;
   // TODO(ldixon): consider a typed table wrapper that does the natural
   // and sensible JSON interpretatin for insert, update, and list-returning
   // queries, and single-element queries.
@@ -87,15 +91,7 @@ export class CrowdsourceDB {
   public questionTable: spanner.Table; // <QuestionRow>;
   public clientJobTable: spanner.Table; // <ClientJobRow>;
 
-  constructor(public config : {cloudProjectId:string,
-                               spannerInstanceId:string,
-                               spannerDatabaseName:string} ) {
-    // TODO(ldixon): check: should this be done per query? Does this setup a
-    // connection under the hood which might timeout/break etc? Or is this just
-    // setting vars?
-    this.spanner = spanner({ projectId: config.cloudProjectId });
-    this.spannerInstance = this.spanner.instance(config.spannerInstanceId);
-    this.spannerDatabase = this.spannerInstance.database(config.spannerDatabaseName, { keepAlive: 5 });
+  constructor(public spannerDatabase : spanner.Database) {
     // Instantiate Spanner table objects
     this.answerTable = this.spannerDatabase.table('Answers');
     this.questionTable = this.spannerDatabase.table('Questions');
@@ -138,14 +134,21 @@ export class CrowdsourceDB {
     return clientJobRows;
   }
 
-  // Get all the answers that have not yet been scored.
-  public async getScoredAnswers() : Promise<ScoredAnswer[]> {
+  // Get all the answers to questions.
+  public async getScoredAnswers(client_job_key?:string) : Promise<ScoredAnswer[]> {
+    let jobKeyRestriction = '';
+    if (client_job_key) {
+      db_types.assertClientJobKey(client_job_key);
+      jobKeyRestriction = `AND a.client_job_key = '${client_job_key}'`;
+    }
     const query : spanner.Query = {
-      sql: `SELECT q.question_id, a.answer_id, q.accepted_answers, a.answer, a.answer_score
+      sql: `SELECT q.question_group_id, q.question_id, a.client_job_key, a.answer_id, a.worker_nonce,
+                   q.accepted_answers, a.answer, a.answer_score
             FROM Answers as a
               JOIN Questions as q
               ON a.question_id = q.question_id
-            WHERE (q.accepted_answers IS NOT NULL AND CHAR_LENGTH(q.accepted_answers) > 0)`
+            WHERE (q.accepted_answers IS NOT NULL AND CHAR_LENGTH(q.accepted_answers) > 0)
+                  ${jobKeyRestriction}`
     };
     let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
     if(results.length === 0){
@@ -367,7 +370,7 @@ export class CrowdsourceDB {
 
   public async getAllQuestionGroups() {
     const query : spanner.Query = {
-      sql: `SELECT question_group_id, COUNT(1) as number_of_questions FROM Questions
+      sql: `SELECT question_group_id, COUNT(1) as question_count FROM Questions
             GROUP BY question_group_id`
     };
     let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
@@ -381,12 +384,20 @@ export class CrowdsourceDB {
       : Promise<QualitySummary> {
     db_types.assertClientJobKey(client_job_key);
     const query : spanner.Query = {
-      sql: `SELECT AVG(answer_score) as mean_score
-            FROM Answers as a
-                 JOIN Questions as q
-                   ON a.question_id = q.question_id
-            WHERE a.client_job_key="${client_job_key}" AND
-                  q.type != 'toanswer'`
+      sql: `SELECT * FROM
+              (SELECT COUNT(*) as answer_count
+                FROM Answers as a
+                    JOIN Questions as q
+                      ON a.question_id = q.question_id
+                WHERE a.client_job_key="${client_job_key}" AND
+                      q.type != 'training')
+              CROSS JOIN
+              (SELECT AVG(answer_score) as mean_score
+                FROM Answers as a
+                    JOIN Questions as q
+                      ON a.question_id = q.question_id
+                WHERE a.client_job_key="${client_job_key}" AND
+                      q.type != 'toanswer')`
     };
     let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
     if(results.length === 0 || results[0].length === 0){
@@ -424,13 +435,24 @@ export class CrowdsourceDB {
     db_types.assertClientJobKey(client_job_key);
     db_types.assertWorkerNonce(worker_nonce);
     const query : spanner.Query = {
-      sql: `SELECT AVG(answer_score) as mean_score
-            FROM Answers as a
-                 JOIN Questions as q
-                 ON a.question_id = q.question_id
-            WHERE a.client_job_key="${client_job_key}" AND
-                  q.type = 'training' AND
-                  a.worker_nonce="${worker_nonce}"`
+      sql: `
+      SELECT * FROM
+        (SELECT COUNT(*) as to_answer_count
+          FROM Answers as a
+              JOIN Questions as q
+                ON a.question_id = q.question_id
+          WHERE a.client_job_key="${client_job_key}" AND
+                q.type != 'training' AND
+                a.worker_nonce="${worker_nonce}")
+        CROSS JOIN
+        (SELECT AVG(answer_score) as mean_training_score
+          FROM Answers as a
+              JOIN Questions as q
+                ON a.question_id = q.question_id
+          WHERE a.client_job_key="${client_job_key}" AND
+                q.type = 'training' AND
+                a.worker_nonce="${worker_nonce}")
+        `
     };
     let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
     if(results.length === 0 || results[0].length === 0){
@@ -482,6 +504,12 @@ export class CrowdsourceDB {
       row => db_types.parseOutputRow<db_types.AnswerRow>(row));
     return answerRows;
   }
+
+  public async updateAnswers(answers:db_types.AnswerRow[])
+    : Promise<void> {
+      return this.answerTable.update(
+        answers.map(a => db_types.prepareInputRow(a)));
+  };
 
   public async updateQuestions(questions:db_types.QuestionRow[])
     : Promise<void> {

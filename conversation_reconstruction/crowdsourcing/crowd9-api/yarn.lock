@@ -1250,9 +1250,13 @@ destroy@~1.0.4:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/destroy/-/destroy-1.0.4.tgz#978857442c44749e4206613e37946205826abd80"
 
-diff@^3.0.1, diff@^3.3.0:
+diff@^3.0.1:
   version "3.3.1"
   resolved "https://registry.yarnpkg.com/diff/-/diff-3.3.1.tgz#aa8567a6eed03c531fc89d3f711cd0e5259dec75"
+
+diff@^3.3.0:
+  version "3.4.0"
+  resolved "https://registry.yarnpkg.com/diff/-/diff-3.4.0.tgz#b1d85507daf3964828de54b37d0d73ba67dda56c"
 
 dns-prefetch-control@0.1.0:
   version "0.1.0"
@@ -1624,8 +1628,8 @@ fstream@^1.0.0, fstream@^1.0.10, fstream@^1.0.2:
     rimraf "2"
 
 fuse-test-runner@^1.0.14:
-  version "1.0.14"
-  resolved "https://registry.yarnpkg.com/fuse-test-runner/-/fuse-test-runner-1.0.14.tgz#9b795ade7174f3220a7e699c4b7a0d6cb72374ba"
+  version "1.0.15"
+  resolved "https://registry.yarnpkg.com/fuse-test-runner/-/fuse-test-runner-1.0.15.tgz#19776a28d9d5fce810386ee7a2e59ae1670ef946"
   dependencies:
     colors "^1.1.2"
     diff "^3.3.0"
