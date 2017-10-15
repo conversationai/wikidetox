@@ -9,6 +9,12 @@
   margin: 10px;
 }
 
+.counts {
+  text-align: right;
+  padding: 5px;
+  font-size: 80%;
+}
+
 .id {
   text-align: right;
   padding: 5px;

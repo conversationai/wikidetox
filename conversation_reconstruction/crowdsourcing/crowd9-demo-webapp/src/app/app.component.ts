@@ -10,7 +10,7 @@ function getRandomInt(min: number, max: number) : number {
 
 interface WorkToDo {
   question_id: string;
-  question: string; // JSON encoded string;
+  question: WikiCommentQuestion;
   answers_per_question: number;
   answer_count: number;
 }
@@ -19,6 +19,17 @@ interface WikiCommentQuestion {
   revision_id: string;
   revision_text: string;
 }
+
+interface WorkerQualitySummary {
+  answer_count : number;
+  mean_score: number;
+}
+
+interface JobQualitySummary {
+  toanswer_count : number;
+  toanswer_mean_score: number;
+}
+
 
 @Component({
   selector: 'app-root',
@@ -42,6 +53,16 @@ export class AppComponent {
 
   loading : boolean;
 
+  training_answer_count : number = 0;
+  user_mean_score: number = 0;
+
+  overall_job_answer_count : number = 0;
+  overall_job_mean_score: number = 0;
+
+  // Saved into local storage and used to measure the number of sent
+  // requests from the browser's prespective.
+  local_sent_count : number = 0;
+
   constructor(private http: HttpClient) {}
 
   getNextWorkItem() {
@@ -62,15 +83,35 @@ export class AppComponent {
       // let top_comment = wpconvlib.structureConversaton(selected_conv);
 
       this.questionId = this.selectedWork.question_id;
-      this.question = JSON.parse(this.selectedWork.question);
+      this.question = this.selectedWork.question;
+    });
+
+    // Make the HTTP request:
+    this.http.get('/api/job_quality').subscribe((data : JobQualitySummary) => {
+      this.overall_job_answer_count = data.toanswer_count;
+      this.overall_job_mean_score = data.toanswer_mean_score;
+    });
+    // Make the HTTP request:
+    this.http.get('/api/quality/' + this.userNonce).subscribe((data : WorkerQualitySummary) => {
+      console.log(data);
+      this.training_answer_count = data.answer_count;
+      this.user_mean_score = data.mean_score;
     });
   }
 
   ngOnInit(): void {
     this.userNonce = localStorage.getItem('user_nonce');
+    let maybe_local_sent_count = localStorage.getItem('local_sent_count')
+    if(maybe_local_sent_count !== null) {
+      this.local_sent_count = parseInt(maybe_local_sent_count);
+    } else {
+      this.local_sent_count = 0;
+      localStorage.setItem('local_sent_count', this.local_sent_count.toString());
+    }
+
     if(!this.userNonce) {
       this.userNonce = Math.random().toString();
-      localStorage.setItem("user_nonce", this.userNonce);
+      localStorage.setItem('user_nonce', this.userNonce);
     }
     console.log(`user_nonce: ` + this.userNonce);
 
@@ -90,7 +131,9 @@ export class AppComponent {
       identityHate: this.hateAnswer,
       comments: this.comments
     }).subscribe((data : {}) => {
-      console.log(`send score, response:` + JSON.stringify(data, null, 2));
+      console.log(`sent score; got response:` + JSON.stringify(data, null, 2));
+      this.local_sent_count += 1;
+      localStorage.setItem('local_sent_count', this.local_sent_count.toString());
       this.getNextWorkItem();
     });
   }
