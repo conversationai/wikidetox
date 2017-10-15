@@ -54,49 +54,49 @@ curl -H "x-admin-auth-key: ${ADMIN_AUTH_KEY}" \
   {
     "question_id": "q1",
     "question_group_id":"foo1",
-    "question":"{\"string\":\"Is this a toxic comment?\"}",
-    "accepted_answers": "{ \"toxicity\": { \"enumScores\": { \"ok\": 0, \"unsure\": -1, \"toxic\": -1 } } }",
+    "question": { "string": "Is q1 a toxic really comment?"},
+    "accepted_answers": { "toxic": { "enumScores": { "notatall": 0, "somewhat": -1, "very": -1 } } },
     "type": "training"
   },
   {
     "question_id": "q2",
     "question_group_id":"foo1",
-    "question":"{\"string\":\"Is this a shitty toxic comment?\"}",
-    "accepted_answers": "{ \"toxicity\": { \"enumScores\": { \"ok\": -1, \"unsure\": 0, \"toxic\": 0 } } }",
+    "question": { "string": "Is q2 a toxic really comment?"},
+    "accepted_answers": { "toxic": { "enumScores": { "notatall": -1, "somewhat": 0, "very": 0 } } },
     "type": "test"
   },
   {
     "question_id": "q3",
     "question_group_id":"foo1",
-    "question":"{\"string\":\"Is this a toxic really comment?\"}",
+    "question": { "string": "Is q3 a toxic really comment?"},
     "accepted_answers": null,
     "type": "toanswer"
   },
   {
     "question_id": "q4",
     "question_group_id":"foo1",
-    "question":"{\"string\":\"Is this a toxic really comment?\"}",
+    "question": { "string": "Is q4 a toxic really comment?"},
     "accepted_answers": null,
     "type": "toanswer"
   },
   {
     "question_id": "q4",
     "question_group_id":"foo2",
-    "question":"{\"string\":\"foo2! q4?\"}",
+    "question": { "string": "foo2! q4?"},
     "accepted_answers": null,
     "type": "toanswer"
   },
   {
     "question_id": "q5",
     "question_group_id":"foo2",
-    "question":"{\"string\":\"foo2! q5?\"}",
+    "question": { "string": "foo2! q5?"},
     "accepted_answers": null,
     "type": "toanswer"
   },
   {
     "question_id": "q6",
     "question_group_id":"foo2",
-    "question":"{\"string\":\"foo2! q6?\"}",
+    "question": { "string": "foo2! q6?"},
     "accepted_answers": null,
     "type": "toanswer"
   }
@@ -185,18 +185,18 @@ Submit some answers from crowd-workers:
 ```
 # Example answers with answer_id specified.
 curl -H "Content-Type: application/json" -X POST -d \
-  '{ "answer_id": "1", "answer": "{\"toxicity\": { \"enumAnswer\": \"ok\"} }" }' \
+  '{ "answer_id": "1", "answer":{"toxic":"notatall"} }' \
   ${SERVER}/client_jobs/job1_for_foo1/questions/q1/answers/user_fuzbar1
 curl -H "Content-Type: application/json" -X POST -d \
-  '{ "answer_id": "2", "answer": "{\"toxicity\": { \"enumAnswer\": \"unsure\"} }" }' \
+  '{ "answer_id": "2", "answer":{"toxic":"somewhat"} }' \
   ${SERVER}/client_jobs/job1_for_foo1/questions/q1/answers/user_fuzbar1
 
 curl -H "Content-Type: application/json" -X POST -d \
-  '{ "answer": "{\"toxicity\": { \"enumAnswer\": \"toxic\"} }" }' \
+  '{ "answer":{"toxic":"very"} }' \
   ${SERVER}/client_jobs/job1_for_foo1/questions/q1/answers/user_fuzbar2
 
 curl -H "Content-Type: application/json" -X POST -d \
-  '{ "answer": "{\"toxicity\": { \"enumAnswer\": \"toxic\"} }" }' \
+  '{ "answer": { "toxic": { "enumAnswer": "very"} } }' \
   ${SERVER}/client_jobs/job1_for_foo1/questions/q2/answers/user_fuzbar1
 curl -H "Content-Type: application/json" -X POST -d \
   '{ "answer": "{\"toxicity\": { \"enumAnswer\": \"unsure\"} }" }' \

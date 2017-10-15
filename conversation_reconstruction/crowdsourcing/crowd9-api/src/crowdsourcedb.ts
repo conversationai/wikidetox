@@ -27,7 +27,7 @@ export interface QuestionToAnswer {
 
 export interface AnswerToQuestion {
   answer_id: string | null; // /^\w+$/
-  answer: string; // JSON
+  answer: string | Object; // JSON
   client_job_key: string; // /^\w+$/
   question_id: string; // /^\w+$/
   worker_nonce: string;
@@ -66,38 +66,6 @@ export class ResultsError<T> extends Error {
   constructor(message:string, public results: T[][]) {
     super(message);
   }
-}
-
-interface SpannerOutputRow { [key:string] : string | number | null };
-
-// Convert spanner's output row representation into a more natural JSON
-// representation that we can easily have typescript schema for.
-function parseSpannerOutputRow<T>(row: spanner.ResultRow) : T {
-  let parsedRow : SpannerOutputRow = {};
-  for(let entry of row) {
-    // console.log(row);
-    if(entry.value === null) {
-      parsedRow[entry.name] = null;
-    } else if(typeof(entry.value) === 'string') {
-      parsedRow[entry.name] = entry.value;
-    } else if(entry.value instanceof Date) {
-      parsedRow[entry.name] = entry.value.toJSON();
-    } else if(typeof(entry.value.value) === 'string') {
-      // TODO(this isn't safe for big INTs: probably need to change schema to be INT32?)
-      let parsedInt = parseInt(entry.value.value);
-      if (parsedInt !== null && parsedInt !== undefined) {
-        parsedRow[entry.name] = parsedInt;
-      } else {
-        console.warn('*** entry value type being treated as string: ' + entry.value.value);
-        parsedRow[entry.name] = entry.value.value;
-      }
-    } else {
-      console.error('*** entry value type being treated as int; type: ', typeof(entry.value));
-      console.error('*** entry value type being treated as int; value: ', JSON.stringify(entry.value, null, 2));
-      parsedRow[entry.name] = null;
-    }
-  }
-  return parsedRow as any as T;
 }
 
 // TODO(ldixon): when/if sessions expire, we need to reconnet.
@@ -151,7 +119,7 @@ export class CrowdsourceDB {
     if(results[0].length !== 1){
       throw new ResultsError('Strangely resulted in not 1 row', results);
     }
-    return parseSpannerOutputRow<db_types.ClientJobRow>(results[0][0]);
+    return db_types.parseOutputRow<db_types.ClientJobRow>(results[0][0]);
   }
 
   public deleteClientJobs(client_job_keys:string[]) : Promise<void> {
@@ -166,7 +134,7 @@ export class CrowdsourceDB {
     if(results.length === 0){
       throw new NoResultsError('getAllClientJobs: Resulted in no response.');
     }
-    let clientJobRows = results[0].map(row => parseSpannerOutputRow<db_types.ClientJobRow>(row));
+    let clientJobRows = results[0].map(row => db_types.parseOutputRow<db_types.ClientJobRow>(row));
     return clientJobRows;
   }
 
@@ -184,7 +152,7 @@ export class CrowdsourceDB {
       throw new NoResultsError('Resulted in empty query response');
     }
     let scoredAnswerRows = results[0].map(
-      row => parseSpannerOutputRow<ScoredAnswer>(row));
+      row => db_types.parseOutputRow<ScoredAnswer>(row));
     return scoredAnswerRows;
   }
 
@@ -209,7 +177,7 @@ export class CrowdsourceDB {
       throw new NoResultsError('Resulted in empty query response');
     }
     let questionRows = results[0].map(
-      row => parseSpannerOutputRow<QuestionToAnswer>(row));
+      row => db_types.parseOutputRow<QuestionToAnswer>(row));
     return questionRows;
   }
 
@@ -236,7 +204,7 @@ export class CrowdsourceDB {
       throw new NoResultsError('Resulted in empty query response');
     }
     let questionRows = results[0].map(
-      row => parseSpannerOutputRow<QuestionToAnswer>(row));
+      row => db_types.parseOutputRow<QuestionToAnswer>(row));
     return questionRows;
   }
 
@@ -264,7 +232,7 @@ export class CrowdsourceDB {
       throw new NoResultsError('Resulted in empty query response');
     }
     let questionRows = results[0].map(
-      row => parseSpannerOutputRow<QuestionToAnswer>(row));
+      row => db_types.parseOutputRow<QuestionToAnswer>(row));
     return questionRows;
   }
 
@@ -282,7 +250,7 @@ export class CrowdsourceDB {
     if(results[0].length !== 1){
       throw new ResultsError('Strangely resulted in not 1 row', results);
     }
-    return parseSpannerOutputRow<db_types.QuestionRow>(results[0][0]);
+    return db_types.parseOutputRow<db_types.QuestionRow>(results[0][0]);
   }
 
   public async getQuestionGroupQuestions(question_group_id:string)
@@ -295,7 +263,7 @@ export class CrowdsourceDB {
     if(results.length === 0){
       throw new NoResultsError('getQuestion: Resulted in empty query response');
     }
-    return results[0].map(r => parseSpannerOutputRow<db_types.QuestionRow>(r));
+    return results[0].map(r => db_types.parseOutputRow<db_types.QuestionRow>(r));
   }
 
   public deleteAnswers(answer_ids:string[]) : Promise<void> {
@@ -314,70 +282,66 @@ export class CrowdsourceDB {
     db_types.assertQuestionId(answer.question_id);
     let question : db_types.QuestionRow = await this.getQuestion(
         clientJob.question_group_id, answer.question_id);
-    let answerSchema = JSON.parse(clientJob.answer_schema);
-    let answerObj = JSON.parse(answer.answer);
-    if(!questionaire.answerMatchesSchema(answerSchema, answerObj)) {
+    let answerObj : {};
+    if (typeof(answer.answer) === "string") {
+      answerObj = JSON.parse(answer.answer);
+    } else {
+      answerObj = answer.answer;
+    }
+    if(!questionaire.answerMatchesSchema(clientJob.answer_schema, answerObj)) {
       throw new InValidAnswerError('answer does not match schema: ' + clientJob.answer_schema);
     }
     let answer_score :number | null = null;
     if (question.accepted_answers) {
-      let accepted_answers = JSON.parse(question.accepted_answers)
       console.log(answerObj);
-      answer_score = questionaire.answerScore(accepted_answers, answerObj);
+      answer_score = questionaire.answerScore(question.accepted_answers, answerObj);
     }
 
     // TODO(ldixon): don't allow multiple submission per user?
     let answerRow : db_types.AnswerRow = {
-      answer: answer.answer,
+      answer: answerObj,
       answer_id: answer.answer_id,
       client_job_key: answer.client_job_key,
       question_id: answer.question_id,
       question_group_id: question.question_group_id,
       answer_score: answer_score,
       worker_nonce: answer.worker_nonce,
-      timestamp: new Date().toJSON()
+      timestamp: new Date()
     };
-    return this.answerTable.insert([db_types.prepareAnswerSpannerInputRow(answerRow)]);
+    return this.answerTable.insert([db_types.prepareInputRow(answerRow)]);
   }
 
   public async addClientJob(clientJob:db_types.ClientJobRow) {
     db_types.assertClientJobKey(clientJob.client_job_key);
     db_types.assertQuestionGroupId(clientJob.question_group_id);
-    // TODO(ldixon): use smarter JSON to allow comments in JSON.
-    // Validate the answer schema is valid JSON.
-    JSON.parse(clientJob.answer_schema);
     // TODO(ldixon): check answers_per_question & give nice error.
     // if(!regexp_strict_positive_number.test(client_job_row.answers_per_question)) {
     //   res.status(400).send('bad param: answers_per_question: ' +
     //       JSON.stringify(client_job_row.answers_per_question));
     //   return;
     // }
-    return this.clientJobTable.insert([db_types.prepareClientJobSpannerInputRow(clientJob)]);
+    return this.clientJobTable.insert([db_types.prepareInputRow(clientJob)]);
   }
 
   public async updateClientJob(clientJob:db_types.ClientJobRow) {
     db_types.assertClientJobKey(clientJob.client_job_key);
     db_types.assertQuestionGroupId(clientJob.question_group_id);
-    // TODO(ldixon): use smarter JSON to allow comments in JSON.
-    // Validate the answer schema is valid JSON.
-    JSON.parse(clientJob.answer_schema);
     // TODO(ldixon): check answers_per_question & give nice error.
     // if(!regexp_strict_positive_number.test(client_job_row.answers_per_question)) {
     //   res.status(400).send('bad param: answers_per_question: ' +
     //       JSON.stringify(client_job_row.answers_per_question));
     //   return;
     // }
-    return this.clientJobTable.update([db_types.prepareClientJobSpannerInputRow(clientJob)]);
+    return this.clientJobTable.update([db_types.prepareInputRow(clientJob)]);
   }
 
   public async addQuestions(questions:db_types.QuestionRow[]) {
-
     // TODO: validate questions have valid ids.
     let spannerInputRows : spanner.InputRow[] =
       questions.map(q => {
         db_types.assertQuestionId(q.question_id);
         db_types.assertQuestionGroupId(q.question_group_id);
-        return db_types.prepareQuestionSpannerInputRow(q);
+        return db_types.prepareInputRow(q);
       });
     return this.questionTable.insert(spannerInputRows);
   }
@@ -396,7 +360,7 @@ export class CrowdsourceDB {
       throw new NoResultsError('getWorkerAnswers: Resulted in empty query response');
     }
     let answerRows = results[0].map(
-      row => parseSpannerOutputRow<db_types.AnswerRow>(row));
+      row => db_types.parseOutputRow<db_types.AnswerRow>(row));
 
     return answerRows;
   }
@@ -410,7 +374,7 @@ export class CrowdsourceDB {
     if(results.length === 0){
       throw new NoResultsError('getAllQuestionGroups: Resulted in empty query response');
     }
-    return results[0].map(r => parseSpannerOutputRow<QuestionGroupRow>(r));
+    return results[0].map(r => db_types.parseOutputRow<QuestionGroupRow>(r));
   }
 
   public async getJobQuality(client_job_key:string)
@@ -431,7 +395,7 @@ export class CrowdsourceDB {
     if(results[0].length !== 1){
       throw new ResultsError('Strangely resulted in not 1 row', results);
     }
-    return parseSpannerOutputRow<QualitySummary>(results[0][0]);
+    return db_types.parseOutputRow<QualitySummary>(results[0][0]);
   }
 
   public async getJobTestAnswers(client_job_key:string)
@@ -452,7 +416,7 @@ export class CrowdsourceDB {
     if(results.length === 0){
       throw new NoResultsError('getJobTestAnswers: Resulted in empty query response');
     }
-    return results[0].map(r => parseSpannerOutputRow<TestAnswerRow>(r));
+    return results[0].map(r => db_types.parseOutputRow<TestAnswerRow>(r));
   }
 
   public async getWorkerQuality(client_job_key:string, worker_nonce:string)
@@ -475,7 +439,7 @@ export class CrowdsourceDB {
     if(results[0].length !== 1){
       throw new ResultsError('Strangely resulted in not 1 row', results);
     }
-    return parseSpannerOutputRow<QualitySummary>(results[0][0]);
+    return db_types.parseOutputRow<QualitySummary>(results[0][0]);
   }
 
   public async getQuestionAnswers(client_job_key:string, question_id:string)
@@ -494,7 +458,7 @@ export class CrowdsourceDB {
       throw new NoResultsError('getWorkerAnswers: Resulted in empty query response');
     }
     let answerRows = results[0].map(
-      row => parseSpannerOutputRow<db_types.AnswerRow>(row));
+      row => db_types.parseOutputRow<db_types.AnswerRow>(row));
     return answerRows;
   }
 
@@ -515,14 +479,14 @@ export class CrowdsourceDB {
       throw new NoResultsError('getWorkerAnswers: Resulted in empty query response');
     }
     let answerRows = results[0].map(
-      row => parseSpannerOutputRow<db_types.AnswerRow>(row));
+      row => db_types.parseOutputRow<db_types.AnswerRow>(row));
     return answerRows;
   }
 
   public async updateQuestions(questions:db_types.QuestionRow[])
     : Promise<void> {
       return this.questionTable.update(
-        questions.map(q => db_types.prepareQuestionSpannerInputRow(q)));
+        questions.map(q => db_types.prepareInputRow(q)));
   };
 
   // public async setQuestionAnswers(question_group_id:string, question_id:string,
