@@ -49,7 +49,7 @@ constraints = ['delta2_no_users_attacker_in_conv']
 #['delta2_none', 'delta2_no_users', 'delta3_none', 'delta3_no_users']
 #['delta2_no_users_attacker_in_conv']
 #['delta2_attacker_in_conv',  'delta3_attacker_in_conv', 'delta3_no_users_attacker_in_conv']
-suffix = '_verified'
+suffix = '_cleaned_verified'
 for c in constraints:
     os.system('mkdir /scratch/wiki_dumps/expr_with_matching/%s/bow_features/'%(c))
     process(c, suffix)
