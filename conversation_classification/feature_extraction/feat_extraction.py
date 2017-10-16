@@ -17,11 +17,11 @@ import os
 from multiprocessing import Pool
 import time
 from pathlib import Path
-from politeness_with_spacy import politeness_model, request_utils
-from constructive.agree import has_agreement, has_disagreement
+from utils.politeness_with_spacy import politeness_model, request_utils
+from utils.constructive.agree import has_agreement, has_disagreement
 import re
 from spacy.en import English
-from constructive.stopwords import stopwords
+from utils.constructive.stopwords import stopwords
 
 """
 DEVELOPING NOTES:
@@ -158,8 +158,9 @@ def process(conv_id, actions):
     ret_features['conversational_features'] = conv_feature
     return ret_features 
              
-def execute(number):
-    with open('/scratch/wiki_dumps/matched/data%d.json'%number) as f:
+def execute(args):
+    constraint, number = args
+    with open('/scratch/wiki_dumps/expr_with_matching/%s/raw_data/data%d.json'%(constraint, number)) as f:
         for line in f:
             conv_id, conversation = json.loads(line)
             try:
@@ -167,11 +168,21 @@ def execute(number):
             except:
                print(conv_id)
                continue
-            with open('/scratch/wiki_dumps/features/data%d.json'%number, 'a') as w:
+            with open('/scratch/wiki_dumps/expr_with_matching/%s/features/data%d.json'%(constraint, number), 'a') as w:
                  w.write(json.dumps((conv_id, ret))+'\n')
 
-with open('lexicons') as f:
+with open('utils/lexicons') as f:
     LEXICONS = json.load(f)
+constraints = ['delta2_none', 'delta2_no_users', 'delta3_none', 'delta3_no_users'] 
+#['delta2_no_users_attacker_in_conv']
+#['delta2_attacker_in_conv', 'delta2_no_users_attacker_in_conv', 'delta3_attacker_in_conv', 'delta3_no_users_attacker_in_conv']
+
+#['none', 'attacker_in_conv', 'no_users', 'no_users_attacker_in_conv']
+lst = []
+for c in constraints:
+    os.system('mkdir /scratch/wiki_dumps/expr_with_matching/%s/features'%(c)) 
+    for i in range(70):
+        lst.append((c, i))
 pool = Pool(70) 
-pool.map(execute, range(70))
+pool.map(execute, lst)
 

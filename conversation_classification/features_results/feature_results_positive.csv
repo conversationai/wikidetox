@@ -1,0 +1,21 @@
+delta2_attacker_in_conv,delta2_no_users_attacker_in_conv,delta3_attacker_in_conv,delta3_no_users_attacker_in_conv
+"BIGRAM_('necessary', '.')","BIGRAM_('Thanks', 'for')","BIGRAM_('Thanks', 'for')",has_pos_repeat
+UNIGRAM_reasonable,UNIGRAM_No,"BIGRAM_('It', 'is')","BIGRAM_('of', 'the')"
+has_agree,"BIGRAM_('It', 'is')","BIGRAM_('think', 'that')","BIGRAM_('to', 'the')"
+"BIGRAM_('of', 'any')",UNIGRAM_Well,negative_decrease,last_three_has_thank
+"BIGRAM_(""'"", ""''"")",negative_decrease,UNIGRAM_where,negative_decrease
+"BIGRAM_('it', 'in')",UNIGRAM_where,UNIGRAM_Well,has_greetings
+has_content_repeat,UNIGRAM_add,UNIGRAM_add,UNIGRAM_add
+"BIGRAM_('wiki_link', 'to')",UNIGRAM_Thanks,UNIGRAM_Thanks,UNIGRAM_where
+negative_decrease,"BIGRAM_('for', 'a')",last_three_has_thank,UNIGRAM_Thanks
+graph_feature_triad0,last_three_has_thank,"BIGRAM_('for', 'a')",UNIGRAM_Well
+"BIGRAM_('you', 'for')",has_polite,has_polite,UNIGRAM_section
+"BIGRAM_('of', 'his')",UNIGRAM_should,has_content_repeat,"BIGRAM_('for', 'a')"
+UNIGRAM_Well,has_stop_repeat,has_stop_repeat,has_content_repeat
+has_polite,has_content_repeat,UNIGRAM_should,has_stop_repeat
+last_three_has_thank,UNIGRAM_section,UNIGRAM_section,has_polite
+positive_increase,has_pos_repeat,positive_increase,UNIGRAM_should
+has_modification,positive_increase,has_pos_repeat,positive_increase
+last_three_has_modification,has_modification,has_modification,last_three_has_modification
+directed_graph_self_loops,last_three_has_modification,last_three_has_modification,has_modification
+repeat_percentage,repeat_percentage,repeat_percentage,repeat_percentage

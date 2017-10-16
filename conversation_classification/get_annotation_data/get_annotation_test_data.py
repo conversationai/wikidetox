@@ -161,6 +161,7 @@ def main():
             # not including the last action
             end_time = max([a['timestamp_in_sec'] for a in actions])
             actions = [a for a in actions if a['timestamp_in_sec'] < end_time]
+
             snapshot = generate_snapshots(actions)
             for act in snapshot:
                 if 'relative_replyTo' in act and not(act['relative_replyTo'] == -1):
@@ -170,10 +171,11 @@ def main():
             if maxl and i > maxl:
                 break
     print(len(res))
+
     df = pd.DataFrame(res)
     df.columns = ['conversations']
     #conversations_as_json_job1.csv
     df.to_csv('/scratch/wiki_dumps/annotations/conversations_as_json_test_bad_job1.csv', chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
-   
+    
 if __name__ == '__main__':
     main()

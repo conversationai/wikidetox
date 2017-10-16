@@ -1,17 +1,8 @@
-import json
-import pandas as pd
-import hashlib
-import itertools
-import csv
 import re
-from collections import defaultdict
-import datetime
 
 def clean(s):
     ret = s.replace('\t', ' ')
     ret = ret.replace('\n', ' ')
-#    while (len(ret) >= 2 and ret[0] == '=' and ret[-1] == '='):
-#        ret = ret[1:-1]
     while (len(ret) >= 1 and (ret[0] == ':' or ret[0] == '*')):
         ret = ret[1:]
     sub_patterns = [('EXTERNAL_LINK: ', ''), \
@@ -21,9 +12,8 @@ def clean(s):
                     ('WIKI_LINK: ', '')]
     for p, r in sub_patterns:
         ret = re.sub(p, r, ret)
-
-
     return ret
+
 
 def update(snapshot, action):
     Found = False
@@ -40,7 +30,8 @@ def update(snapshot, action):
         for ind, act in enumerate(snapshot):
             if 'parent_id' in action and action['parent_id'] in act['parent_ids']:
                 act['status'] = 'restored'
-                act['content'] = action['content']
+                act['content'] = clean(action['content'])
+                act['timestamp_in_sec'] = action['timestamp_in_sec']
                 status = 'restored'
                 snapshot[ind] = act
                 Found = True
@@ -61,6 +52,7 @@ def update(snapshot, action):
                 else:
                    new_act['user_text'] = action['user_text']
                 new_act['timestamp'] = action['timestamp']
+                new_act['timestamp_in_sec'] = action['timestamp_in_sec']
                 new_act['page_title'] = action['page_title']
  
                 new_act['parent_ids'] = pids
@@ -84,6 +76,7 @@ def update(snapshot, action):
             act['toxicity_score'] = action['score']
             act['user_text'] = action['user_text']
             act['timestamp'] = action['timestamp']
+            act['timestamp_in_sec'] = action['timestamp_in_sec']
             act['absolute_replyTo'] = -1
             act['page_title'] = action['page_title']
 
@@ -107,6 +100,7 @@ def update(snapshot, action):
         act['toxicity_score'] = action['score']
         act['user_text'] = action['user_text']
         act['timestamp'] = action['timestamp']
+        act['timestamp_in_sec'] = action['timestamp_in_sec']
         act['page_title'] = action['page_title']
         
         act['absolute_replyTo'] = -1
@@ -129,51 +123,3 @@ def generate_snapshots(conv):
     for action in conv:
         snapshot,status = update(snapshot, action)
     return snapshot
-
-def reformat(act):
-    output_dict = {key: act[key] for key in ['id', 'comment_type', 'content', 'timestamp', 'status', 'page_title', 'user_text']}
-    output_dict['parent_id'] = parse_absolute_replyTo(act['absolute_replyTo'])
-#    output_dict['hashed_user_id'] = hashlib.sha1(act['user_text'].encode('utf-8')).hexdigest()
-    return output_dict
-
-def parse_absolute_replyTo(value):
-    if value == -1:
-        return ''
-    else:
-        return value
-
-def main():
-    maxl = None
-    res = []
-    conversations = defaultdict(list)
-    with open('/home/yiqing/test_bad_convs.json') as f:
-    #/scratch/wiki_dumps/attacker_in_conv/len5-11_train.json') as f:
-        for i, line in enumerate(f):
-            cur = json.loads(line)
-            cur['timestamp_in_sec'] = (datetime.datetime.strptime(cur['timestamp'], '%Y-%m-%d %H:%M:%S UTC') -datetime.datetime(1970,1,1)).total_seconds() 
-            cur['comment_type'] = cur['type']
-            conversations[cur['conversation_id']].append(cur)
-        for conversation in conversations.values():
-            actions = sorted(conversation, key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
-            if not(actions[0]['comment_type'] == 'SECTION_CREATION'):
-               continue
-
-            # not including the last action
-            end_time = max([a['timestamp_in_sec'] for a in actions])
-            actions = [a for a in actions if a['timestamp_in_sec'] < end_time]
-            snapshot = generate_snapshots(actions)
-            for act in snapshot:
-                if 'relative_replyTo' in act and not(act['relative_replyTo'] == -1):
-                   act['absolute_replyTo'] = snapshot[act['relative_replyTo']]['id']
-            ret = {act['id']:reformat(act) for act in snapshot if not(act['status'] == 'removed')}
-            res.append(json.dumps(ret))
-            if maxl and i > maxl:
-                break
-    print(len(res))
-    df = pd.DataFrame(res)
-    df.columns = ['conversations']
-    #conversations_as_json_job1.csv
-    df.to_csv('/scratch/wiki_dumps/annotations/conversations_as_json_test_bad_job1.csv', chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
-   
-if __name__ == '__main__':
-    main()

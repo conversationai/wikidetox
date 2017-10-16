@@ -1,0 +1,21 @@
+delta2_no_users,delta2_none,delta3_no_users,delta3_none
+polarity_entropy,polarity_entropy,polarity_entropy,undirected_graph_density
+undirected_graph_density,directed_graph_nodes_with_incoming_edge,undirected_graph_density,polarity_entropy
+directed_graph_density,has_reply,directed_graph_density,has_reply
+directed_graph_nodes_with_incoming_edge,polarity_gap,has_reply,directed_graph_nodes_with_incoming_edge
+polarity_gap,undirected_graph_density,directed_graph_nodes_with_incoming_edge,polarity_gap
+has_reply,toxicity_raise,polarity_gap,directed_graph_density
+frac. negative_reply,directed_graph_density,frac. negative_reply,toxicity_raise
+has_stop_adoption,frac. negative_reply,last_three_LEXICON_pron_you,UNIGRAM_Some
+UNIGRAM_man,has_stop_adoption,UNIGRAM_nonsense,frac. negative_reply
+last_three_LEXICON_pron_you,UNIGRAM_Do,last_three_has_negative,UNIGRAM_using
+directed_graph_self_loops,UNIGRAM_stupid,toxicity_raise,"BIGRAM_('here', '.')"
+last_three_has_agree,last_three_LEXICON_pron_you,"BIGRAM_('here', '.')",UNIGRAM_stupid
+toxicity_raise,UNIGRAM_nonsense,has_stop_adoption,last_three_LEXICON_pron_you
+last_three_LEXICON_negative,UNIGRAM_who,UNIGRAM_English,last_three_has_negative
+UNIGRAM_``,UNIGRAM_calling,question_to_question,UNIGRAM_places
+UNIGRAM_Do,UNIGRAM_``,UNIGRAM_answer,has_stop_adoption
+UNIGRAM_discussion,UNIGRAM_came,UNIGRAM_places,UNIGRAM_calling
+max_length,UNIGRAM_places,directed_graph_self_loops,"BIGRAM_('the', 'world')"
+UNIGRAM_those,last_three_has_negative,max_length,UNIGRAM_who
+"BIGRAM_('of', 'wiki_link')",last_three_LEXICON_negative,UNIGRAM_stupid,UNIGRAM_nonsense
