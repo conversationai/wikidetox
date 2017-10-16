@@ -1,16 +1,8 @@
-import json
-import pandas as pd
-import hashlib
-import itertools
-import csv
 import re
-import os
 
 def clean(s):
     ret = s.replace('\t', ' ')
     ret = ret.replace('\n', ' ')
-#    while (len(ret) >= 2 and ret[0] == '=' and ret[-1] == '='):
-#        ret = ret[1:-1]
     while (len(ret) >= 1 and (ret[0] == ':' or ret[0] == '*')):
         ret = ret[1:]
     sub_patterns = [('EXTERNAL_LINK: ', ''), \
@@ -20,9 +12,8 @@ def clean(s):
                     ('WIKI_LINK: ', '')]
     for p, r in sub_patterns:
         ret = re.sub(p, r, ret)
-
-
     return ret
+
 
 def update(snapshot, action):
     Found = False
@@ -132,130 +123,3 @@ def generate_snapshots(conv):
     for action in conv:
         snapshot,status = update(snapshot, action)
     return snapshot
-
-def reformat(act):
-    output_dict = {key: act[key] for key in ['id', 'comment_type', 'content', 'timestamp', 'status', 'page_title', 'user_text']}
-    output_dict['parent_id'] = parse_absolute_replyTo(act['absolute_replyTo'])
-#    output_dict['hashed_user_id'] = hashlib.sha1(act['user_text'].encode('utf-8')).hexdigest()
-    return output_dict
-
-def parse_absolute_replyTo(value):
-    if value == -1:
-        return ''
-    else:
-        return value
-
-def main(constraint, job):
-    maxl = None
-    res = []
-    max_len = 0
-    path = '/scratch/wiki_dumps/expr_with_matching/' + constraint  + '/data'
-    os.system('cat %s/develop.json %s/train.json %s/develop.json > %s/all.json'%(path, path, path, path))
-    cnt = 0
-    with open('annotated.json') as w:
-         annotated = json.load(w) 
-    with open('annotated_2.json') as w:
-         accepted = json.load(w) 
-
-    if job == 2:
-        accepted = []
-    if job == 1:
-        with open('%s_conversations_with_reasonable_length.json'%(constraint)) as w:
-           accepted = json.load(w) 
-    if job == 3:
-       annotated = annotated + accepted
-
-
-
-    with open('/scratch/wiki_dumps/expr_with_matching/%s/data/all.json'%(constraint)) as f:
-        for i, line in enumerate(f):
-            conv_id, clss, conversation = json.loads(line)
-            if job < 3:
-               if conv_id in annotated:
-                  continue
-            else:
-               if not(conv_id in annotated):
-                  continue
-            if job == 1:
-               if not(conv_id in accepted):
-                  continue
-            actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
-
-            # not including the last action
-            end_time = max([a['timestamp_in_sec'] for a in actions])
-            if job == 1:
-               actions = [a for a in actions if a['timestamp_in_sec'] < end_time]
-            
-
-            snapshot = generate_snapshots(actions)
-            last_comment = None
-            for ind, act in enumerate(snapshot):
-                if 'relative_replyTo' in act and not(act['relative_replyTo'] == -1)\
-                   and not(act['relative_replyTo'] == ind):
-                     act['absolute_replyTo'] = snapshot[act['relative_replyTo']]['id']
-                if act['timestamp_in_sec'] == end_time:
-                     father = ind
-                     depth = -1
-                     while father:
-                         depth += 1
-                         if 'relative_replyTo' in snapshot[father] \
-                            and not(snapshot[father]['relative_replyTo'] == -1)\
-                            and not(snapshot[father]['relative_replyTo'] == father):
-                                father = snapshot[father]['relative_replyTo']
-                         else:
-                            break
-                         if depth > 10:
-                            depth = -1
-                            break
-                     if depth == -1:
-                        continue
-                     if last_comment == None or depth > last_comment['depth']:
-                        last_comment = act
-                        last_comment['depth'] = depth
-
-                snapshot[ind] = act
-            if job == 3:  
-               if not(last_comment == None):
-                  res.append({'id': conv_id, 'comment': last_comment})
-               continue
-            
-            ret = {act['id']:reformat(act) for act in snapshot if not(act['status'] == 'removed')}
-            length = len(ret.keys())
-
-            if job == 2:
-                if length > 10:
-                   cnt += 1
-                else:
-                   accepted.append(conv_id)
-                   res.append(json.dumps(ret))
-            else:
-               res.append(json.dumps(ret))
-            max_len = max(max_len, length) 
-            if maxl and i > maxl:
-                break
-    if job == 2:
-       with open('%s_conversations_with_reasonable_length.json'%constraint, 'w') as w:
-          json.dump(accepted, w)
-
-
-    df = pd.DataFrame(res)
-    if job < 3:
-       df.columns = ['conversations']
-    else:
-       return df
-    #conversations_as_json_job1.csv
-    os.system('mkdir /scratch/wiki_dumps/expr_with_matching/%s/annotations'%(constraint))
-    df.to_csv('/scratch/wiki_dumps/expr_with_matching/%s/annotations/conversations_as_json_job%d.csv'%(constraint, job), chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
-   
-if __name__ == '__main__':
-    constraints = ['delta2_no_users', 'delta2_no_users_attacker_in_conv']
-    df = []
-    for c in constraints:
-#        main(c, 2) 
-#        main(c, 1)
-        df.append(main(c, 3)) # Only the last comment
-        print(c)
-    df = pd.concat(df)
-    df.to_csv('/scratch/wiki_dumps/expr_with_matching/toxicity_in_context.csv', chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
- 
-
