@@ -36,6 +36,7 @@ def process(args):
     for user in users:
       #  print(user)
         info = {}
+        """
         # metadata
         if user in registration: 
             info['registration'] = registration[user]
@@ -45,8 +46,8 @@ def process(args):
         if user in blocking and blocking[user] < start_time: 
             info['blocked'] = blocking[user]
         
-        # editing data
         """
+        # editing data
         u_id = user_id[user]
         try:
             with open('/scratch/wiki_dumps/user_data/editing_per_user/%s'%(u_id)) as f:
@@ -75,12 +76,13 @@ def process(args):
             info['edits_on_this_talk_page'] = 0
             info['edits_on_wikipedia_talks'] = 0
             comments[user] = []
+        """
         user_features[user] = info
     name = multiprocessing.current_process().name
-    with open('/scratch/wiki_dumps/expr_with_matching/user_features/%s.json'%(name), 'a') as w:
+    with open('/scratch/wiki_dumps/expr_with_matching/edit_features/%s.json'%(name), 'a') as w:
         w.write(json.dumps([conv_id, user_features]) + '\n')
-    with open('/scratch/wiki_dumps/expr_with_matching/last_comments/%s.json'%(name), 'a') as w:
-        w.write(json.dumps([conv_id, comments]) + '\n')
+#    with open('/scratch/wiki_dumps/expr_with_matching/last_comments/%s.json'%(name), 'a') as w:
+#        w.write(json.dumps([conv_id, comments]) + '\n')
     print('One Record Written')
 
 constraints = ['delta2_no_users', 'delta2_no_users_attacker_in_conv']
@@ -113,8 +115,8 @@ for constraint in constraints:
 #['none', 'attacker_in_conv', 'no_users', 'no_users_attacker_in_conv']
 lst = []
 pool = Pool(70) 
-os.system('mkdir /scratch/wiki_dumps/expr_with_matching/user_features') 
-os.system('mkdir /scratch/wiki_dumps/expr_with_matching/last_comments') 
+os.system('mkdir /scratch/wiki_dumps/expr_with_matching/edit_features') 
+#os.system('mkdir /scratch/wiki_dumps/expr_with_matching/last_comments') 
 print('Start Processing')
 pool.map(process, tasks)
 
