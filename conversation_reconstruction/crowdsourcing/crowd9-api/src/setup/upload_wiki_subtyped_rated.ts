@@ -17,12 +17,35 @@ limitations under the License.
 // import * as http from 'http';
 import * as yargs from 'yargs';
 import * as fs from 'fs';
+import * as spanner from '@google-cloud/spanner';
+
 import * as db_types from '../db_types';
 // import * as wpconvlib from '@conversationai/wpconvlib';
-import * as crowdsourcedb from '../crowdsourcedb';
+import * as crowdsourcedb from '../cs_db';
+import {batchList} from './util'
 
 /*
 Usage:
+
+  node build/server/setup/upload_wiki_subtyped_rated.js \
+    --file="./tmp/subtypesdata/bad_test_x150.json" \
+    --question_group="wp_x2000" \
+    --question_type="test" \
+    --update_only
+
+  node build/server/setup/upload_wiki_subtyped_rated.js \
+    --file="./tmp/subtypesdata/unsure_test_x150.json" \
+    --question_group="wp_x2000" \
+    --question_type="test" \
+    --update_only
+
+  node build/server/setup/upload_wiki_subtyped_rated.js \
+    --file="./tmp/subtypesdata/good_test_x150.json" \
+    --question_group="wp_x2000" \
+    --question_type="test" \
+    --update_only
+
+
 
   node build/server/setup/upload_wiki_subtyped_rated.js \
     --file="./src/setup/subtypesdata/bad_train_x50.json" \
@@ -47,6 +70,7 @@ Usage:
     --question_group="wp_x2000"
 */
 
+// Command line arguments.
 interface Params {
   file:string,
   question_type:string,
@@ -68,26 +92,10 @@ interface DataShape {
   comment_text : string;
 };
 
-function batchList<T>(batchSize : number, list :T[]) : T[][] {
-  let batches : T[][] = [];
-  let batch : T[] = [];
-  for(let x of list) {
-    batch.push(x);
-    if(batch.length >= batchSize) {
-      batches.push(batch);
-      batch = [];
-    }
-  }
-  if(batch.length > 0) {
-    batches.push(batch);
-  }
-  return batches;
-}
-
 //
 function makeScoreEnum(frac : number){
   return {
-    ok: (frac < 0.3) ? 1 : (frac < 0.5 ? 0 : -1),
+    notatall: (frac < 0.3) ? 1 : (frac < 0.5 ? 0 : -1),
     somewhat: (frac < 0.2) ? -0.5 : (frac < 0.8 ? 1 : -0.5),
     very: (frac < 0.5) ? -1 : (frac < 0.7 ? 0 : 1),
   }
@@ -110,20 +118,20 @@ async function main(args : Params) {
     return;
   }
 
-  let db = new crowdsourcedb.CrowdsourceDB({
-    cloudProjectId: args.gcloud_project_id,
-    spannerInstanceId: args.spanner_instance,
-    spannerDatabaseName: args.spanner_db
-  });
+  let spannerClient = spanner({ projectId: args.gcloud_project_id });
+  let spannerInstance = spannerClient.instance(args.spanner_instance);
+  let spannerDatabase = spannerInstance.database(args.spanner_db, { keepAlive: 5 });
+  let db = new crowdsourcedb.CrowdsourceDB(spannerDatabase);
 
   let fileAsString = fs.readFileSync(args.file, 'utf8');
   let data : DataShape[] = JSON.parse(fileAsString);
   let questions : db_types.QuestionRow[] = [];
   for (let i = 0; i < data.length; i++) {
     let id = data[i].rev_id;
-    let question = JSON.stringify(
-      { revision_id: id,
-        revision_text: data[i].comment_text });
+    let question : db_types.Question = {
+      revision_id: id,
+      revision_text: data[i].comment_text
+    } as any;
 
     let toxicity_scores = { enum: makeScoreEnum(parseFloat(data[i].frac_neg)) };
     let readableAndInEnglishScores = {
@@ -148,14 +156,14 @@ async function main(args : Params) {
     };
 
     questions.push({
-      accepted_answers: JSON.stringify({
+      accepted_answers: {
         readableAndInEnglish: readableAndInEnglishScores,
         toxic: toxicity_scores,
         obscene: obscene_scores,
         identityHate: hate_scores,
         threat: threat_scores,
         insult: insult_scores,
-      }),
+      },
       question: question,
       question_group_id: args.question_group,
       question_id: id,

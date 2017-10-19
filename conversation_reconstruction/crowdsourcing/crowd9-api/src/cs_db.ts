@@ -21,33 +21,49 @@ import * as db_types from './db_types';
 import * as questionaire from './questionaire';
 
 export interface QuestionToAnswer {
-  question: string;
+  question: db_types.Question;
   question_id: string;
 }
 
 export interface AnswerToQuestion {
   answer_id: string | null; // /^\w+$/
-  answer: string; // JSON
+  answer: questionaire.Answer; // JSON
   client_job_key: string; // /^\w+$/
   question_id: string; // /^\w+$/
   worker_nonce: string;
 }
 
 export interface QualitySummary {
-  mean_score : string;
+  mean_score : number;
+  answer_count : number;
 }
 
 export interface ScoredAnswer {
+  // Primary index:
   answer_id : string;
+  worker_nonce : string;
+  question_group_id : string;
   question_id : string;
-  accepted_answers : string;
+  client_job_key : string;
+  // correct answer
+  accepted_answers : questionaire.QuestionScores;
+  // actual answer
+  answer : questionaire.Answer; // JSON;
+  // score for the answer
   answer_score : number;
-  answer : string;
 }
 
 export interface QuestionGroupRow {
   question_group_id : string;
-  number_of_questions : number;
+  question_count : number;
+}
+
+export interface TestAnswerRow {
+  question_group_id : string;
+  question_id : string;
+  answer_id : string;
+  worker_nonce : string;
+  answer_score : string;
 }
 
 export class NoResultsError extends Error {}
@@ -60,38 +76,6 @@ export class ResultsError<T> extends Error {
   }
 }
 
-interface SpannerOutputRow { [key:string] : string | number | null };
-
-// Convert spanner's output row representation into a more natural JSON
-// representation that we can easily have typescript schema for.
-function parseSpannerOutputRow<T>(row: spanner.ResultRow) : T {
-  let parsedRow : SpannerOutputRow = {};
-  for(let entry of row) {
-    // console.log(row);
-    if(entry.value === null) {
-      parsedRow[entry.name] = null;
-    } else if(typeof(entry.value) === 'string') {
-      parsedRow[entry.name] = entry.value;
-    } else if(entry.value instanceof Date) {
-      parsedRow[entry.name] = entry.value.toJSON();
-    } else if(typeof(entry.value.value) === 'string') {
-      // TODO(this isn't safe for big INTs: probably need to change schema to be INT32?)
-      let parsedInt = parseInt(entry.value.value);
-      if (parsedInt !== null && parsedInt !== undefined) {
-        parsedRow[entry.name] = parsedInt;
-      } else {
-        console.warn('*** entry value type being treated as string: ' + entry.value.value);
-        parsedRow[entry.name] = entry.value.value;
-      }
-    } else {
-      console.error('*** entry value type being treated as int; type: ', typeof(entry.value));
-      console.error('*** entry value type being treated as int; value: ', JSON.stringify(entry.value, null, 2));
-      parsedRow[entry.name] = null;
-    }
-  }
-  return parsedRow as any as T;
-}
-
 // TODO(ldixon): when/if sessions expire, we need to reconnet.
 // See: https://cloud.google.com/spanner/docs/sessions#keep_an_idle_session_alive
 // (Yes, we do try to keep it alive, but we should still fail and recover
@@ -100,10 +84,6 @@ function parseSpannerOutputRow<T>(row: spanner.ResultRow) : T {
 // CrowdsourceDB takes responsibility for checking parameters won't
 // result in SQL injection or other bad things.
 export class CrowdsourceDB {
-  // Public to support tests.
-  public spanner: spanner.Spanner;
-  public spannerInstance: spanner.Instance;
-  public spannerDatabase: spanner.Database;
   // TODO(ldixon): consider a typed table wrapper that does the natural
   // and sensible JSON interpretatin for insert, update, and list-returning
   // queries, and single-element queries.
@@ -111,15 +91,7 @@ export class CrowdsourceDB {
   public questionTable: spanner.Table; // <QuestionRow>;
   public clientJobTable: spanner.Table; // <ClientJobRow>;
 
-  constructor(public config : {cloudProjectId:string,
-                               spannerInstanceId:string,
-                               spannerDatabaseName:string} ) {
-    // TODO(ldixon): check: should this be done per query? Does this setup a
-    // connection under the hood which might timeout/break etc? Or is this just
-    // setting vars?
-    this.spanner = spanner({ projectId: config.cloudProjectId });
-    this.spannerInstance = this.spanner.instance(config.spannerInstanceId);
-    this.spannerDatabase = this.spannerInstance.database(config.spannerDatabaseName, { keepAlive: 5 });
+  constructor(public spannerDatabase : spanner.Database) {
     // Instantiate Spanner table objects
     this.answerTable = this.spannerDatabase.table('Answers');
     this.questionTable = this.spannerDatabase.table('Questions');
@@ -143,7 +115,7 @@ export class CrowdsourceDB {
     if(results[0].length !== 1){
       throw new ResultsError('Strangely resulted in not 1 row', results);
     }
-    return parseSpannerOutputRow<db_types.ClientJobRow>(results[0][0]);
+    return db_types.parseOutputRow<db_types.ClientJobRow>(results[0][0]);
   }
 
   public deleteClientJobs(client_job_keys:string[]) : Promise<void> {
@@ -158,25 +130,32 @@ export class CrowdsourceDB {
     if(results.length === 0){
       throw new NoResultsError('getAllClientJobs: Resulted in no response.');
     }
-    let clientJobRows = results[0].map(row => parseSpannerOutputRow<db_types.ClientJobRow>(row));
+    let clientJobRows = results[0].map(row => db_types.parseOutputRow<db_types.ClientJobRow>(row));
     return clientJobRows;
   }
 
-  // Get all the answers that have not yet been scored.
-  public async getScoredAnswers() : Promise<ScoredAnswer[]> {
+  // Get all the answers to questions.
+  public async getScoredAnswers(client_job_key?:string) : Promise<ScoredAnswer[]> {
+    let jobKeyRestriction = '';
+    if (client_job_key) {
+      db_types.assertClientJobKey(client_job_key);
+      jobKeyRestriction = `AND a.client_job_key = '${client_job_key}'`;
+    }
     const query : spanner.Query = {
-      sql: `SELECT q.question_id, a.answer_id, q.accepted_answers, a.answer, a.answer_score
+      sql: `SELECT q.question_group_id, q.question_id, a.client_job_key, a.answer_id, a.worker_nonce,
+                   q.accepted_answers, a.answer, a.answer_score
             FROM Answers as a
               JOIN Questions as q
               ON a.question_id = q.question_id
-            WHERE (q.accepted_answers IS NOT NULL AND CHAR_LENGTH(q.accepted_answers) > 0)`
+            WHERE (q.accepted_answers IS NOT NULL AND CHAR_LENGTH(q.accepted_answers) > 0)
+                  ${jobKeyRestriction}`
     };
     let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
     if(results.length === 0){
       throw new NoResultsError('Resulted in empty query response');
     }
     let scoredAnswerRows = results[0].map(
-      row => parseSpannerOutputRow<ScoredAnswer>(row));
+      row => db_types.parseOutputRow<ScoredAnswer>(row));
     return scoredAnswerRows;
   }
 
@@ -201,7 +180,7 @@ export class CrowdsourceDB {
       throw new NoResultsError('Resulted in empty query response');
     }
     let questionRows = results[0].map(
-      row => parseSpannerOutputRow<QuestionToAnswer>(row));
+      row => db_types.parseOutputRow<QuestionToAnswer>(row));
     return questionRows;
   }
 
@@ -228,7 +207,7 @@ export class CrowdsourceDB {
       throw new NoResultsError('Resulted in empty query response');
     }
     let questionRows = results[0].map(
-      row => parseSpannerOutputRow<QuestionToAnswer>(row));
+      row => db_types.parseOutputRow<QuestionToAnswer>(row));
     return questionRows;
   }
 
@@ -256,14 +235,16 @@ export class CrowdsourceDB {
       throw new NoResultsError('Resulted in empty query response');
     }
     let questionRows = results[0].map(
-      row => parseSpannerOutputRow<QuestionToAnswer>(row));
+      row => db_types.parseOutputRow<QuestionToAnswer>(row));
     return questionRows;
   }
 
-  public async getQuestion(question_id:string) : Promise<db_types.QuestionRow> {
+  public async getQuestion(question_group_id:string, question_id:string) : Promise<db_types.QuestionRow> {
     db_types.assertQuestionId(question_id)
+    db_types.assertQuestionGroupId(question_group_id)
     const query : spanner.Query = {
-      sql: `SELECT * FROM Questions WHERE question_id="${question_id}"`
+      sql: `SELECT * FROM Questions
+            WHERE question_group_id="${question_group_id}" AND question_id="${question_id}"`
     };
     let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
     if(results.length === 0 || results[0].length === 0){
@@ -272,7 +253,7 @@ export class CrowdsourceDB {
     if(results[0].length !== 1){
       throw new ResultsError('Strangely resulted in not 1 row', results);
     }
-    return parseSpannerOutputRow<db_types.QuestionRow>(results[0][0]);
+    return db_types.parseOutputRow<db_types.QuestionRow>(results[0][0]);
   }
 
   public async getQuestionGroupQuestions(question_group_id:string)
@@ -285,7 +266,7 @@ export class CrowdsourceDB {
     if(results.length === 0){
       throw new NoResultsError('getQuestion: Resulted in empty query response');
     }
-    return results[0].map(r => parseSpannerOutputRow<db_types.QuestionRow>(r));
+    return results[0].map(r => db_types.parseOutputRow<db_types.QuestionRow>(r));
   }
 
   public deleteAnswers(answer_ids:string[]) : Promise<void> {
@@ -299,56 +280,71 @@ export class CrowdsourceDB {
   }
 
   public async addAnswer(answer:AnswerToQuestion) {
-    db_types.assertQuestionId(answer.question_id);
-    let question : db_types.QuestionRow = await this.getQuestion(answer.question_id);
     db_types.assertClientJobKey(answer.client_job_key);
     let clientJob : db_types.ClientJobRow = await this.getClientJob(answer.client_job_key);
-    let answerSchema = JSON.parse(clientJob.answer_schema);
-    if(!questionaire.answerMatchesSchema(answerSchema, JSON.parse(answer.answer))) {
+    db_types.assertQuestionId(answer.question_id);
+    let question : db_types.QuestionRow = await this.getQuestion(
+        clientJob.question_group_id, answer.question_id);
+    let answerObj : {};
+    if (typeof(answer.answer) === "string") {
+      answerObj = JSON.parse(answer.answer);
+    } else {
+      answerObj = answer.answer;
+    }
+    if(!questionaire.answerMatchesSchema(clientJob.answer_schema, answerObj)) {
       throw new InValidAnswerError('answer does not match schema: ' + clientJob.answer_schema);
     }
     let answer_score :number | null = null;
     if (question.accepted_answers) {
-      answer_score = questionaire.answerScoreFromJson(question.accepted_answers, answer.answer);
+      console.log(answerObj);
+      answer_score = questionaire.answerScore(question.accepted_answers, answerObj);
     }
 
-    // TODO(ldixon): don't allow multiple submission per user.
+    // TODO(ldixon): don't allow multiple submission per user?
     let answerRow : db_types.AnswerRow = {
-      answer: answer.answer,
+      answer: answerObj,
       answer_id: answer.answer_id,
       client_job_key: answer.client_job_key,
       question_id: answer.question_id,
       question_group_id: question.question_group_id,
       answer_score: answer_score,
       worker_nonce: answer.worker_nonce,
-      timestamp: new Date().toJSON()
+      timestamp: new Date()
     };
-    return this.answerTable.insert([db_types.prepareAnswerSpannerInputRow(answerRow)]);
+    return this.answerTable.insert([db_types.prepareInputRow(answerRow)]);
   }
 
   public async addClientJob(clientJob:db_types.ClientJobRow) {
     db_types.assertClientJobKey(clientJob.client_job_key);
     db_types.assertQuestionGroupId(clientJob.question_group_id);
-    // TODO(ldixon): use smarter JSON to allow comments in JSON.
-    // Validate the answer schema is valid JSON.
-    JSON.parse(clientJob.answer_schema);
     // TODO(ldixon): check answers_per_question & give nice error.
     // if(!regexp_strict_positive_number.test(client_job_row.answers_per_question)) {
     //   res.status(400).send('bad param: answers_per_question: ' +
     //       JSON.stringify(client_job_row.answers_per_question));
     //   return;
     // }
-    return this.clientJobTable.insert([db_types.prepareClientJobSpannerInputRow(clientJob)]);
+    return this.clientJobTable.insert([db_types.prepareInputRow(clientJob)]);
+  }
+
+  public async updateClientJob(clientJob:db_types.ClientJobRow) {
+    db_types.assertClientJobKey(clientJob.client_job_key);
+    db_types.assertQuestionGroupId(clientJob.question_group_id);
+    // TODO(ldixon): check answers_per_question & give nice error.
+    // if(!regexp_strict_positive_number.test(client_job_row.answers_per_question)) {
+    //   res.status(400).send('bad param: answers_per_question: ' +
+    //       JSON.stringify(client_job_row.answers_per_question));
+    //   return;
+    // }
+    return this.clientJobTable.update([db_types.prepareInputRow(clientJob)]);
   }
 
   public async addQuestions(questions:db_types.QuestionRow[]) {
-
     // TODO: validate questions have valid ids.
     let spannerInputRows : spanner.InputRow[] =
       questions.map(q => {
         db_types.assertQuestionId(q.question_id);
         db_types.assertQuestionGroupId(q.question_group_id);
-        return db_types.prepareQuestionSpannerInputRow(q);
+        return db_types.prepareInputRow(q);
       });
     return this.questionTable.insert(spannerInputRows);
   }
@@ -367,33 +363,40 @@ export class CrowdsourceDB {
       throw new NoResultsError('getWorkerAnswers: Resulted in empty query response');
     }
     let answerRows = results[0].map(
-      row => parseSpannerOutputRow<db_types.AnswerRow>(row));
+      row => db_types.parseOutputRow<db_types.AnswerRow>(row));
 
     return answerRows;
   }
 
   public async getAllQuestionGroups() {
     const query : spanner.Query = {
-      sql: `SELECT question_group_id, COUNT(1) as number_of_questions FROM Questions
+      sql: `SELECT question_group_id, COUNT(1) as question_count FROM Questions
             GROUP BY question_group_id`
     };
     let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
     if(results.length === 0){
       throw new NoResultsError('getAllQuestionGroups: Resulted in empty query response');
     }
-    return results[0].map(r => parseSpannerOutputRow<QuestionGroupRow>(r));
+    return results[0].map(r => db_types.parseOutputRow<QuestionGroupRow>(r));
   }
 
   public async getJobQuality(client_job_key:string)
       : Promise<QualitySummary> {
     db_types.assertClientJobKey(client_job_key);
     const query : spanner.Query = {
-      sql: `SELECT AVG(answer_score) as mean_score
-            FROM Answers as a
-                 JOIN Questions as q
-                   ON a.question_id = q.question_id
-            WHERE a.client_job_key="${client_job_key}" AND
-                  q.type != 'training'`
+      sql: `SELECT * FROM
+              (SELECT COUNT(*) as toanswer_count
+                FROM Answers as a
+                    JOIN Questions as q
+                      ON a.question_id = q.question_id
+                WHERE a.client_job_key="${client_job_key}")
+              CROSS JOIN
+              (SELECT AVG(a.answer_score) as toanswer_mean_score
+                FROM Answers as a
+                    JOIN Questions as q
+                      ON a.question_id = q.question_id
+                WHERE a.client_job_key="${client_job_key}" AND
+                      q.type != 'toanswer')`
     };
     let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
     if(results.length === 0 || results[0].length === 0){
@@ -402,7 +405,28 @@ export class CrowdsourceDB {
     if(results[0].length !== 1){
       throw new ResultsError('Strangely resulted in not 1 row', results);
     }
-    return parseSpannerOutputRow<QualitySummary>(results[0][0]);
+    return db_types.parseOutputRow<QualitySummary>(results[0][0]);
+  }
+
+  public async getJobTestAnswers(client_job_key:string)
+      : Promise<TestAnswerRow[]> {
+    db_types.assertClientJobKey(client_job_key);
+    const query : spanner.Query = {
+      sql: `SELECT
+              q.question_group_id, q.question_id,
+              a.answer_id, a.worker_nonce,
+              a.answer_score
+            FROM Answers as a
+                 JOIN Questions as q
+                   ON a.question_id = q.question_id
+            WHERE a.client_job_key="${client_job_key}" AND
+                  q.type != 'toanswer'`
+    };
+    let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
+    if(results.length === 0){
+      throw new NoResultsError('getJobTestAnswers: Resulted in empty query response');
+    }
+    return results[0].map(r => db_types.parseOutputRow<TestAnswerRow>(r));
   }
 
   public async getWorkerQuality(client_job_key:string, worker_nonce:string)
@@ -410,13 +434,23 @@ export class CrowdsourceDB {
     db_types.assertClientJobKey(client_job_key);
     db_types.assertWorkerNonce(worker_nonce);
     const query : spanner.Query = {
-      sql: `SELECT AVG(answer_score) as mean_score
-            FROM Answers as a
-                 JOIN Questions as q
-                 ON a.question_id = q.question_id
-            WHERE a.client_job_key="${client_job_key}" AND
-                  q.type = 'training' AND
-                  a.worker_nonce="${worker_nonce}"`
+      sql: `
+      SELECT * FROM
+        (SELECT COUNT(*) as answer_count
+          FROM Answers as a
+              JOIN Questions as q
+                ON a.question_id = q.question_id
+          WHERE a.client_job_key="${client_job_key}" AND
+                a.worker_nonce="${worker_nonce}")
+        CROSS JOIN
+        (SELECT AVG(a.answer_score) as mean_score
+          FROM Answers as a
+              JOIN Questions as q
+                ON a.question_id = q.question_id
+          WHERE a.client_job_key="${client_job_key}" AND
+                q.type != 'toanswer' AND
+                a.worker_nonce="${worker_nonce}")
+        `
     };
     let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
     if(results.length === 0 || results[0].length === 0){
@@ -425,8 +459,30 @@ export class CrowdsourceDB {
     if(results[0].length !== 1){
       throw new ResultsError('Strangely resulted in not 1 row', results);
     }
-    return parseSpannerOutputRow<QualitySummary>(results[0][0]);
+    return db_types.parseOutputRow<QualitySummary>(results[0][0]);
   }
+
+  public async getWorkerScoredAnswers(client_job_key:string, worker_nonce:string)
+      : Promise<ScoredAnswer[]> {
+    db_types.assertClientJobKey(client_job_key);
+    db_types.assertWorkerNonce(worker_nonce);
+    const query : spanner.Query = {
+      sql: `SELECT *
+          FROM Answers as a
+              JOIN Questions as q
+                ON a.question_id = q.question_id
+          WHERE a.client_job_key="${client_job_key}" AND
+                q.type = 'training' AND
+                a.worker_nonce="${worker_nonce}"
+        `
+    };
+    let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
+    if(results.length === 0 || results[0].length === 0){
+      throw new NoResultsError('getWorkerAnswers: Resulted in empty query response');
+    }
+    return results[0].map((row) => db_types.parseOutputRow<ScoredAnswer>(row));
+  }
+
 
   public async getQuestionAnswers(client_job_key:string, question_id:string)
       : Promise<db_types.AnswerRow[]> {
@@ -444,7 +500,7 @@ export class CrowdsourceDB {
       throw new NoResultsError('getWorkerAnswers: Resulted in empty query response');
     }
     let answerRows = results[0].map(
-      row => parseSpannerOutputRow<db_types.AnswerRow>(row));
+      row => db_types.parseOutputRow<db_types.AnswerRow>(row));
     return answerRows;
   }
 
@@ -465,14 +521,20 @@ export class CrowdsourceDB {
       throw new NoResultsError('getWorkerAnswers: Resulted in empty query response');
     }
     let answerRows = results[0].map(
-      row => parseSpannerOutputRow<db_types.AnswerRow>(row));
+      row => db_types.parseOutputRow<db_types.AnswerRow>(row));
     return answerRows;
   }
+
+  public async updateAnswers(answers:db_types.AnswerRow[])
+    : Promise<void> {
+      return this.answerTable.update(
+        answers.map(a => db_types.prepareInputRow(a)));
+  };
 
   public async updateQuestions(questions:db_types.QuestionRow[])
     : Promise<void> {
       return this.questionTable.update(
-        questions.map(q => db_types.prepareQuestionSpannerInputRow(q)));
+        questions.map(q => db_types.prepareInputRow(q)));
   };
 
   // public async setQuestionAnswers(question_group_id:string, question_id:string,

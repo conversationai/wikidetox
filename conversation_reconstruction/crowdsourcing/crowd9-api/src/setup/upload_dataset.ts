@@ -14,13 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// import * as http from 'http';
-import * as yargs from 'yargs';
-import * as fs from 'fs';
-import * as db_types from '../db_types';
-// import * as wpconvlib from '@conversationai/wpconvlib';
-import * as crowdsourcedb from '../crowdsourcedb';
-
 /*
 Usage:
   node build/server/setup/upload_dataset.js \
@@ -32,7 +25,18 @@ Usage:
   node build/server/setup/upload_dataset.js \
     --file="./src/testdata/wp_badish_x1000.json" \
     --question_group="wp_x2000"
+  node build/server/setup/upload_dataset.js \
+    --file="./tmp/real_job/toanswer_mini_x10.json" \
+    --question_group="wp_x10k_test"
 */
+
+import * as yargs from 'yargs';
+import * as fs from 'fs';
+import * as spanner from '@google-cloud/spanner';
+
+import * as db_types from '../db_types';
+import * as crowdsourcedb from '../cs_db';
+import {batchList} from './util'
 
 interface Params {
   file:string,
@@ -49,22 +53,6 @@ interface DataShape {
   revision_id : string,
   revision_text : string,
 };
-
-function batchList<T>(batchSize : number, list :T[]) : T[][] {
-  let batches : T[][] = [];
-  let batch : T[] = [];
-  for(let x of list) {
-    batch.push(x);
-    if(batch.length >= batchSize) {
-      batches.push(batch);
-      batch = [];
-    }
-  }
-  if(batch.length > 0) {
-    batches.push(batch);
-  }
-  return batches;
-}
 
 async function main(args : Params) {
   console.log(args.file);
@@ -83,17 +71,16 @@ async function main(args : Params) {
     return;
   }
 
-  let db = new crowdsourcedb.CrowdsourceDB({
-    cloudProjectId: args.gcloud_project_id,
-    spannerInstanceId: args.spanner_instance,
-    spannerDatabaseName: args.spanner_db
-  });
+  let spannerClient = spanner({ projectId: args.gcloud_project_id });
+  let spannerInstance = spannerClient.instance(args.spanner_instance);
+  let spannerDatabase = spannerInstance.database(args.spanner_db, { keepAlive: 5 });
+  let db = new crowdsourcedb.CrowdsourceDB(spannerDatabase);
 
   let fileAsString = fs.readFileSync(args.file, 'utf8');
   let data : DataShape[] = JSON.parse(fileAsString);
   let questions : db_types.QuestionRow[] = [];
   for (let i = 0; i < data.length; i++) {
-    let question = JSON.stringify(data[i]);
+    let question : db_types.Question = data[i] as any;
     // let structured_conv = wpconvlib.structureConversaton(data[i]);
     // if(!structured_conv) {
     //   console.error('bad conversaion with no root: ' + question);

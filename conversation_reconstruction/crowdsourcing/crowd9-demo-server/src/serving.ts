@@ -27,6 +27,21 @@ import * as config from './config';
 // pushing into a common dependent module.
 import * as httpcodes from './http-status-codes';
 
+function getRequest(url:string)
+    : Promise<{status: number, body:string}> {
+  return new Promise<{status: number, body:string}>((resolve, reject) => {
+    request.get(url, function (error, response, body) {
+      if(!(response && response.statusCode !== undefined)) {
+        reject(new Error('no response/response code'));
+      } else if(error) {
+        reject(error);
+      } else {
+        resolve({status: response.statusCode, body: body});
+      }
+    });
+  });
+}
+
 // The main express server class.
 export class Server {
   // Public for the sake of writing tests.
@@ -77,22 +92,38 @@ export class Server {
     });
 
     // Returns some work to do, using/hiding the client config
+    this.app.get('/api/job_quality', async (_req, res) => {
+      try {
+        let url = `${this.config.crowd9ApiUrl}/client_jobs/` +
+                  `${this.config.clientJobKey}/quality_summary`;
+        let result = await getRequest(url);
+        res.status(result.status).send(result.body);
+      } catch(e) {
+        console.error(`*** Failed: `, e);
+        res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      }
+    });
+
+    // Returns some work to do, using/hiding the client config
+    this.app.get('/api/quality/:workerid', async (req, res) => {
+      try {
+        let url = `${this.config.crowd9ApiUrl}/client_jobs/` +
+                  `${this.config.clientJobKey}/workers/` +
+                  `${req.params.workerid}/quality_summary`;
+        let result = await getRequest(url);
+        res.status(result.status).send(result.body);
+      } catch(e) {
+        console.error(`*** Failed: `, e);
+        res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      }
+    });
+
+    // Returns some work to do, using/hiding the client config
     this.app.get('/api/work', async (_req, res) => {
       try {
         let url = `${this.config.crowd9ApiUrl}/client_jobs/` +
                   `${this.config.clientJobKey}/next10_unanswered_questions`;
-        let result = await new Promise<{status: number, body:string}>(
-            (resolve, reject) => {
-          request.get(url, function (error, response, body) {
-            if(!(response && response.statusCode !== undefined)) {
-              reject(new Error('no response/response code'));
-            } else if(error) {
-              reject(error);
-            } else {
-              resolve({status: response.statusCode, body: body});
-            }
-          });
-        });
+        let result = await getRequest(url);
         res.status(result.status).send(result.body);
       } catch(e) {
         console.error(`*** Failed: `, e);
