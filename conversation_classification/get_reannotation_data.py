@@ -5,6 +5,7 @@ import itertools
 import csv
 import re
 import os
+from collections import defaultdict
 
 def clean(s):
     ret = s.replace('\t', ' ')
@@ -32,6 +33,7 @@ def update(snapshot, action):
         for ind, act in enumerate(snapshot):
             if 'parent_id' in action and action['parent_id'] in act['parent_ids']:
                 act['status'] = 'removed'
+                act['timestamp_in_sec'] = action['timestamp_in_sec']
                 status = 'removed'
                 snapshot[ind] = act
                 Found = True
@@ -40,6 +42,7 @@ def update(snapshot, action):
             if 'parent_id' in action and action['parent_id'] in act['parent_ids']:
                 act['status'] = 'restored'
                 act['content'] = clean(action['content'])
+                act['timestamp_in_sec'] = action['timestamp_in_sec']
                 status = 'restored'
                 snapshot[ind] = act
                 Found = True
@@ -61,6 +64,7 @@ def update(snapshot, action):
                    new_act['user_text'] = action['user_text']
                 new_act['timestamp'] = action['timestamp']
                 new_act['page_title'] = action['page_title']
+                new_act['timestamp_in_sec'] = action['timestamp_in_sec']
  
                 new_act['parent_ids'] = pids
                 new_act['status'] = 'content changed'
@@ -85,6 +89,7 @@ def update(snapshot, action):
             act['timestamp'] = action['timestamp']
             act['absolute_replyTo'] = -1
             act['page_title'] = action['page_title']
+            act['timestamp_in_sec'] = action['timestamp_in_sec']
 
             
             act['status'] = 'just added'
@@ -106,6 +111,7 @@ def update(snapshot, action):
         act['toxicity_score'] = action['score']
         act['user_text'] = action['user_text']
         act['timestamp'] = action['timestamp']
+        act['timestamp_in_sec'] = action['timestamp_in_sec']
         act['page_title'] = action['page_title']
         
         act['absolute_replyTo'] = -1
@@ -157,24 +163,38 @@ def main(constraint):
                continue
             actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
 
+            end_time = max([a['timestamp_in_sec'] for a in actions])
+            sons = defaultdict(dict)
             snapshot = generate_snapshots(actions)
-            for act in snapshot:
+            depth = []
+            for ind, act in enumerate(snapshot):
+                depth.append(-1)
                 if 'relative_replyTo' in act and not(act['relative_replyTo'] == -1):
-                   act['absolute_replyTo'] = snapshot[act['relative_replyTo']]['id']
-            ret = {act['id']:reformat(act) for act in snapshot if not(act['status'] == 'removed')}
-            length = len(ret.keys())
-
-            res.append(json.dumps(ret))
-            max_len = max(max_len, length) 
-            if maxl and i > maxl:
-                break
+                   sons[act['relative_replyTo']][ind] = 1
+            root = 0
+            depth[root] = 0
+            expand = [root]
+            head = 0
+            tail = 0
+            while head < len(expand):
+                cur = expand[head] 
+                for son in sons[cur].keys():
+                    if depth[son] == -1:
+                       expand.append(son)
+                       depth[son] = depth[cur] + 1
+                head += 1
+            selected = -1
+            for ind, act in enumerate(snapshot):
+                if act['timestamp_in_sec'] == end_time and (selected == -1 or depth[ind] > depth[selected]):
+                   selected = ind
+            if depth[selected] > -1:
+               res.append({'content': snapshot[ind]['content'], 'id': conv_id})
 
     print(max_len)
     print(cnt)
     df = pd.DataFrame(res)
-    df.columns = ['conversations']
     #conversations_as_json_job1.csv
-    df.to_csv('/scratch/wiki_dumps/expr_with_matching/%s/annotations/toxicity_in_context.csv'%constraint, chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
+    df.to_csv('/scratch/wiki_dumps/expr_with_matching/toxicity_in_context.csv', encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
 #/scratch/wiki_dumps/expr_with_matching/%s/annotations/conversations_as_json_job%d.csv
    
 if __name__ == '__main__':
