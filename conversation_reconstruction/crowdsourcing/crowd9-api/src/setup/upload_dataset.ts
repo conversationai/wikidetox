@@ -25,6 +25,9 @@ Usage:
   node build/server/setup/upload_dataset.js \
     --file="./src/testdata/wp_badish_x1000.json" \
     --question_group="wp_x2000"
+  node build/server/setup/upload_dataset.js \
+    --file="./tmp/real_job/toanswer_mini_x10.json" \
+    --question_group="wp_x10k_test"
 */
 
 import * as yargs from 'yargs';

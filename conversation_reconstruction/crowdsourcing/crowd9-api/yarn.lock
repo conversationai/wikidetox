@@ -482,6 +482,12 @@
   version "9.1.10"
   resolved "https://registry.yarnpkg.com/@types/highlight.js/-/highlight.js-9.1.10.tgz#b621f809cd9573b80992b90cffc5788208e3069c"
 
+"@types/line-by-line@^0.1.1":
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/@types/line-by-line/-/line-by-line-0.1.1.tgz#f77dd4085aeab3d68f6d305aa0ce18121a69f670"
+  dependencies:
+    "@types/node" "*"
+
 "@types/lodash@^4.14.37":
   version "4.14.74"
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.74.tgz#ac3bd8db988e7f7038e5d22bd76a7ba13f876168"
@@ -2368,6 +2374,10 @@ lcid@^1.0.0:
   resolved "https://registry.yarnpkg.com/lcid/-/lcid-1.0.0.tgz#308accafa0bc483a3867b4b6f2b9506251d1b835"
   dependencies:
     invert-kv "^1.0.0"
+
+line-by-line@^0.1.5:
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/line-by-line/-/line-by-line-0.1.5.tgz#19c45b59f0a80632c30b5c43a647fe15aab905c2"
 
 load-json-file@^2.0.0:
   version "2.0.0"
