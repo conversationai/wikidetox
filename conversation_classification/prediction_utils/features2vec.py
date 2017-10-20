@@ -54,9 +54,6 @@ def _get_last_n_action_features(document, cnt, LEXICONS):
     positive = 0
     num = cnt
     for action in actions:
-        cnt -= 1
-        if cnt == 0:
-            break
         if not(action['timestamp_in_sec'] == end_time):
             if action['comment_type'] == 'COMMENT_REMOVAL':
                 ret['has_deletion'] = 1
@@ -68,6 +65,10 @@ def _get_last_n_action_features(document, cnt, LEXICONS):
                 ret['has_modification'] = 1
         else:
             continue
+        cnt -= 1
+        if cnt == 0:
+            break
+
         ret['has_agree'] = ret['has_agree'] or action['has_agree']
         ret['has_disagree'] = ret['has_disagree'] or action['has_disagree']
         
@@ -145,10 +146,6 @@ def _get_action_features(document, LEXICONS):
     negative = 0
     positive = 0
     for action in actions:
-        if 'user_text' in action:
-            if action['user_text'] in appeared_users:
-                continue
-            appeared_users[action['user_text']] = 1
         if not(action['timestamp_in_sec'] == end_time):
             if action['comment_type'] == 'COMMENT_REMOVAL':
                 ret['has_deletion'] = 1
@@ -160,6 +157,11 @@ def _get_action_features(document, LEXICONS):
                 ret['has_modification'] = 1
         else:
             continue
+        if 'user_text' in action:
+            if action['user_text'] in appeared_users:
+                continue
+            appeared_users[action['user_text']] = 1
+
         unigrams = [u.lower() for u in action['unigrams']]
         ret['has_agree'] = ret['has_agree'] or action['has_agree']
         ret['has_disagree'] = ret['has_disagree'] or action['has_disagree']
