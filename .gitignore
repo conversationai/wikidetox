@@ -74,3 +74,5 @@ viz/config/
 
 # conversation_reconstruction crowdsourcing tools build files
 build/
+
+.ipynb_checkpoints/
