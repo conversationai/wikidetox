@@ -1,8 +1,8 @@
-const tasks = require('../wikiDataCollector/tasks');
+//const tasks = require('../wikiDataCollector/tasks');
 
-class GetMonthData {
-
-    getCommentsMinified(data) {
+export class GetMonthData {
+    //TSTODO : define data
+    public getCommentsMinified(data: any) {
 
         let monthsData = data[0];
         let revertedData = data[1];
@@ -36,8 +36,8 @@ class GetMonthData {
         };
 
     }
-
-    getCalanderDataCombined(data) {
+    //TSTODO : define data
+    public getCalanderDataCombined(data: any) {
         const totalCounts = data[0];
         const revertdCounts = data[1];
 
@@ -60,7 +60,7 @@ class GetMonthData {
         });
         return calendarData;
     }
-    get(currentMonth, cb) {
+    public get(currentMonth, cb): void {
         let st = new Date();
 
         let month = new Date(currentMonth).getMonth() + 1;
@@ -71,29 +71,27 @@ class GetMonthData {
         let endTime = new Date(dateStr);
         endTime.setMonth(startTime.getMonth() + 1);
 
-        tasks.getMonthData(startTime, endTime, (err, data) => {
-            if (!err) {
-                let minifiedComments = this.getCommentsMinified(data);
-                cb(err, minifiedComments);
-                return;
-            } else {
-                cb(err, null);
-            }
-        });
+        // tasks.getMonthData(startTime, endTime, (err, data) => {
+        //     if (!err) {
+        //         let minifiedComments = this.getCommentsMinified(data);
+        //         cb(err, minifiedComments);
+        //         return;
+        //     } else {
+        //         cb(err, null);
+        //     }
+        // });
 
     }
 
-    getCalendarData(cb) {
-        tasks.getCalendarData((err, data) => {
-            if (!err) {
-                let calendarData = this.getCalanderDataCombined(data);
-                cb(err, calendarData);
-                return;
-            } else {
-                cb(err, null);
-            }
-        });
+    public getCalendarData(cb: Function) {
+        // tasks.getCalendarData((err, data) => {
+        //     if (!err) {
+        //         let calendarData = this.getCalanderDataCombined(data);
+        //         cb(err, calendarData);
+        //         return;
+        //     } else {
+        //         cb(err, null);
+        //     }
+        // });
     }
 }
-
-module.exports = GetMonthData;
