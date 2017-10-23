@@ -13,11 +13,12 @@ interface Args {
   out_csv_file: string,
 };
 
+interface ResultData { conversations: {}, now_toxic_gold ?: string };
 
 async function outputToJson(inStream:stream.Transform, out_json_path:string) : Promise<void> {
   if (args.out_json_file) {
     let json_stringify : stream.Transform = stream_transform(
-        (record : {conversations : {}}) : string => { return JSON.stringify(record.conversations) + '\n' });
+        (record : ResultData) : string => { return JSON.stringify(record.conversations) + '\n' });
     let out_file = fs.createWriteStream(out_json_path);
     let pipe = inStream.pipe(json_stringify).pipe(out_file);
     return new Promise<void>((resolve, _reject) => {
@@ -43,18 +44,23 @@ async function outputToCsv(inStream:stream.Transform, out_csv_path:string) : Pro
   return;
 }
 
+
 async function main(args:Args) : Promise<void> {
   let in_file = fs.createReadStream(args.in_csv_file);
 
   let parser = csv_parse({columns:true});
 
   let transformer : stream.Transform = stream_transform(
-      (record : {[column:string]:string}) : { conversations: {} } => {
+      (record : {[column:string]:string}) : ResultData => {
       let convs_obj = {
         conversation1: JSON.parse(record.conversation1),
         conversation2: JSON.parse(record.conversation2),
       };
-      return { conversations: convs_obj };
+      let result : ResultData = { conversations: convs_obj };
+      if (record.thebadconversation !== undefined) {
+        result.now_toxic_gold = record.thebadconversation;
+      }
+      return result;
   });
 
   let transformed = in_file.pipe(parser).pipe(transformer);

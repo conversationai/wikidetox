@@ -64,27 +64,39 @@ CrowdFlower has 3 sections that need files from this directory need to be copied
 
 Where `{N}` is the corresponding crowdsourcing job.
 
-## Job 1: Conversation Selection Method: ask questions.
+## Job 1: Predicting future toxicity and measuring disagreement.
 
-TODO(ldixon): update.
+Shows the crowdworker a conversation, and asks:
 
-Bad:
- - First N comments are OK (score <0.6)
- - N+1 comment (by time) has score > 0.6
- - Conversation = first N comments.
+*  This conversation is not primarily in English or is not human readable? (Checkbox)
+*  Does this conversation contain a toxic comment? (Yes | No | Uncertain)
+*  Do the participants in this conversation disagree with one another? (Yes | No | Uncertain)
+*  Is the next comment in this conversation likely to be toxic? (Very likely | Somewhat likely | Somewhat unlikely, Very unlikely)
 
-Good:
- - Contains: all comments in a conv (by section)
- - Such that: all comments score < 0.4
+## Job 2: Assessing the toxicity of a comment and measuring disagreement.
 
-Good and bad are matched:
- - Iterate over bad conv to find a match.
-   - Good conv happenning on the same page.
-   - Good conv must be >= bad conv size.
-   - Select the closest good conv in time (choose the closest good conv, w.r.t. point in time to the bad conv)
-   - Select fragment of good conv to match the bad conv in size.
- - Each conv only appears once (remove from bucket as we match them)
+Shows the crowdworker a conversation, highlighting the last comment, and asks:
 
-## Job 2: Conversation Selection Method: Ask on Tail of comments about is there a toxic comment.
+*  This conversation is not primarily in English or is not human readable? (Checkbox)
+*  Is the highlighted comment toxic? (Yes|No|Uncertain)
+*  Enter the comment numbers, separated by spaces, of any comments the highlighted comment disagrees with. (free form text box entry)
 
-TODO(ldixon): write and update.
+## Job 3: Assessing paired conversations: current and future toxicity.
+
+This job asks raters to compare two conversations and answer which (if any) contains a toxic comment, and which is most likely to result in a future toxic contribution. In particular, it asks:
+
+*  One of the conversations is not primarily in English or is not human readable. (Checkbox)
+*  Which (if any) conversation contains a toxic comment? (Neither | Conversation 1 | Conversation 2 | Both 1 and 2)
+*  Which of these conversation is most likely to become toxic? (Conversation 1 | Conversation 2)
+
+### Tool support for job prep
+
+There is a small data preperation script:
+
+```
+node build/scripts/job3_csv_to_json.js --in_csv_file ./tmp/conversations_as_json_paired.csv  --out_json_file ./tmp/foo.json --out_csv_file ./tmp/foo.csv
+```
+
+`in_csv_file` is expected to be a CSV file with headers: "conversation1", "conversation2", and optionally a third column "thebadconversation". The output is a CSV. If there was a field "thebadconversation", it is renamed "now_toxic_gold". The two fields "conversation1" and "conversation2" are put into a single column, "conversations". The CSV is then ready to be uploaded to crowdflower.
+
+The script also outputs to a JSON file, which can use used to create tests, e.g. like the ones in `src/testdata/conversations_job3_paired_x5.js`.
