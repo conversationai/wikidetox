@@ -9,11 +9,21 @@ let stream_transform = require('stream-transform');
 // Command line arguments.
 interface Args {
   in_csv_file: string,
+  golden: boolean,
   out_json_file: string,
   out_csv_file: string,
 };
 
-interface ResultData { conversations: {}, now_toxic_gold ?: string };
+interface ResultData {
+  conversations: {},
+  _id ?: string,
+  na_gold ?: string,
+  now_toxic_gold ?: string,
+  future_toxic_gold ?: string,
+  na_gold_reason ?: string,
+  now_toxic_gold_reason ?: string,
+  future_toxic_gold_reason ?: string,
+};
 
 async function outputToJson(inStream:stream.Transform, out_json_path:string) : Promise<void> {
   if (args.out_json_file) {
@@ -50,15 +60,26 @@ async function main(args:Args) : Promise<void> {
 
   let parser = csv_parse({columns:true});
 
+  let id = 0;
+
   let transformer : stream.Transform = stream_transform(
       (record : {[column:string]:string}) : ResultData => {
+      let conv1 = JSON.parse(record.conversation1);
+      let conv2 = JSON.parse(record.conversation2);
       let convs_obj = {
-        conversation1: JSON.parse(record.conversation1),
-        conversation2: JSON.parse(record.conversation2),
+        conversation1: conv1,
+        conversation2: conv2,
       };
       let result : ResultData = { conversations: convs_obj };
-      if (record.thebadconversation !== undefined) {
+      if (args.golden && record.thebadconversation !== undefined) {
+        id += 1;
+        result._id = 'id_' + id;
+        result.na_gold = 'false';
+        result.na_gold_reason = '';
         result.now_toxic_gold = record.thebadconversation;
+        result.now_toxic_gold_reason = '';
+        result.future_toxic_gold = record.thebadconversation,
+        result.future_toxic_gold_reason = '';
       }
       return result;
   });
@@ -75,12 +96,16 @@ let args = yargs
   .option('in_csv_file', {
     describe: 'Path to input CSV file'
   })
+  .option('golden', {
+    describe: 'Output golden fields.'
+  })
   .option('out_json_file', {
     describe: 'Path to output json file'
   })
   .option('out_csv_file', {
     describe: 'Path to output json file'
   })
+  .default('golden', false)
   .demandOption(['in_csv_file'], 'Please provide at least --in_csv_file.')
   .help()
   .argv;
