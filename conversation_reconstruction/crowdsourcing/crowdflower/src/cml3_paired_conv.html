@@ -1,0 +1,24 @@
+<div class="a-question-to-answer">
+  <h1> The conversations to read: </h1>
+  <div class="json-data hidden"></div>
+  <table>
+    <tr><td class="conversation1"><b>Conversation 1</b></td></tr>
+    <tr><td class="conversation2"><b>Conversation 2</b></td></tr>
+  </table>
+</div>
+
+<br />
+
+<cml:checkbox label="One of the conversations is not primarily in English or is not human readable." name="na" gold="true" aggregation="agg"></cml:checkbox>
+
+<cml:radios only-if="na:unchecked" label="Which (if any) conversation contains a toxic comment?" name="now_toxic" validates="required" gold="true">
+  <cml:radio label="Neither conversation contains a toxic comment" value="0"></cml:radio>
+  <cml:radio label="The first conversation contains a toxic comment" value="1"></cml:radio>
+  <cml:radio label="The second conversation contains a toxic comment" value="2"></cml:radio>
+  <cml:radio label="Both conversations contain toxic comments" value="3"></cml:radio>
+</cml:radios>
+
+<cml:radios only-if="na:unchecked" label="Which of these conversation is most likely to become toxic?" name="future_toxic" validates="required" gold="true">
+  <cml:radio label="The first conversation is most likely to turn toxic" value="1"></cml:radio>
+  <cml:radio label="The second conversation is most likely to turn toxic" value="2"></cml:radio>
+</cml:radios>
