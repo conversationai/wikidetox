@@ -184,6 +184,32 @@ export class CrowdsourceDB {
     return questionRows;
   }
 
+  public async getQuestionToAnswer(client_job_key:string, question_id:string) : Promise<db_types.QuestionRow> {
+    db_types.assertQuestionId(question_id);
+    db_types.assertClientJobKey(client_job_key);
+    const query : spanner.Query = {
+      sql: `SELECT q.question_id, q.question, c.answers_per_question,
+              COUNT(a.question_id) as answer_count
+            FROM ClientJobs as c
+              JOIN Questions as q
+                ON c.question_group_id = q.question_group_id
+              LEFT JOIN Answers as a
+                ON a.question_id = q.question_id
+            WHERE c.client_job_key = "${client_job_key}"
+              AND q.question_id = "${question_id}"
+            GROUP BY q.question_id, q.question, c.answers_per_question
+            `
+    };
+    let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
+    if(results.length === 0 || results[0].length === 0){
+      throw new NoResultsError('getQuestionToAnswer: Resulted in empty query response');
+    }
+    if(results[0].length !== 1){
+      throw new ResultsError('Strangely resulted in not 1 row', results);
+    }
+    return db_types.parseOutputRow<db_types.QuestionRow>(results[0][0]);
+  }
+
   public async getClientJobNextOpenQuestions(
       client_job_key:string, limit:number) : Promise<QuestionToAnswer[]> {
     db_types.assertClientJobKey(client_job_key)
@@ -292,7 +318,9 @@ export class CrowdsourceDB {
       answerObj = answer.answer;
     }
     if(!questionaire.answerMatchesSchema(clientJob.answer_schema, answerObj)) {
-      throw new InValidAnswerError('answer does not match schema: ' + clientJob.answer_schema);
+      throw new InValidAnswerError('answer does not match schema: ' +
+          JSON.stringify(clientJob.answer_schema, null, 2) + '\n '+
+          JSON.stringify(answerObj, null, 2));
     }
     let answer_score :number | null = null;
     if (question.accepted_answers) {

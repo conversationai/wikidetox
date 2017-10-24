@@ -10,6 +10,8 @@
   <div>overall_job_mean_score: {{overall_job_mean_score}}</div>
 </div>
 
+<div *ngIf="errorMessage" class="errorMessage" (click)="clearError()">{{errorMessage}}</div>
+
 <div *ngIf="!question">
   Loading...
 </div>

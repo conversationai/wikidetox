@@ -29,6 +29,11 @@ node build/server/setup/upload_with_answers.js \
   --training_fraction=0.2 \
   --action=insert
 
+node build/server/setup/upload_with_answers.js \
+  --file="./tmp/real_job/with_answers.json" \
+  --question_group="wp_v1_x10k" \
+  --training_fraction=0.2 \
+  --action=update
 
 node build/server/setup/upload_with_answers.js \
   --file="./tmp/real_job/with_answers.json" \
@@ -144,6 +149,7 @@ function questionRowFromDatum(datum : DataShape,
       identityHate: hate_scores,
       threat: threat_scores,
       insult: insult_scores,
+      comments: { optional: true, freeStringConstScore: 0 },
     },
     question: question,
     question_group_id: args.question_group,
