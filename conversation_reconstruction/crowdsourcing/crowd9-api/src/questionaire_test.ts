@@ -16,7 +16,7 @@ limitations under the License.
 import * as questionaire from './questionaire';
 import { expect } from 'chai';
 
-describe('Testing questionaire', function() {
+describe('Testing questionaire: answerScore', function() {
 
   it('Simple answer test', function() {
     let acceptedAnswers = { toxic: { enum: { notatall: 0, somewhat: -1, very: -1 } } };
@@ -75,3 +75,30 @@ describe('Testing questionaire', function() {
   });
 });
 
+
+describe('Testing questionaire: answerMatchesSchema', function() {
+  it('simple answerMatchesSchema is true', function() {
+    let answerSchema = { toxic: { validEnumValues: ['notatall', 'somewhat', 'very'] },
+                         comments: { stringInput : {}, optional: true } };
+    let answer = { toxic: 'very' };
+    expect(questionaire.answerMatchesSchema(answerSchema, answer)).to.equal(true);
+  });
+  it('optional answerMatchesSchema is true', function() {
+    let answerSchema = { toxic: { validEnumValues: ['notatall', 'somewhat', 'very'] },
+                         comments: { stringInput : {}, optional: true } };
+    let answer = { toxic: 'very', comments: 'blah de blah' };
+    expect(questionaire.answerMatchesSchema(answerSchema, answer)).to.equal(true);
+  });
+  it('answerMatchesSchema only optional is false', function() {
+    let answerSchema = { toxic: { validEnumValues: ['notatall', 'somewhat', 'very'] },
+                         comments: { stringInput : {}, optional: true } };
+    let answer = { comments: 'very' };
+    expect(questionaire.answerMatchesSchema(answerSchema, answer)).to.equal(false);
+  });
+  it('answerMatchesSchema bad key is false', function() {
+    let answerSchema = { toxic: { validEnumValues: ['notatall', 'somewhat', 'very'] },
+                         comments: { stringInput : {}, optional: true } };
+    let answer = { foo: 'very' };
+    expect(questionaire.answerMatchesSchema(answerSchema, answer)).to.equal(false);
+  });
+});

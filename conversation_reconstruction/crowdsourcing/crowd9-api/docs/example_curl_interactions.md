@@ -29,7 +29,13 @@ curl -H "x-admin-auth-key: ${ADMIN_AUTH_KEY}" \
   "question_group_id":"foo1",
   "status":"setup",
   "answers_per_question":3,
-  "answer_schema": "{"comments":{"stringInput":{}},"toxic":{"validEnumValues":["ok","unsure","toxic"]},"threat":{"validEnumValues":["ok","unsure","toxic"]},"insult":{"validEnumValues":["ok","unsure","toxic"]},"identityHate":{"validEnumValues":["ok","unsure","toxic"]},"obscene":{"validEnumValues":["ok","unsure","toxic"]}}"
+  "answer_schema": {"comments":{"stringInput":{},"optional":true},
+    "readableAndInEnglish": {"validEnumValues": ["yes","no","Yes","No"],"optional":true},
+    "toxic":{"validEnumValues":["notatall","somewhat","very","NotAtAll","Somewhat","Very"]},
+    "threat":{"validEnumValues":["notatall","somewhat","very","NotAtAll","Somewhat","Very"],"optional":true},
+    "insult":{"validEnumValues":["notatall","somewhat","very","NotAtAll","Somewhat","Very"],"optional":true},
+    "identityHate":{"validEnumValues":["notatall","somewhat","very","NotAtAll","Somewhat","Very"],"optional":true},
+    "obscene":{"validEnumValues":["notatall","somewhat","very","NotAtAll","Somewhat","Very"],"optional":true}},
   }' ${SERVER}/active_jobs/job1_for_foo1
 ```
 

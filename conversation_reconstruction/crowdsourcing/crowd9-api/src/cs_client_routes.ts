@@ -90,9 +90,6 @@ export function setup(app : express.Express,
     }
   });
 
-
-
-
   // If `:client_job_key` exists, and `:question_id` is a question from the
   // client job's question group, then add an answer to that question for the
   // associated worker nonce according to the JSON body of the POST request.
@@ -164,6 +161,22 @@ export function setup(app : express.Express,
     try {
       let answers = await crowdsourcedb.getJobAnswers(
         req.params.client_job_key);
+      res.status(httpcodes.OK).send(JSON.stringify(answers, null, 2));
+    } catch(e) {
+      console.error('Error: Cannot get worker answers: ', e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
+      return;
+    }
+  });
+
+  // If `:client_job_key` exists, and `:question_id` is a question from the
+  // client job's question group, returns the question.
+  app.get('/client_jobs/:client_job_key/questions/:question_id',
+      async (req, res) => {
+    let clientJobRow : db_types.ClientJobRow;
+    try {
+      let answers = await crowdsourcedb.getQuestionToAnswer(
+        req.params.client_job_key, req.params.question_id);
       res.status(httpcodes.OK).send(JSON.stringify(answers, null, 2));
     } catch(e) {
       console.error('Error: Cannot get worker answers: ', e);
