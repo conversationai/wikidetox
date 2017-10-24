@@ -44,3 +44,11 @@
 .example-full-width {
   width: 100%;
 }
+
+.errorMessage {
+  font-weight: bold;
+  padding: 10px;
+  border: 1px solid #FCC;
+  margin: 10px;
+  color: #933;
+}
