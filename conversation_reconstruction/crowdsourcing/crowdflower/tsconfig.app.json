@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "module": "commonjs",
+    "target": "es5"
+  },
+  "exclude": [
+    "src/scripts",
+    "test.ts",
+    "**/*.spec.ts"
+  ]
+}

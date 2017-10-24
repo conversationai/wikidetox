@@ -16,15 +16,24 @@ limitations under the License.
 const { FuseBox } = require("fuse-box");
 
 const fuse = FuseBox.init({
-    homeDir: "src",
-    output: "build/dist/$name.js",
-    sourceMaps: true,
-    target: "browser"
+  homeDir: "src",
+  output: "build/dist/$name.js",
+  sourceMaps: true,
 });
-fuse.bundle("app")
-    .instructions(`>run.ts`);
 
-fuse.bundle("test")
-    .test("[**/**.test.ts]");
+fuse.bundle("app")
+  .tsConfig("tsconfig.app.json")
+  .instructions(`>run.ts`);
+
+fuse.bundle("app_paired")
+  .tsConfig("tsconfig.app.json")
+  .instructions(`>run_paired_conv.ts`);
+
+// fuse.bundle("app_test")
+//   .tsConfig("tsconfig.test.json")
+//   .test("[**/**.test.ts]");
+// fuse.bundle("scripts")
+//   .tsConfig("src/script/tsconfig.json");
+  // .test("[**/**.test.ts]");
 
 fuse.run();
