@@ -155,12 +155,18 @@ def main(constraint):
     cnt = 0
     with open('toxicity_in_context.json') as w:
          annotated = json.load(w) 
+    with open('to_annotate.json') as w:
+         to_annotate = json.load(w) 
 
-    with open('/scratch/wiki_dumps/expr_with_matching/%s/data/all.json'%(constraint)) as f:
+
+
+    appeared = {}
+    with open('/scratch/wiki_dumps/expr_with_matching/%s/data/baks/all.json'%(constraint)) as f:
         for i, line in enumerate(f):
             conv_id, clss, conversation = json.loads(line)
-            if not(conv_id in annotated):
+            if conv_id in annotated or conv_id in appeared or not(conv_id in to_annotate):
                continue
+            appeared[conv_id] = True
             actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
 
             end_time = max([a['timestamp_in_sec'] for a in actions])
@@ -194,7 +200,7 @@ def main(constraint):
     print(cnt)
     df = pd.DataFrame(res)
     #conversations_as_json_job1.csv
-    df.to_csv('/scratch/wiki_dumps/expr_with_matching/toxicity_in_context.csv', encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
+    df.to_csv('/scratch/wiki_dumps/expr_with_matching/toxicity_in_context_second_run.csv', encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
 #/scratch/wiki_dumps/expr_with_matching/%s/annotations/conversations_as_json_job%d.csv
    
 if __name__ == '__main__':

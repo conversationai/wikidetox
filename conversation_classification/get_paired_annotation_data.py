@@ -150,7 +150,7 @@ def main(constraint):
     maxl = None
     res = []
     max_len = 0
-    filename = '/scratch/wiki_dumps/expr_with_matching/' + constraint  + '/data/all_cleaned_verified.json'
+    filename = '/scratch/wiki_dumps/expr_with_matching/' + constraint  + '/data/all_verified.json'
     all_conversations = {}
     inputs = []
     with open(filename) as f:
@@ -159,7 +159,7 @@ def main(constraint):
             inputs.append(line)
             all_conversations[conv_id] = conversation 
   
-    for i, line in enumerate(inputs):
+    for i, line in enumerate(inputs[:50]):
         conv_id, clss, conversation = json.loads(line)
         if clss:
            continue
@@ -167,13 +167,16 @@ def main(constraint):
         matched = conversation['action_feature'][0]['good_conversation_id']
         if order:
            conversations = [conversation, all_conversations[matched]]
+           bad = 1 
         else:
            conversations = [all_conversations[matched], conversation]
+           bad = 2
     
+        rets = []
         for conversation in conversations:
             actions = sorted(conversation['action_feature'], key=lambda k: (k['timestamp_in_sec'], k['id'].split('.')[1], k['id'].split('.')[2]))
-            end_time = max([a['timestamp_in_sec'] for a in actions])
-            actions = [a for a in actions if a['timestamp_in_sec'] < end_time]
+#            end_time = max([a['timestamp_in_sec'] for a in actions])
+#            actions = [a for a in actions if a['timestamp_in_sec'] < end_time]
             snapshot = generate_snapshots(actions)
             for ind, act in enumerate(snapshot):
                 if 'relative_replyTo' in act and not(act['relative_replyTo'] == -1)\
@@ -182,16 +185,17 @@ def main(constraint):
                 snapshot[ind] = act
        
             ret = {act['id']:reformat(act) for act in snapshot if not(act['status'] == 'removed')}
-            res.append(json.dumps(ret))
+            rets.append(ret)
+        res.append({'conversation1': json.dumps(rets[0]), 'conversation2':json.dumps(rets[1]), 'the bad conversation': bad})
 
     df = pd.DataFrame(res)
-    df.columns = ['conversations']
+#    df.columns = ['conversations']
     #conversations_as_json_job1.csv
     os.system('mkdir /scratch/wiki_dumps/expr_with_matching/%s/annotations'%(constraint))
-    df.to_csv('/scratch/wiki_dumps/expr_with_matching/%s/annotations/conversations_as_json_paired.csv'%(constraint), chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
+    df.to_csv('/scratch/wiki_dumps/expr_with_matching/%s/annotations/conversations_as_json_paired_test.csv'%(constraint), chunksize=5000, encoding = 'utf-8', index=False, quoting=csv.QUOTE_ALL)
    
 if __name__ == '__main__':
-    constraints = ['delta2_no_users_attacker_in_conv']
+    constraints = ['delta2_no_users']#_attacker_in_conv']
     df = []
     for c in constraints:
         main(c)
