@@ -415,16 +415,12 @@ export class CrowdsourceDB {
       sql: `SELECT * FROM
               (SELECT COUNT(*) as toanswer_count
                 FROM Answers as a
-                    JOIN Questions as q
-                      ON a.question_id = q.question_id
                 WHERE a.client_job_key="${client_job_key}")
               CROSS JOIN
               (SELECT AVG(a.answer_score) as toanswer_mean_score
                 FROM Answers as a
-                    JOIN Questions as q
-                      ON a.question_id = q.question_id
                 WHERE a.client_job_key="${client_job_key}" AND
-                      q.type != 'toanswer')`
+                      a.answer_score IS NOT NULL)`
     };
     let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
     if(results.length === 0 || results[0].length === 0){
