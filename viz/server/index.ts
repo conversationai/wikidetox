@@ -1,13 +1,13 @@
 
-import * as fs from 'fs';
+import * as fs from "fs";
 
-import { Server } from './server';
+import { Server } from "./server";
 
-let args = process.argv.slice(2);
+const args = process.argv.slice(2);
 
-let config = JSON.parse(fs.readFileSync(args[0], 'utf8'));
+const config = JSON.parse(fs.readFileSync(args[0], "utf8"));
 
-let server = new Server(config);
+const server = new Server(config);
 server.start()
     .then(() => {
         console.log(`Server started on port: ${server.port}  width config ${args[0]}`);

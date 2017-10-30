@@ -1,7 +1,7 @@
 
-import * as schedule from 'node-schedule';
+import * as schedule from "node-schedule";
 
-//const tasks = require('../wikiDataCollector/tasks');
+// const tasks = require('../wikiDataCollector/tasks');
 
 export class ScheduleTask {
 
@@ -17,9 +17,9 @@ export class ScheduleTask {
     }
     public doStreaming(startTime, endTime, cb): void {
 
-        console.log('\n');
-        let st = new Date();
-        console.log('Start: streaming wiki data at ', st);
+        console.log("\n");
+        const st = new Date();
+        console.log("Start: streaming wiki data at ", st);
 
         // tasks.doStreaming(startTime, endTime, function (err, data) {
 
@@ -53,12 +53,12 @@ export class ScheduleTask {
     public runJob(config: any): void {
 
         if (new Date() < new Date(config.startStremingTime)) {
-            console.log('Will start at ', config.startStremingTime);
+            console.log("Will start at ", config.startStremingTime);
             return;
         }
 
-        let startTime = new Date();
-        let endTime = new Date();
+        const startTime = new Date();
+        const endTime = new Date();
 
         startTime.setHours(new Date().getHours() - 2);
         startTime.setMinutes(0);
@@ -66,7 +66,7 @@ export class ScheduleTask {
         endTime.setMinutes(0);
 
         this.doStreaming(startTime, endTime, () => {
-            console.log('Done');
+            console.log("Done");
         });
     }
     public startScheduleTask(): void {
