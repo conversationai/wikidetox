@@ -1,9 +1,10 @@
-const fs = require('fs');
-const path = require('path');
 
-class StoreData {
+import * as fs from "fs";
+import * as path from "path";
 
+export class StoreData {
 
+    public folderPath: string;
     constructor(folderPath) {
         this.folderPath = folderPath;
     }
@@ -16,22 +17,22 @@ class StoreData {
      * @params {Object} option { path : }
      *
      */
-    writeFile(name, content, callback, option) {
+    public writeFile(name, content, callback, option) {
         option = option || {};
 
-        let conentAsJsonString = '';
+        let conentAsJsonString = "";
 
         try {
             conentAsJsonString = JSON.stringify(content);
         } catch (e) {
-            console.log('Cannot convert to json string, fileName:', name)
+            console.log("Cannot convert to json string, fileName:", name);
         }
 
         const fileName = name;
-        const path = option.path || '';
+        const path = option.path || "";
         const fullPath = __dirname + this.folderPath + path + "/" + fileName;
 
-        fs.writeFile(fullPath, conentAsJsonString, err => {
+        fs.writeFile(fullPath, conentAsJsonString, (err) => {
             if (err) {
                 callback(false);
                 throw err;
@@ -48,11 +49,11 @@ class StoreData {
      *
      */
 
-    readFile(name, callback, option) {
+    public readFile(name, callback, option) {
         option = option || {};
 
         const fileName = name;
-        const path = option.path || '';
+        const path = option.path || "";
         const fullPath = __dirname + this.folderPath + path + "/" + fileName;
 
         fs.readFile(fullPath, "utf-8", (err, data) => {
@@ -72,22 +73,22 @@ class StoreData {
      *
      */
 
-    appendFile(name, content, callback, option) {
+    public appendFile(name, content, callback, option) {
         option = option || {};
 
-        let conentAsJsonString = '';
+        let conentAsJsonString = "";
 
         try {
             conentAsJsonString = JSON.stringify(content);
         } catch (e) {
-            console.log('Cannot convert to json string, fileName:', name)
+            console.log("Cannot convert to json string, fileName:", name);
         }
 
         const fileName = name;
-        const path = option.path || '';
+        const path = option.path || "";
         const fullPath = this.folderPath + path + "/" + fileName;
 
-        fs.appendFile(fullPath, conentAsJsonString, err => {
+        fs.appendFile(fullPath, conentAsJsonString, (err) => {
             if (err) {
                 callback(false);
                 throw err;
@@ -95,27 +96,24 @@ class StoreData {
             callback(true);
         });
     }
-    createFolder(folder) {
-        folder = __dirname + this.folderPath + '/' + folder;
+    public createFolder(folder) {
+        folder = __dirname + this.folderPath + "/" + folder;
         if (!fs.existsSync(folder)) {
             fs.mkdirSync(folder);
         }
     }
-    clearFolder(directory) {
+    public clearFolder(directory) {
 
-        directory = __dirname + this.folderPath + '/' + directory;
+        directory = __dirname + this.folderPath + "/" + directory;
 
         fs.readdir(directory, (err, files) => {
-            if (err) throw error;
+            if (err) { throw Error; }
 
             for (const file of files) {
-                fs.unlink(path.join(directory, file), err => {
-                    if (err) throw error;
+                fs.unlink(path.join(directory, file), (errUnlink) => {
+                    if (errUnlink) { throw Error; }
                 });
             }
         });
     }
 }
-
-
-module.exports = StoreData;
