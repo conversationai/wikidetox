@@ -471,7 +471,7 @@ export class CrowdsourceDB {
         (SELECT AVG(a.answer_score) as mean_score
           FROM Answers as a
           WHERE a.client_job_key="${client_job_key}" AND
-                q.type != 'toanswer' AND
+                a.answer_score IS NOT NULL AND
                 a.worker_nonce="${worker_nonce}")
         `
     };
