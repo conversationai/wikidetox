@@ -8,40 +8,21 @@ from collections import defaultdict
 import math
 import re
 
-def _get_term_features(document, UNIGRAMS_LIST, BIGRAMS_LIST):
-    actions = document['action_feature']
+def _get_term_features(actions, UNIGRAMS_LIST, BIGRAMS_LIST):
     unigrams, bigrams = set([]), set([])
-    end_time = 0
-    for action in actions:
-        if action['timestamp_in_sec'] > end_time:
-            end_time = action['timestamp_in_sec'] 
-    actions = sorted(actions, key=lambda k: k['timestamp_in_sec'])[::-1]
     f = {}
-  #  f['max_toxicity'] = 0
     for action in actions:
-        if action['timestamp_in_sec'] == end_time or \
-            not(action['comment_type'] == 'COMMENT_ADDING' or\
-                action['comment_type'] == 'SECTION_CREATION'):# or
-#                action['comment_type'] == 'COMMENT_MODIFICATION'):
+        if not(action['comment_type'] == 'COMMENT_ADDING' or\
+                action['comment_type'] == 'SECTION_CREATION'):
             continue
-    #    f['max_toxicity'] = max(f['max_toxicity'], action['score'])
         unigrams = unigrams | set(action['unigrams'])
         bigrams = bigrams | set([tuple(x) for x in action['bigrams']]) 
     f.update(dict(map(lambda x: ("UNIGRAM_" + str(x), 1 if x in unigrams else 0), UNIGRAMS_LIST)))
     f.update(dict(map(lambda x: ("BIGRAM_" + str(x), 1 if tuple(x) in bigrams else 0), BIGRAMS_LIST)))
     return f 
 
-def _get_last_n_action_features(document, cnt, LEXICONS, ACTION_FEATURE=False):
-    # Do or don't, verb start sentence
-    # quoting
-    # giving proof ('according to')
-    # ask for suggestion
-    actions = document['action_feature']
+def _get_last_n_action_features(actions, cnt, LEXICONS, ACTION_FEATURE=False):
     unigrams, bigrams = set([]), set([])
-    end_time = 0
-    for action in actions:
-        if action['timestamp_in_sec'] > end_time:
-            end_time = action['timestamp_in_sec'] 
     ret = {'has_positive': 0, 'has_negative': 0, 'has_polite': 0,'has_deletion' : 0, \
         'has_modification': 0, 'has_restoration': 0, 'has_agree' : 0, 'has_disagree': 0, \
            'has_greetings': 0, 'has_all_cap': 0, 'has_consecutive_?or!': 0, 'verb start': 0, \
@@ -50,7 +31,6 @@ def _get_last_n_action_features(document, cnt, LEXICONS, ACTION_FEATURE=False):
 	'max_len' : 0, 'min_len': np.inf, 'avg_len': []}
     for key in LEXICONS.keys():
         ret['LEXICON_' + key] = 0
-    actions = sorted(actions, key=lambda k: k['timestamp_in_sec'])[::-1]
     the_action = {}
     for action in actions:
         the_action[action['id']] = action
@@ -59,34 +39,29 @@ def _get_last_n_action_features(document, cnt, LEXICONS, ACTION_FEATURE=False):
     positive = 0
     num = cnt
     for action in actions:
-        if action['timestamp_in_sec'] == end_time:
-           continue
-        if not(action['timestamp_in_sec'] == end_time):
-            if action['comment_type'] == 'COMMENT_REMOVAL':
-                if (ACTION_FEATURE): ret['has_deletion'] = 1
-                continue
-            elif action['comment_type'] == 'COMMENT_RESTORATION':
-                if (ACTION_FEATURE): ret['has_restoration'] = 1
-                continue
-            elif action['comment_type'] == 'COMMENT_MODIFICATION':
-                if (ACTION_FEATURE):  
-                  ret['has_modification'] = 1
-                  if 'user_text' in action and action['parent_id'] in the_action:
-                     if 'bot' in action['user_text'].lower():
-                         ret['bot_modification'] = 1
+        if action['comment_type'] == 'COMMENT_REMOVAL':
+            if (ACTION_FEATURE): ret['has_deletion'] = 1
+            continue
+        elif action['comment_type'] == 'COMMENT_RESTORATION':
+            if (ACTION_FEATURE): ret['has_restoration'] = 1
+            continue
+        elif action['comment_type'] == 'COMMENT_MODIFICATION':
+            if (ACTION_FEATURE):  
+              ret['has_modification'] = 1
+              if 'user_text' in action and action['parent_id'] in the_action:
+                 if 'bot' in action['user_text'].lower():
+                     ret['bot_modification'] = 1
+                 else:
+                     parent = the_action[action['parent_id']]
+                     if 'user_text' in parent:
+                        if parent['user_text'] == action['user_text']:
+                           ret['self_modification'] = 1 
+                        else:
+                           ret['other_modification'] = 1
                      else:
-                         parent = the_action[action['parent_id']]
-                         if 'user_text' in parent:
-                            if parent['user_text'] == action['user_text']:
-                               ret['self_modification'] = 1 
-                            else:
-                               ret['other_modification'] = 1
-                         else:
-                            ret['other_modification'] = 1
-                  else:
-                     ret['other_modification'] = 1
-                continue
-        else:
+                        ret['other_modification'] = 1
+              else:
+                 ret['other_modification'] = 1
             continue
         ret['max_len'] = max(ret['max_len'], len(action['unigrams'])) 
         ret['min_len'] = min(ret['max_len'], len(action['unigrams'])) 
@@ -154,30 +129,18 @@ def _get_last_n_action_features(document, cnt, LEXICONS, ACTION_FEATURE=False):
            new_ret[key] = ret[key]
     return new_ret
 
-def _get_action_features(document, LEXICONS):
-    # Do or don't, verb start sentence
-    # quoting
-    # giving proof ('according to')
-    # ask for suggestion
-    actions = document['action_feature']
+def _get_action_features(actions, LEXICONS):
     unigrams, bigrams = set([]), set([])
-    end_time = 0
-    for action in actions:
-        if action['timestamp_in_sec'] > end_time:
-            end_time = action['timestamp_in_sec'] 
     ret = {'has_positive': 0, 'has_negative': 0, 'has_polite': 0, 'max_length': 0, 'has_deletion' : 0, \
         'has_modification': 0, 'has_restoration': 0, 'has_agree' : 0, 'has_disagree': 0, \
            'has_greetings': 0, 'has_all_cap': 0, 'has_consecutive_?or!': 0, 'verb start': 0, \
            'do/don\'t start': 0, 'has_thank': 0}
     for key in LEXICONS.keys():
         ret['LEXICON_' + key] = 0
-    actions = sorted(actions, key=lambda k: k['timestamp_in_sec'])[::-1]
     appeared_users = {}
     negative = 0
     positive = 0
     for action in actions:
-        if action['timestamp_in_sec'] == end_time:
-            continue
         if action['comment_type'] == 'COMMENT_REMOVAL' \
            or action['comment_type'] == 'COMMENT_RESTORATION' \
            or action['comment_type'] == 'COMMENT_MODIFICATION':
@@ -205,9 +168,7 @@ def _get_action_features(document, LEXICONS):
                     ret['has_consecutive_?or!'] = 1
                 pre_u = u
                 
-   #     if '\'' in unigrams or '\"' in unigrams:
-   #         ret['quoting'] = 1
-                
+               
         for s in action['sentences']:
             if s.lower().startswith('do ') or s.lower().startswith('don\'t '):
                 ret['do/don\'t start'] = 1
@@ -215,10 +176,7 @@ def _get_action_features(document, LEXICONS):
         for p in action['pos_tags']:
             if p[0] == 'VB':
                 ret['verb start'] = 1
-       #     if 'VBD' in p:
-       #         ret['past_tense'] = 1
-        
-        
+       
         for u in action['unigrams']:
             if len(u) > 1 and u == u.upper():
                 ret['has_all_cap'] = 1
@@ -245,18 +203,11 @@ def _get_action_features(document, LEXICONS):
         new_ret['user_last_action_' + key] = ret[key]
     return new_ret
 
-def _get_repeatition_features(document):
-    actions = document['action_feature']
+def _get_repeatition_features(actions):
     unigrams, bigrams = set([]), set([])
-    end_time = 0
-    for action in actions:
-        if action['timestamp_in_sec'] > end_time:
-            end_time = action['timestamp_in_sec'] 
-
     ret = {'negative_increase': 0, 'positive_decrease': 0, 'toxicity_raise': 0, 'consecutive_negative': 0,
           'negative_decrease': 0, 'positive_increase': 0, 'max_toxicity': 0, 'max_toxicity_gap': 0, \
            'mean_toxicity_gap': 0, 'last_toxicity_gap': 0, 'max_polarity_gap': 0, 'has_policy_intervention': 0}
-    replyTo_feat = 0
     self_feat = 0
     for repeat in ['content_words', 'pos_bigrams', 'stopwords']:
         ret['has_%s_repeat'%(repeat)] = 0
@@ -265,8 +216,6 @@ def _get_repeatition_features(document):
     repeat_users = {}
     total_gaps = 0
     for action in actions:  
-  #      if not('replyTo_id' not in action or action['replyTo_id'] == None):
-  #          replyTo_feat += 1
         last_self = None
         if not('user_text' not in action or action['user_text'] == None):
             for act in actions:
@@ -277,8 +226,7 @@ def _get_repeatition_features(document):
 		   action['comment_type'] == 'COMMENT_ADDING'):
                     if last_self == None or last_self['timestamp_in_sec'] < act['timestamp_in_sec']:                               
                         last_self = act
-        if action['timestamp_in_sec'] == end_time or \
-           action['comment_type'] == 'COMMENT_REMOVAL' or action['comment_type'] == 'COMMENT_RESTORATION' \
+        if action['comment_type'] == 'COMMENT_REMOVAL' or action['comment_type'] == 'COMMENT_RESTORATION' \
             or action['comment_type'] == 'COMMENT_MODIFICATION':
                 continue
         for x in action['wiki_link']:
@@ -337,11 +285,9 @@ def _get_repeatition_features(document):
         ret['repeat_percentage'] = 0
     return ret
 
-def _get_balance_features(document):
+def _get_balance_features(actions):
     EPS = 0.001
-    actions = document['action_feature']
     unigrams, bigrams = set([]), set([])
-    end_time = 0
     no_users = 0
     user_set = {}
     reply_no = {}
@@ -355,14 +301,9 @@ def _get_balance_features(document):
     
     for action in actions:
         action_dict[action['id']] = action
-        if action['timestamp_in_sec'] > end_time:
-            end_time = action['timestamp_in_sec'] 
+    for action in actions:
         if not('user_text' in action):
             continue
-    for action in actions:
-        if action['timestamp_in_sec'] == end_time or not('user_text' in action):
-            continue
-           # action['user_text'] = 'Anonymous'
         user_set[action['user_text']] = 1
         if not('bot' in action['user_text'].lower()):
             total_user += 1
@@ -379,8 +320,7 @@ def _get_balance_features(document):
     no_users = len(user_set.keys())
     ret = {'question_to_question': 0, 'question_to_non_question': 0, 'non_question_to_question': 0, \
             'has_question' : 0}
-    replyTo_feat = 0
-    for adoption in ['content', 'pos', 'stop']:
+    for adoption in ['content_words', 'stopwords']:
         ret['has_%s_adoption'%(adoption)] = 0
         ret['%s_adoption'%(adoption)] = 0
     
@@ -401,14 +341,8 @@ def _get_balance_features(document):
     ret['negative reply to positive'] = 0
     all_replys = 0
     for action in actions:
-        if action['timestamp_in_sec'] == end_time or \
-            action['comment_type'] == 'COMMENT_REMOVAL' or action['comment_type'] == 'COMMENT_RESTORATION': 
-           if not('replyTo_id' not in action or action['replyTo_id'] == None):
-              replyTo_feat += 1
-           continue
-        if action['comment_type'] == 'COMMENT_MODIFICATION':
-           if not('replyTo_id' not in action or action['replyTo_id'] == None):
-              replyTo_feat += 1
+        if action['comment_type'] == 'COMMENT_REMOVAL' or action['comment_type'] == 'COMMENT_RESTORATION'\
+           or action['comment_type'] == 'COMMENT_MODIFICATION':
            continue
         poses = action['pos_tags_with_words']
         nouns = []
@@ -442,7 +376,6 @@ def _get_balance_features(document):
             elif polarity < - 0.5:
                 polarity = 1
             else: polarity = 2
-            polarities.append(polarity)
             total_polarity += polarity
         toxicities.append(action['score'])
         total_toxicity += action['score']
@@ -490,29 +423,28 @@ def _get_balance_features(document):
             total_time += action['timestamp_in_sec'] - parent['timestamp_in_sec']
             ret['max_time_gap'] = max(ret['max_time_gap'], action['timestamp_in_sec'] - parent['timestamp_in_sec'])
             total_replyTo += 1
-            for adoption in ['content', 'pos', 'stop']:
-                cur_adoption = document['conversational_features']['%s_adoption'%(adoption)][replyTo_feat]
+            for adoption in ['content_words', 'stopwords']:
+                cur_adoption = (len(set(action[adoption]) & set(parent[adoption])) > 0)
                 if cur_adoption > 0:
                     ret['has_%s_adoption'%(adoption)] = 1 
                     if not(adoption == 'pos'):
                         ret['%s_adoption'%(adoption)] = max(ret['%s_adoption'%(adoption)], \
                                             cur_adoption / float(action['length']))
-            replyTo_feat += 1
     if no_users:
-        ret['undirected_graph_density'] = len(unique_reply_pairs.keys()) / (no_users * no_users)
-        ret['directed_graph_density'] = len(reply_pair.keys()) / (no_users * no_users)
-        ret['directed_graph_self_loops'] = len(self_replies.keys()) / (no_users * no_users)
+#        ret['undirected_graph_density'] = len(unique_reply_pairs.keys()) / (no_users * no_users)
+        ret['interaction_density'] = len(reply_pair.keys()) / (no_users * no_users)
+#        ret['self_replies'] = len(self_replies.keys()) / no_users
     else:
-        ret['undirected_graph_density'] = 0
-        ret['directed_graph_density'] = 0
-        ret['directed_graph_self_loops'] = 0
+#        ret['undirected_graph_density'] = 0
+        ret['interaction_density'] = 0
+#        ret[''] = 0
     if all_replys:
         ret['frac. negative_reply'] /= all_replys
         
     all_users = sorted(user_set.keys())
 #    ret['imbalance_in_pairs'] = 0
-    for x in range(4):
-        ret['graph_feature_triad' + str(x)] = 0
+#    for x in range(4):
+#        ret['graph_feature_triad' + str(x)] = 0
 #    ret['triad_imbalance'] = 0
     if all_nouns:
        ret['nouns_over_tokens'] = len(set(all_nouns)) / float(len(all_nouns))
@@ -550,26 +482,25 @@ def _get_balance_features(document):
          #       entropy =  pair2 / (pair1 + pair2) * math.log(pair2 / (pair1 + pair2))/ math.log(2) \
          #               + pair1 / (pair1 + pair2) * math.log(pair1 / (pair1 + pair2))/ math.log(2)
          #       ret['imbalance_in_pairs'] = max(ret['imbalance_in_pairs'], entropy)
-            for ind3, user3 in enumerate(all_users[ind2+1:]):
-                no_replied = ((user1, user2) in unique_reply_pairs) + \
-                             ((user1, user3) in unique_reply_pairs) + \
-                             ((user2, user3) in unique_reply_pairs)
-                ret['graph_feature_triad' + str(no_replied)] += 1
-                pairs = [reply_pair[(user1, user2)] + reply_pair[(user2, user1)], \
-                         reply_pair[(user1, user3)] + reply_pair[(user3, user1)], \
-                         reply_pair[(user3, user2)] + reply_pair[(user2, user3)]]
+         #   for ind3, user3 in enumerate(all_users[ind2+1:]):
+         #       no_replied = ((user1, user2) in unique_reply_pairs) + \
+         #                    ((user1, user3) in unique_reply_pairs) + \
+         #                    ((user2, user3) in unique_reply_pairs)
+         #       ret['graph_feature_triad' + str(no_replied)] += 1
+         #       pairs = [reply_pair[(user1, user2)] + reply_pair[(user2, user1)], \
+         #                reply_pair[(user1, user3)] + reply_pair[(user3, user1)], \
+         #                reply_pair[(user3, user2)] + reply_pair[(user2, user3)]]
 #                ret['triad_imbalance'] = max(pairs) - min(pairs)
     if total_reply_pairs:
        ret['reciprocity'] = double_replys / total_reply_pairs
     else:
        ret['reciprocity'] = 0
-    if no_users >= 3:
-        for x in range(4):
-            ret['graph_feature_triad' + str(x)] /= (no_users * (no_users - 1) * (no_users - 2) / 6)
-            
+#    if no_users >= 3:
+#        for x in range(4):
+#            ret['graph_feature_triad' + str(x)] /= (no_users * (no_users - 1) * (no_users - 2) / 6)
     ret['no_users'] = no_users
 #    ret['has_reply'] = 0
-    ret['polarity_gap'] = max_polar - min_polar
+    ret['conversation_polarity_gap'] = max_polar - min_polar
 
     if total_replyTo > 0:
 #        ret['has_reply'] = 1
@@ -601,10 +532,10 @@ def _get_balance_features(document):
     ret['reply_entropy'] = not(no_replies == 1)
     ret['time_gap_entropy'] = not(no_time_gaps == 1)
     ret['length_entropy'] = not(no_lengths == 1)
-    ret['directed_graph_nodes_with_incoming_edge'] = 0
+#    ret['directed_graph_nodes_with_incoming_edge'] = 0
     for user in reply_no.keys():
-        if reply_no[user]:
-            ret['directed_graph_nodes_with_incoming_edge'] += 1
+#        if reply_no[user]:
+#            ret['directed_graph_nodes_with_incoming_edge'] += 1
         if no_replies > 1:
             ret['reply_entropy'] += reply_no[user] / total_replyTo \
                     * math.log(reply_no[user] / total_replyTo) / math.log(no_replies)
@@ -617,7 +548,7 @@ def _get_balance_features(document):
         if no_lengths > 1:
             ret['length_entropy'] += lengths[user] / total_length \
                     * math.log(lengths[user] / total_length) / math.log(no_lengths)
-    ret['directed_graph_nodes_with_incoming_edge'] /= no_users#len(reply_no.keys())
+#    ret['directed_graph_nodes_with_incoming_edge'] /= no_users#len(reply_no.keys())
     return ret
 
 def documents2feature_vectors(document_features):
@@ -635,8 +566,6 @@ def documents2feature_vectors(document_features):
         fv = [fs[f] for f in fks]
         for f in fks:
             max_X[f] = max(max_X[f], fs[f])
-        if cnt % 1000 == 0:
-            print(cnt)
         cnt += 1
         X.append(fv)
         y.append(clss)

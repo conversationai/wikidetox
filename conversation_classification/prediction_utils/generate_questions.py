@@ -1,9 +1,9 @@
 import json
 
 questions = []
-constraints = ['delta2_no_users', 'delta2_no_users_attacker_in_conv']
+constraints = ['delta2_no_users_attacker_in_conv'] # 'delta2_no_users', 
 for constraint in constraints:
-    with open('/scratch/wiki_dumps/expr_with_matching/%s/data/all.json'%(constraint)) as f:
+    with open('/scratch/wiki_dumps/expr_with_matching/%s/data/all_cleaned.json'%(constraint)) as f:
          for line in f:
              conv_id, clss, conversation = json.loads(line)
              for action in conversation['action_feature']:
@@ -15,6 +15,7 @@ for constraint in constraints:
                                     'sentence index' : ind, \
                                     'content' : s}
                         questions.append(question)  
-with open('/scratch/wiki_dumps/questions.json', 'w') as w:
-     for question in questions:
-         w.write(json.dumps(question) + '\n')
+with open('/scratch/wiki_dumps/questions_cleaned.json', 'w') as w:
+     json.dump(questions, w)
+#     for question in questions:
+#         w.write(json.dumps(question) + '\n')

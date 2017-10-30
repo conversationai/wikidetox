@@ -46,7 +46,6 @@ def process(args):
         if user in blocking and blocking[user] < start_time: 
             info['blocked'] = blocking[user]
         
-        """
         # editing data
         u_id = user_id[user]
         try:
@@ -65,9 +64,10 @@ def process(args):
                 edits = pd.read_csv(f, sep = '\t')
             edits['timestamp_in_sec'] = edits.apply(lambda x: timestamp_2_sec(x['timestamp']), axis=1)
          #   print(page_title)
-            info['edits_on_this_talk_page'] = len(edits[(edits['page_title'] == page_title) & (edits['timestamp_in_sec'] < start_time)])
-            info['edits_on_wikipedia_talks'] = len(edits[edits['timestamp_in_sec'] < start_time])               
-            comments[user] = edits[edits['timestamp_in_sec'] < start_time - week].sort_values('timestamp_in_sec', ascending=False).head(100)
+#            info['edits_on_this_talk_page'] = len(edits[(edits['page_title'] == page_title) & (edits['timestamp_in_sec'] < start_time)])
+#            info['edits_on_wikipedia_talks'] = len(edits[edits['timestamp_in_sec'] < start_time])               
+#            comments[user] = edits[edits['timestamp_in_sec'] < start_time - week].sort_values('timestamp_in_sec', ascending=False).head(100)
+            comments[user] = edits[(edits['timestamp_in_sec'] > start_time - week) & (edits['timestamp_in_sec'] < start_time)]
             comments[user] = comments[user]['comment'].values.tolist()
             comments[user] = [x.replace('NEWLINE', ' ') for x in comments[user]]
             comments[user] = [x.replace('NEWTAB', ' ') for x in comments[user]]
@@ -76,16 +76,15 @@ def process(args):
             info['edits_on_this_talk_page'] = 0
             info['edits_on_wikipedia_talks'] = 0
             comments[user] = []
-        """
         user_features[user] = info
     name = multiprocessing.current_process().name
-    with open('/scratch/wiki_dumps/expr_with_matching/edit_features/%s.json'%(name), 'a') as w:
-        w.write(json.dumps([conv_id, user_features]) + '\n')
-#    with open('/scratch/wiki_dumps/expr_with_matching/last_comments/%s.json'%(name), 'a') as w:
-#        w.write(json.dumps([conv_id, comments]) + '\n')
-    print('One Record Written')
+#    with open('/scratch/wiki_dumps/expr_with_matching/edit_features/%s.json'%(name), 'a') as w:
+#        w.write(json.dumps([conv_id, user_features]) + '\n')
+    with open('/scratch/wiki_dumps/expr_with_matching/last_comments_in_a_week/%s.json'%(name), 'a') as w:
+        w.write(json.dumps([conv_id, comments]) + '\n')
+#    print('One Record Written')
 
-constraints = ['delta2_no_users', 'delta2_no_users_attacker_in_conv']
+constraints = ['delta2_no_users_attacker_in_conv'] # 'delta2_no_users', 
 tasks = []
 user_id = {}
 for constraint in constraints:
@@ -115,7 +114,8 @@ for constraint in constraints:
 #['none', 'attacker_in_conv', 'no_users', 'no_users_attacker_in_conv']
 lst = []
 pool = Pool(70) 
-os.system('mkdir /scratch/wiki_dumps/expr_with_matching/edit_features') 
+os.system('mkdir /scratch/wiki_dumps/expr_with_matching/last_comments_in_a_week') 
+#os.system('mkdir /scratch/wiki_dumps/expr_with_matching/edit_features') 
 #os.system('mkdir /scratch/wiki_dumps/expr_with_matching/last_comments') 
 print('Start Processing')
 pool.map(process, tasks)
