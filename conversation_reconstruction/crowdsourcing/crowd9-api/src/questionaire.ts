@@ -18,7 +18,8 @@ limitations under the License.
 // should be set.
 export interface QuestionPartSchema {
   validEnumValues ?: string[];
-  stringInput ?: {}
+  stringInput ?: {};
+  optional ?: boolean;  // Is not set treated as false.
 }
 
 export interface QuestionSchema {
@@ -54,7 +55,7 @@ export interface Answer {
   [questionairePartId:string] : string;
 }
 
-export function answerScore(q:QuestionPartScores, answer:string | undefined | null) : number {
+export function answerPartScore(q:QuestionPartScores, answer:string | undefined | null) : number {
   if(answer === undefined || answer === null) {
     if(!q.optional) {
       throw Error('Answer must be provided, but was not.');
@@ -66,7 +67,8 @@ export function answerScore(q:QuestionPartScores, answer:string | undefined | nu
   if(q.enum !== undefined) {
     let lowerCaseAnswer = answer.toLowerCase();
     if (!(lowerCaseAnswer in q.enum)) {
-      throw Error('Answer does not match enum values: ' + JSON.stringify(Object.keys(q.enum)));
+      throw Error(`Answer ${lowerCaseAnswer} does not match enum values:` +
+        ` ${JSON.stringify(Object.keys(q.enum))}`);
     }
     return q.enum[lowerCaseAnswer];
   } else if(q.stringRegExp !== undefined) {
@@ -83,13 +85,10 @@ export function answerScore(q:QuestionPartScores, answer:string | undefined | nu
   }
 }
 
-// May throw an JSON parse exception.
-export function answerScoreFromJson(questionScoresJson:string, answersJson:string) : number {
-    let questionScores = JSON.parse(questionScoresJson);
-    let answers = JSON.parse(answersJson);
+export function answerScore(questionScores:QuestionScores, answer:Answer) : number {
     let score = 0;
     for (let q in questionScores) {
-      score += answerScore(questionScores[q], answers[q]);
+      score += answerPartScore(questionScores[q], answer[q]);
     }
     return score;
 }
@@ -98,24 +97,37 @@ export function answerScoreFromJson(questionScoresJson:string, answersJson:strin
 export function answerPartMatchesSchema(
     partSchema: QuestionPartSchema, answerPart : string) {
   if (partSchema.validEnumValues !== undefined) {
-    return partSchema.validEnumValues.indexOf(answerPart) != -1;
+    return partSchema.validEnumValues.indexOf(answerPart) !== -1;
   } else if (partSchema.stringInput !== undefined) {
     return typeof(answerPart) === 'string';
-  }
-  else {
+  } else {
     console.error('Unimplemented schema');
     return false;
   }
 }
 
 // All parts of schema exist in the answer. But the answer may have more stuff too.
-export function answerMatchesSchema(schema: QuestionSchema, answer: Answer) {
+export function answerMatchesSchema(schema: QuestionSchema, answer: Answer) : boolean {
   // let answerCopy = JSON.parse(JSON.stringify(answer));
+  if(schema === null) {
+    return true;
+  }
+
+  let answerKeys : {[k:string] : null} = {};
+  Object.keys(answer).map((k) => { answerKeys[k] = null; })
   for (let partSchemaKey in schema) {
     if(!(partSchemaKey in answer)) {
-      return false;
+      if(!(schema[partSchemaKey].optional)) {
+        return false;
+      } else {
+        return true;
+      }
     }
+    delete(answerKeys[partSchemaKey]);
     return answerPartMatchesSchema(schema[partSchemaKey], answer[partSchemaKey]);
+  }
+  if(Object.keys(answerKeys).length !== 0) {
+    return false;
   }
   return true;
 }

@@ -1,18 +1,24 @@
 {
+  "compileOnSave": false,
   "compilerOptions": {
     "module": "commonjs",
     "strict": true,
-    "noImplicitAny": true,
-    "noImplicitReturns": true,
-    "noImplicitThis": true,
-    "noFallthroughCasesInSwitch": true,
     "outDir": "./build/tsc/",
     "sourceMap": true,
-    "target": "ES5"
+    "target": "ES5",
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    // "noImplicitUseStrict": true,
+    // "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "removeComments": true,
+    "strictNullChecks": true
   },
   "include": [
-    "src/**/*.ts",
-    "../convlib/src/**/*.ts"
+    "src/**/*.ts"
   ],
   "exclude": [
     "node_modules",

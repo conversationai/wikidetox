@@ -1,12 +1,23 @@
 <!--The content below is only a placeholder and can be replaced.-->
 <h1>The Wikidetox-Crowd9-demo WebApp</h1>
+
+<div class="counts">
+  <div>my worker id: {{userNonce}}</div>
+  <div>local_sent_count: {{local_sent_count}}</div>
+  <div>training_answer_count: {{training_answer_count}}</div>
+  <div>user_mean_score: {{user_mean_score}}</div>
+  <div>overall_job_answer_count: {{overall_job_answer_count}}</div>
+  <div>overall_job_mean_score: {{overall_job_mean_score}}</div>
+</div>
+
+<div *ngIf="errorMessage" class="errorMessage" (click)="clearError()">{{errorMessage}}</div>
+
 <div *ngIf="!question">
   Loading...
 </div>
 
 <div *ngIf="question">
-  <div class="id">id: {{question.revision_id}}</div>
-
+  <div class="id">{{question.revision_id}}</div>
   <div class="text-header">Comment to rate:</div>
   <div class="text">{{question.revision_text}}</div>
 

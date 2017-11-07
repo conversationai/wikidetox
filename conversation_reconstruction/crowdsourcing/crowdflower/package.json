@@ -3,20 +3,31 @@
   "version": "0.0.1",
   "description": "Simple project to help with crowdsourcing.",
   "scripts": {
-    "build": "yarn run build:localtest && yarn run build:crowdflower",
+    "build": "yarn run build:localtest && yarn run build:crowdflower && yarn run build:scripts",
+    "build:scripts": "tsc -p src/scripts/tsconfig.json",
     "build:crowdflower": "node fuse && cat build/dist/app.js src/jquery_crowdflower_require_hack.js >build/dist/crowdflower.js",
+    "build:crowdflower_paired": "node fuse && cat build/dist/app_paired.js src/jquery_crowdflower_require_hack.js >build/dist/crowdflower_paired.js",
     "build:localtest": "node fuse && cat build/dist/app.js src/jquery_localtest_require_hack.js >build/dist/localtest.js",
-    "serve:localtest": "yarn build:localtest && python -m SimpleHTTPServer"
+    "serve:localtest": "yarn build:localtest && python -m SimpleHTTPServer",
+    "build:localtest_paired": "node fuse && cat build/dist/app_paired.js src/jquery_localtest_require_hack.js >build/dist/localtest_paired.js",
+    "serve:localtest_paired": "yarn build:localtest_paired && python -m SimpleHTTPServer"
   },
   "dependencies": {
+    "@types/csv-parse": "^1.1.10",
+    "@types/yargs": "^8.0.2",
+    "csv-generate": "^2.0.0",
+    "csv-parse": "^2.0.0",
+    "csv-stringify": "^2.0.0",
     "jquery": "^3.1.1",
-    "requirejs": "^2.3.5"
+    "requirejs": "^2.3.5",
+    "stream-transform": "^1.0.0",
+    "yargs": "^9.0.1"
   },
   "devDependencies": {
     "@conversationai/wpconvlib": "^0.0.1",
-    "fuse-test-runner": "^1.0.14",
     "@types/jquery": "^3.0.0",
     "fuse-box": "^2.2.31",
+    "fuse-test-runner": "^1.0.14",
     "typescript": "^2.1.6"
   },
   "type": "git",

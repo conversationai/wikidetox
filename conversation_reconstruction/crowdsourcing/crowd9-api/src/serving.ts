@@ -18,13 +18,16 @@ import * as compression from 'compression';
 import * as express from 'express';
 import * as http from 'http';
 import * as path from 'path';
+import * as spanner from '@google-cloud/spanner';
+
 // import * as Logging from '@google-cloud/logging';
 // import * as helmet from 'helmet';
 // import * as express_enforces_ssl from 'express-enforces-ssl';
 
 // Imports the Google Cloud client library
-import * as crowdsourcedb from './crowdsourcedb';
-import * as cs_routes from './cs_routes';
+import * as crowdsourcedb from './cs_db';
+import * as cs_client_routes from './cs_client_routes';
+import * as cs_admin_routes from './cs_admin_routes';
 import * as config from './config';
 import * as httpcodes from './http-status-codes';
 
@@ -37,13 +40,19 @@ export class Server {
   public port: number;
   public staticPath: string;
   public crowdsourcedb: crowdsourcedb.CrowdsourceDB;
+  // Public to support tests.
+  public spanner: spanner.Spanner;
+  public spannerInstance: spanner.Instance;
+  public spannerDatabase: spanner.Database;
 
   constructor(public config: config.Config) {
-    this.crowdsourcedb = new crowdsourcedb.CrowdsourceDB({
-        cloudProjectId: config.cloudProjectId,
-        spannerInstanceId: config.spannerInstanceId,
-        spannerDatabaseName: config.spannerDatabaseName,
-      });
+    // TODO(ldixon): check: should this be done per query? Does this setup a
+    // connection under the hood which might timeout/break etc? Or is this just
+    // setting vars?
+    this.spanner = spanner({ projectId: config.cloudProjectId });
+    this.spannerInstance = this.spanner.instance(config.spannerInstanceId);
+    this.spannerDatabase = this.spannerInstance.database(config.spannerDatabaseName, { keepAlive: 5 });
+    this.crowdsourcedb = new crowdsourcedb.CrowdsourceDB(this.spannerDatabase);
 
     console.log(`The config is: ${JSON.stringify(this.config, null, 2)}`);
     this.port = parseInt(this.config.port);
@@ -83,16 +92,8 @@ export class Server {
       res.status(httpcodes.OK).send('ok');
     });
 
-    this.app.post('/suggest_score', (req, res) => {
-      if(!req.body) {
-        res.status(httpcodes.BAD_REQUEST).send('poop, no body');
-        return;
-      }
-      console.log(`Request: ${JSON.stringify({headers: req.rawHeaders, body: req.body})}`);
-      res.send('hello hello?');
-    });
-
-    cs_routes.setup(this.app, this.config, this.crowdsourcedb);
+    cs_client_routes.setup(this.app, this.crowdsourcedb);
+    cs_admin_routes.setup(this.app, this.config, this.crowdsourcedb);
 
     this.httpServer = http.createServer(this.app);
     console.log(`created server`);
@@ -114,11 +115,18 @@ export class Server {
     });
   }
 
-  stop() : Promise<void> {
-    return new Promise<void>((resolve: () => void,
+  async stop() : Promise<void> {
+    let onceClosedServer = new Promise<void>((resolve: () => void,
                               _: (impossible_error?: Error) => void) => {
       this.httpServer.close(resolve);
     });
+    await onceClosedServer;
+
+    let onceClosedDB = new Promise<void>((resolve: () => void,
+    _: (impossible_error?: Error) => void) => {
+      this.spannerDatabase.close(resolve)
+    });
+    await onceClosedDB;
   }
 };
 
