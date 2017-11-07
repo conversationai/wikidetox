@@ -27,12 +27,27 @@ import * as config from './config';
 // pushing into a common dependent module.
 import * as httpcodes from './http-status-codes';
 
+function getRequest(url: string)
+  : Promise<{ status: number, body: string }> {
+  return new Promise<{ status: number, body: string }>((resolve, reject) => {
+    request.get(url, function (error, response, body) {
+      if (!(response && response.statusCode !== undefined)) {
+        reject(new Error('no response/response code'));
+      } else if (error) {
+        reject(error);
+      } else {
+        resolve({ status: response.statusCode, body: body });
+      }
+    });
+  });
+}
+
 // The main express server class.
 export class Server {
   // Public for the sake of writing tests.
-  public app : express.Express;
-  public httpServer : http.Server;
-  public apiKey : string;
+  public app: express.Express;
+  public httpServer: http.Server;
+  public apiKey: string;
   public port: number;
   public staticPath: string;
 
@@ -77,24 +92,68 @@ export class Server {
     });
 
     // Returns some work to do, using/hiding the client config
+    this.app.get('/api/job_quality', async (_req, res) => {
+      try {
+        let url = `${this.config.crowd9ApiUrl}/client_jobs/` +
+          `${this.config.clientJobKey}/quality_summary`;
+        let result = await getRequest(url);
+        res.status(result.status).send(result.body);
+      } catch (e) {
+        console.error(`*** Failed: `, e);
+        res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      }
+    });
+
+    // Returns some work to do, using/hiding the client config
+    this.app.get('/api/quality/:workerid', async (req, res) => {
+      try {
+        let url = `${this.config.crowd9ApiUrl}/client_jobs/` +
+          `${this.config.clientJobKey}/workers/` +
+          `${req.params.workerid}/quality_summary`;
+        let result = await getRequest(url);
+        res.status(result.status).send(result.body);
+      } catch (e) {
+        console.error(`*** Failed: `, e);
+        res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      }
+    });
+
+    // Returns some work to do, using/hiding the client config
     this.app.get('/api/work', async (_req, res) => {
       try {
         let url = `${this.config.crowd9ApiUrl}/client_jobs/` +
-                  `${this.config.clientJobKey}/next10_unanswered_questions`;
-        let result = await new Promise<{status: number, body:string}>(
-            (resolve, reject) => {
-          request.get(url, function (error, response, body) {
-            if(!(response && response.statusCode !== undefined)) {
-              reject(new Error('no response/response code'));
-            } else if(error) {
-              reject(error);
-            } else {
-              resolve({status: response.statusCode, body: body});
-            }
-          });
-        });
+          `${this.config.clientJobKey}/next10_unanswered_questions`;
+        let result = await getRequest(url);
         res.status(result.status).send(result.body);
-      } catch(e) {
+      } catch (e) {
+        console.error(`*** Failed: `, e);
+        res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      }
+    });
+
+    // Returns some work to do, using/hiding the client config
+    this.app.get('/api/work/:client_job_key', async (req, res) => {
+      try {
+        let url = `${this.config.crowd9ApiUrl}/client_jobs/` +
+          `${req.params.client_job_key}/next10_unanswered_questions`;
+        let result = await getRequest(url);
+        res.status(result.status).send(result.body);
+      } catch (e) {
+        console.error(`*** Failed: `, e);
+        res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
+      }
+    });
+
+    // Returns some work to do, using/hiding the client config
+    this.app.get('/api/work/:client_job_key/:question_id', async (req, res) => {
+      // console.log(JSON.stringify(req.params));
+      try {
+        let url = `${this.config.crowd9ApiUrl}/client_jobs/` +
+          `${req.params.client_job_key}/questions/${req.params.question_id}`;
+        // console.log(url);
+        let result = await getRequest(url);
+        res.status(result.status).send(result.body);
+      } catch (e) {
         console.error(`*** Failed: `, e);
         res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
       }
@@ -102,43 +161,56 @@ export class Server {
 
     // Returns some work to do, using/hiding the client config
     this.app.post('/api/answer', async (req, res) => {
-      try {
-        let url = `${this.config.crowd9ApiUrl}/client_jobs/` +
-                  `${this.config.clientJobKey}/questions/` +
-                  `${req.body.questionId}/answers/${req.body.userNonce}`;
-        delete(req.body.questionId);
-        delete(req.body.userNonce);
-        let result = await new Promise<{status: number, body:string}>(
-            (resolve, reject) => {
-          request({
-              method: 'POST',
-              uri: url,
-              json: { answer: JSON.stringify(req.body) }
-            },
-            function (error, response, body) {
-              if(!(response && response.statusCode !== undefined)) {
-                reject(new Error('no response/response code'));
-              } else if(error) {
-                reject(error);
-              } else {
-                resolve({status: response.statusCode, body: body});
-              }
-          });
-        });
-        res.status(result.status).send(result.body);
-      } catch(e) {
-        console.error(`*** Failed: `, e);
-        res.status(httpcodes.INTERNAL_SERVER_ERROR).send('Error: ' + e.message);
-      }
+      let response = await this.postAnswer(this.config.clientJobKey, req.body);
+      res.status(response.status).send(response.body);
+    });
+
+    // Returns some work to do, using/hiding the client config
+    this.app.post('/api/answer/:client_job_key', async (req, res) => {
+      let response = await this.postAnswer(req.params.client_job_key, req.body);
+      res.status(response.status).send(response.body);
     });
 
     this.httpServer = http.createServer(this.app);
     console.log(`created server`);
   }
 
-  public start() : Promise<void> {
+  public async postAnswer(clientJobKey: string, answerBody: { [k: string]: string })
+    : Promise<{ status: number, body: string }> {
+    try {
+      let url = `${this.config.crowd9ApiUrl}/client_jobs/` +
+        `${clientJobKey}/questions/` +
+        `${answerBody.questionId}/answers/${answerBody.userNonce}`;
+      console.log('request to: ' + url);
+      delete (answerBody.questionId);
+      delete (answerBody.userNonce);
+      let result = await new Promise<{ status: number, body: string }>(
+        (resolve, reject) => {
+          request({
+            method: 'POST',
+            uri: url,
+            json: { answer: answerBody }
+          },
+            function (error, response, body) {
+              if (!(response && response.statusCode !== undefined)) {
+                reject(new Error('no response/response code'));
+              } else if (error) {
+                reject(error);
+              } else {
+                resolve({ status: response.statusCode, body: body });
+              }
+            });
+        });
+      return result;
+    } catch (e) {
+      console.error(`*** Failed: `, e);
+      return { status: httpcodes.INTERNAL_SERVER_ERROR, body: 'Error: ' + e.message };
+    }
+  }
+
+  public start(): Promise<void> {
     return new Promise<void>((resolve: () => void,
-                              reject: (reason?: Error) => void) => {
+      reject: (reason?: Error) => void) => {
       // Start HTTP up the server
       this.httpServer.listen(this.port, (err: Error) => {
         if (err) {
@@ -152,9 +224,9 @@ export class Server {
     });
   }
 
-  stop() : Promise<void> {
+  stop(): Promise<void> {
     return new Promise<void>((resolve: () => void,
-                              _: (impossible_error?: Error) => void) => {
+      _: (impossible_error?: Error) => void) => {
       this.httpServer.close(resolve);
     });
   }

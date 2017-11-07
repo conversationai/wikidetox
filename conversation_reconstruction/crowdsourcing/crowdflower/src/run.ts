@@ -24,7 +24,7 @@ export function runWithJqueryLoaded(this:any, $:any) : void {
   // global.$ = $;
 
   let rootComment : conversation.Comment | null;
-  $('.json-data').each( function (this:any) {
+  $('.json-data').each(function (this:any) {
     let conv = JSON.parse($(this)[0].textContent);
     let rootComment = conversation.structureConversaton(conv);
     if (!rootComment) {

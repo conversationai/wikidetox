@@ -21,13 +21,26 @@ declare module '@google-cloud/spanner' {
     export interface Query {
       sql: string;
     }
-    export interface SpannerDate {}
-    export interface SpannerFloat {}
-    export interface SpannerInt {}
-    export interface SpannerTimestamp {}
+    export interface SpannerDate {
+      // A fake field to make this type unique: fake nominal typing using npm namespace.
+      __type__: '@google-cloud/spanner:SpannerDate';
+    }
+    export interface SpannerFloat {
+      // A fake field to make this type unique: fake nominal typing using npm namespace.
+      __type__: '@google-cloud/spanner:SpannerFloat';
+    }
+    export interface SpannerInt {
+      // A fake field to make this type unique: fake nominal typing using npm namespace.
+      __type__: '@google-cloud/spanner:SpannerInt';
+    }
+    export interface SpannerTimestamp {
+      // A fake field to make this type unique: fake nominal typing using npm namespace.
+      __type__: '@google-cloud/spanner:SpannerTimestamp';
+    }
+    export type InputField = string | null | SpannerDate | SpannerFloat
+                           | SpannerInt | SpannerTimestamp;
     export interface InputRow {
-      [columnKey:string] : string | null | SpannerDate | SpannerFloat
-                         | SpannerInt | SpannerTimestamp
+      [columnKey:string] : InputField;
     }
     export interface Table {
       insert(rows:InputRow[]): Promise<void>;
@@ -35,14 +48,13 @@ declare module '@google-cloud/spanner' {
       update(rows:InputRow[]) : Promise<void>;
     }
 
-    // Rows and Columns.
-    export type ResultRow = {
-      name:string,
-      // The value representation chosen here by the spanner nodejs client
-      // library is pretty surprising: INT64s are converted into
-      // Objects with a value field that is the string representation of the number.
-      // Strings on the other hand are just strings.
-      value: string | { value: string } | null }[]
+    // The value representation chosen here by the spanner nodejs client
+    // library is pretty surprising: INT64s are converted into
+    // Objects with a value field that is the string representation of the number.
+    // Strings on the other hand are just strings.
+    export type ResultField = string | { value: string } | null | Date;
+    // Rows and Columns (Fields) in that row.
+    export type ResultRow = { name:string; value: ResultField; }[]
     export type QueryResult = ResultRow[];
     export interface Database {
       table(tableName:string): Table;

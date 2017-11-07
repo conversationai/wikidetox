@@ -9,6 +9,12 @@
   margin: 10px;
 }
 
+.counts {
+  text-align: right;
+  padding: 5px;
+  font-size: 80%;
+}
+
 .id {
   text-align: right;
   padding: 5px;
@@ -37,4 +43,12 @@
 
 .example-full-width {
   width: 100%;
+}
+
+.errorMessage {
+  font-weight: bold;
+  padding: 10px;
+  border: 1px solid #FCC;
+  margin: 10px;
+  color: #933;
 }
