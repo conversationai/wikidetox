@@ -209,7 +209,7 @@ def _user_features(document, user_features, ASPECTS, STATUS):
     user_infos = {}
 
     total_utterances = 0
-    ret = {'has_anon': 0, 'has_bot':0}
+    ret = {'has_anon': 0, 'has_bot':0, 'has_blocked' : 0}
     action_dict = {}
     replied = {}
     for action in actions:
@@ -343,6 +343,8 @@ def _get_term_features(actions, UNIGRAMS_LIST, BIGRAMS_LIST):
     f.update(dict(map(lambda x: ("BIGRAM_" + str(x), 1 if tuple(x) in bigrams else 0), BIGRAMS_LIST)))
     return f 
 
+# Extracts comment level conversational features from the last N comments
+# N determined by parameter cnt
 def _get_last_n_action_features(actions, cnt, LEXICONS):
     unigrams, bigrams = set([]), set([])
     # initialization
@@ -350,7 +352,6 @@ def _get_last_n_action_features(actions, cnt, LEXICONS):
            'has_agree' : 0, 'has_disagree': 0, \
            'has_greetings': 0, 'has_all_cap': 0, 'has_consecutive_?or!': 0, 'verb start': 0, \
            'do/don\'t start': 0, 'has_thank': 0, 'you_start': 0, \
-	   'self_modification': 0, 'bot_modification': 0, 'other_modification': 0, \
 	'max_len' : 0, 'min_len': np.inf, 'avg_len': []}
     for key in LEXICONS.keys():
         ret['LEXICON_' + key] = 0
@@ -377,49 +378,44 @@ def _get_last_n_action_features(actions, cnt, LEXICONS):
                            ('appreciated' in unigrams)
         ret['has_greetings'] = ret['has_greetings'] or ('hi' in unigrams) or ('hello' in unigrams) or \
                                ('hey' in unigrams)
-        # has consecutive ? or !
+        # has comment containing consecutive ? or !
         if not(unigrams == []):
             pre_u = unigrams[0]
             for u in unigrams[1:]:
                 if u in ['!', '?'] and pre_u in ['!', '?']:
                     ret['has_consecutive_?or!'] = 1
                 pre_u = u
-                
-                
+        # has sentence starts with do, don't or you        
         for s in action['sentences']:
             if s.lower().startswith('do ') or s.lower().startswith('don\'t '):
                 ret['do/don\'t start'] = 1
             if s.lower().startswith('you ') or s.lower().startswith('you\'re '):
                 ret['you_start'] = 1
+        # has sentence starts with a verb
         for p in action['pos_tags']:
             if p[0] == 'VB':
                 ret['verb start'] = 1
-
-        
-        
+        # has comment with all capitalized words 
         for u in action['unigrams']:
             if len(u) > 1 and u == u.upper():
                 ret['has_all_cap'] = 1
-        
-        # Polarity
+        # has sentence with negative/positive polarity 
         polarity = []
         for p in action['polarity']:
             if p['compound'] < -0.5:
                 ret['has_negative'] = 1
             if p['compound'] > 0.5:
                 ret['has_positive'] = 1
-
-        
-        # Politeness
+        # has sentence with polite request 
         if action['is_request']:
             if action['politeness_score']['polite'] >= 0.5:
                 ret['has_polite'] = 1
-        
+        # has sentence with cetain lexicon 
         for key in LEXICONS.keys():
             if action[key]: ret['LEXICON_' + key] = 1
-    
     new_ret = {}
     ret['avg_len'] = np.mean(ret['avg_len'])
+    # change feature names 
     for key in ret.keys():
         if not('_len' in key or 'modification' in key or 'deletion' in key or 'restoration' in key):
            new_ret['last_%d_'%num + key] = ret[key]
@@ -505,7 +501,6 @@ def _get_repeatition_features(actions):
     self_feat = 0
     for repeat in ['content_words', 'stopwords']:
         ret['has_%s_repeat'%(repeat)] = 0
-        ret['%s_repeat'%(repeat)] = 0
     appeared_users = {}
     repeat_users = {}
     total_gaps = 0
@@ -533,9 +528,6 @@ def _get_repeatition_features(actions):
                 cur_repeat = (len(set(action[repeat]) & set(last_self[repeat])) > 0)
                 if cur_repeat > 0:
                     ret['has_%s_repeat'%(repeat)] = 1 
-                    if not(repeat == 'pos'):
-                        ret['%s_repeat'%(repeat)] = max(ret['%s_repeat'%(repeat)], \
-                                            cur_repeat / float(action['length']))
             if last_self['score'] < action['score'] - 0.05:
                 ret['toxicity_raise'] = 1
             ret['max_toxicity_gap'] = max(ret['max_toxicity_gap'], action['score'] - last_self['score'])
@@ -611,7 +603,6 @@ def _get_balance_features(actions):
             'has_question' : 0}
     for adoption in ['content_words', 'stopwords']:
         ret['has_%s_adoption'%(adoption)] = 0
-        ret['%s_adoption'%(adoption)] = 0
     
     polarities = []
     toxicities = []
@@ -696,8 +687,8 @@ def _get_balance_features(actions):
             # question or not
             if '?' in action['unigrams'] and  '?' in parent['unigrams']:
                 ret['question_to_question'] = 1
-            if '?' in action['unigrams'] and  not('?' in parent['unigrams']):
-                ret['question_to_non_question'] = 1
+#            if '?' in action['unigrams'] and  not('?' in parent['unigrams']):
+#                ret['question_to_non_question'] = 1
             if not('?' in action['unigrams']) and  '?' in parent['unigrams']:
                 ret['non_question_to_question'] = 1
             if '?' in action['unigrams']:
@@ -712,9 +703,6 @@ def _get_balance_features(actions):
                 cur_adoption = (len(set(action[adoption]) & set(parent[adoption])) > 0)
                 if cur_adoption > 0:
                     ret['has_%s_adoption'%(adoption)] = 1 
-                    if not(adoption == 'pos'):
-                        ret['%s_adoption'%(adoption)] = max(ret['%s_adoption'%(adoption)], \
-                                            cur_adoption / float(action['length']))
     if no_users:
         ret['interaction_density'] = len(reply_pair.keys()) / (no_users * no_users)
     else:
