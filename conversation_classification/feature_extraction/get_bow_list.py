@@ -38,18 +38,18 @@ def generate_bow_features(constraint, documents, suffix):
    
 def process(constraint, suffix):
     documents = []
-    with open('/scratch/wiki_dumps/expr_with_matching/%s/data/train%s.json'%(constraint, suffix)) as f:
+    with open('/scratch/wiki_dumps/expr_with_matching/%s/data/all%s.json'%(constraint, suffix)) as f:
         for line in f:
             conv_id, clss, conversation = json.loads(line)
             documents.append((conversation, clss))       
     generate_bow_features(constraint, documents, suffix)
 
 
-constraints = ['delta2_no_users']#'delta2_no_users_attacker_in_conv']
+constraints =['delta2_no_users_attacker_in_conv'] # 
 #['delta2_none', 'delta2_no_users', 'delta3_none', 'delta3_no_users']
 #['delta2_no_users_attacker_in_conv']
 #['delta2_attacker_in_conv',  'delta3_attacker_in_conv', 'delta3_no_users_attacker_in_conv']
-suffix = '_verified'#'_cleaned_verified'
+suffix = '_cleaned_3'
 for c in constraints:
     os.system('mkdir /scratch/wiki_dumps/expr_with_matching/%s/bow_features/'%(c))
     process(c, suffix)
