@@ -14,11 +14,13 @@ describe('Multiplex Transform Test', function() {
     let w2Stuff : string[] = [];
     let sStuff : string[] = [];
 
-    let onceW1Data = new Promise((resolve, reject) => {
-      w1.on('data', (d: string) => { w1Stuff.push(d); resolve(d); });
+    w1.on('data', (d: string) => {
+      console.log('onceW1Data d: ' + d);
+      w1Stuff.push(d);
     });
-    let onceW2Data = new Promise((resolve, reject) => {
-      w2.on('data', (d: string) => { w2Stuff.push(d); resolve(d); });
+    w2.on('data', (d: string) => {
+      console.log('onceW2Data d: ' + d);
+      w2Stuff.push(d);
     });
 
     // TODO(ldixon): fix this, it should be derived from encoding of
@@ -31,6 +33,7 @@ describe('Multiplex Transform Test', function() {
 
     m.setInputProcessor((chunk:string, encoding: string,
         pushFn: (name: string, outChunk:string) => void) => {
+      console.log('handling chunk: ' + chunk);
       pushFn('w1', chunk);
       pushFn('w2', chunk);
     });
@@ -43,17 +46,16 @@ describe('Multiplex Transform Test', function() {
     s.on('data', (d:string) => { sStuff.push(d); });
     s.setEncoding('utf-8');
     r.write('hello');
+    r.write('hello2');
     r.end();
 
-    let w1Data = await onceW1Data;
-    let w2Data = await onceW1Data;
-    expect(w1Data).to.equal('hello');
-    expect(w2Data).to.equal('hello');
-
     await onceFinished.then(() => {
-        expect(w1Stuff).to.have.members(['hello']);
-        expect(w2Stuff).to.have.members(['hello']);
-        expect(sStuff).to.have.members(['w1', 'w2']);
+      expect(w1Stuff).to.have.members(['hello', 'hello2']);
+      expect(w2Stuff).to.have.members(['hello', 'hello2']);
+      expect(sStuff).to.have.members(['w1', 'w2', 'w1', 'w2']);
+    }).catch((e) => {
+      console.error(e.message);
+      expect.fail();
     });
   });
 });

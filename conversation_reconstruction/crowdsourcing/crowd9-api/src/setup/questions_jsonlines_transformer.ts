@@ -17,7 +17,7 @@ limitations under the License.
 Usage: Convert answers with multiple parts into separate rows.
 
   node build/server/setup/questions_jsonlines_transformer.js \
-    --infile="./tmp/Question.json" \
+    --infile="./tmp/Questions.json" \
     --out_scorings_file="./tmp/Scorings.json" \
     --out_questions_file="./tmp/Questions2.json"
 */
@@ -105,7 +105,7 @@ async function main(args : Params) {
           for (let enumKey in enumMap) {
             questionScoring.answer = enumKey;
             questionScoring.answer_score = enumMap[enumKey];
-            pushFn(SCORING_STREAM_NAME, JSON.stringify(questionScoring));
+            pushFn(SCORING_STREAM_NAME, `${JSON.stringify(questionScoring)}\n`, 'utf-8');
           }
         }
 
@@ -133,13 +133,24 @@ async function main(args : Params) {
   let instream = fs.createReadStream(args.infile);
   instream.pause();
   let completedStream = instream.pipe(lineStream).pipe(interpretStream);
+  // Needed so that interpretStream doesn't block waiting for consumer of its events.
+  completedStream.on('data', () => {});
   let onceCompleted = new Promise((resolve, reject) => {
-    completedStream.on('final', () => {
+    completedStream.on('close', () => {
+      console.log('completedStream close');
+    });
+
+    completedStream.on('end', () => {
+      console.log('completedStream end');
+    });
+
+    completedStream.on('finish', () => {
       console.log(`lineCount: ${lineCount}; answerPartCount: ${answerPartCount}`);
       console.log(`answerPartCounts: ${JSON.stringify(answerPartCounts, null, 2)}`);
       resolve();
     });
     instream.on('error', (e) => { reject(e); });
+    console.log('instream.resume');
     instream.resume();
   });
 

@@ -22,49 +22,25 @@ depending on some aspect of the input chunk.
 */
 import * as stream from 'stream';
 
-type ChunkFn = (chunk:string, encoding:string,
-                pushFn :(streamName: string, chunk:string) => void) => void;
-
-
-class MultiplexOutputStream {
-  private queue :string[] = [];
-  // full is true when writable has returned true;
-  private full : boolean = false;
-  // Must only be called when writable is not full (waiting for drain event).
-  constructor (private writable: stream.Writable) {}
-
-  tryPush(chunk: string) {
-    if(this.full) {
-      this.queue.push(chunk);
-    } else {
-      this.full = this.writable.write(chunk);
-    }
-  }
-
-  // Should only be called after a drain event.
-  public tryResume() {
-    this.full = false;
-    while (this.queue.length > 0 && !this.full) {
-      const chunk = this.queue.pop()
-      this.full = this.writable.write(chunk);
-    }
-  }
-
-  public end(cb?:() => void) {
-    this.writable.end(cb);
-  }
-
-  public isFull() { return this.isFull; }
-}
-
+type ChunkFn = (
+  chunk:string, encoding:string,
+  pushFn : (streamName: string,
+            chunk:string,
+            encoding?:string,
+            callback?:() => void)
+           => void)
+  => void;
 
 // Safe multiplexing from input stream to many output streams.
 // This class will pause and resume the input stream to this transform.
 export class Multiplex extends stream.Transform {
-  public outputStreams : { [streamName:string] : MultiplexOutputStream } = {};
-  inputProcessor : ChunkFn = (chunk:string, encoding:string) => { return {}; };
-  // defined only when closing.
+  public outputStreams : { [streamName:string] : stream.Writable } = {};
+  public finishedPromises : { [streamName:string] : Promise<void> } = {};
+  public fullStreams : { [streamName:string] : null } = {};
+  private transformCb : ((error:Error|null) => void)[] = [];
   private completeCloseFn ?: () => void;
+  private inputProcessor : ChunkFn = (chunk:string, encoding:string) => { return {}; };
+  // defined only when closing.
   constructor(options?:stream.TransformOptions) { super(options); }
 
   public setInputProcessor(f:ChunkFn) {
@@ -72,65 +48,76 @@ export class Multiplex extends stream.Transform {
   }
 
   // Only safe to call when not paused.
-  maybeClose() {
-    if(this.completeCloseFn !== undefined) {
-      for (let streamName in this.outputStreams) {
-        this.outputStreams[streamName].end(() => {
-          delete this.outputStreams[streamName];
-          if(this.completeCloseFn !== undefined &&
-             Object.keys(this.outputStreams).length === 0) {
-            this.completeCloseFn();
-            delete this.completeCloseFn;
-          }
+  checkClose() {
+    console.debug('checkClose');
+    if(this.completeCloseFn !== undefined && Object.keys(this.fullStreams).length === 0) {
+      let closeFn = this.completeCloseFn;
+      console.debug('closing.');
+      Promise.all(
+        Object.keys(this.finishedPromises).map((streamName) => {
+          this.outputStreams[streamName].end();
+          return this.finishedPromises[streamName];
+        }))
+        .then(() => { closeFn(); console.debug('closed.'); })
+        .catch((e) => {
+          console.error(e.message);
         });
-      }
     }
   }
 
   // Try to resume the input queue; returns true when all output queues not full,
   // i.e. that resume has succeeded.
-  tryResume() : boolean {
-    if(!this.isPaused()) {
-      return false;
-    }
-    for (let streamName in this.outputStreams) {
-      if(this.outputStreams[streamName].isFull()) {
-        return false;
+  checkResume() : void {
+    console.debug('checkResume');
+    if (this.transformCb !== undefined && Object.keys(this.fullStreams).length === 0) {
+      for(let cb of this.transformCb) {
+        cb(null);
       }
+      this.transformCb = [];
+      console.debug('resumed.');
     }
-    this.resume();
-    this.maybeClose();
-    return true;
   }
 
   // Must only be called when writable is not full (waiting for drain event).
   addOutputStream(streamName: string, writable: stream.Writable ) {
-    let multiplexOutput = new MultiplexOutputStream(writable);
-    this.outputStreams[streamName] = multiplexOutput;
+    this.outputStreams[streamName] = writable;
     writable.on('drain', () => {
-      multiplexOutput.tryResume();
-      this.tryResume();
+      console.debug('drain: ' + streamName);
+      delete this.fullStreams[streamName];
+      this.checkResume();
+      this.checkClose()
     });
+    writable.on('error', (e) => { console.error(`${streamName}: error:` + e.message); });
+    writable.on('close', () => { console.debug(`${streamName}: close`); });
+    this.finishedPromises[streamName] = new Promise((resolve, reject) => {
+      writable.on('finish', () => { resolve(); console.debug(`${streamName}: finish`); });
+    });
+    writable.on('pipe', () => { console.debug(`${streamName}: pipe`); });
+    writable.on('unpipe', () => { console.debug(`${streamName}: unpipe`); });
   }
 
-  pushToQueue(streamName:string, chunk:string) {
+  pushToQueue(streamName:string, chunk:Buffer|string|{}, encoding:string, cb:() => void) {
     this.push(streamName);
-    if(this.outputStreams[streamName].tryPush(chunk)) {
-      this.pause();
+    let isNotFull = this.outputStreams[streamName].write(chunk, encoding, cb);
+    if(!isNotFull) {
+      this.fullStreams[streamName] = null;
     }
   }
 
-  _transform(chunk:string, encoding:string, cb: (error :Error|null) => void) : void {
+  _transform(chunk:string, encoding:string, cb:(error:Error|null) => void) : void {
     this.inputProcessor(chunk, encoding, this.pushToQueue.bind(this));
-    cb(null);
+    if (Object.keys(this.fullStreams).length === 0) {
+      cb(null);
+    } else {
+      console.debug('full: adding transformCb');
+      // Otherwise a drain event will be used to call transformCb.
+      this.transformCb.push(cb);
+    }
   }
 
-  _flush(cb:() => void) : void {
+  _flush(cb:(error?:Error, data?:Buffer|string|{}) => void) : void {
+    console.debug('_flush');
     this.completeCloseFn = cb;
-    // If we are paused, then an outputStream is full, so we wait for a drain event,
-    // which will call this.maybeClose.
-    if(!this.isPaused()) {
-      this.maybeClose();
-    }
+    this.checkClose();
   }
 }
