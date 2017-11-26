@@ -17,6 +17,7 @@ limitations under the License.
 // Based on reading the cocde in:
 // https://github.com/GoogleCloudPlatform/google-cloud-node/blob/master/packages/spanner/src/index.js
 declare module '@google-cloud/spanner' {
+  import * as stream from 'stream';
   namespace spanner {
     export interface Query {
       sql: string;
@@ -56,10 +57,19 @@ declare module '@google-cloud/spanner' {
     // Rows and Columns (Fields) in that row.
     export type ResultRow = { name:string; value: ResultField; }[]
     export type QueryResult = ResultRow[];
+    type StreamingQuery = stream.Readable;
+    // export interface StreamingQuery {
+    //   on(kind:'error', f: (e:Error) => void) : void;
+    //   on(kind:'data', f: (row:ResultRow) => void) : void;
+    //   on(kind:'end', f: () => void) : void;
+    // }
+
     export interface Database {
       table(tableName:string): Table;
       run(query:Query):Promise<QueryResult[]>;
-      close(cb : () => void) : void;
+      // runStream(query:Query): StreamingQuery;
+      runStream(query:Query): stream.Readable;
+      close(cb ?: () => void) : void;
     }
     export interface DatabaseOptions {
       keepAlive: number;  // number of minutes between pings to the DB.
