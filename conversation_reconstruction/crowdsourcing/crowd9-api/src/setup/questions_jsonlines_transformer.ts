@@ -71,6 +71,7 @@ interface QuestionScoring {
   answer_part_id : string;
   answer : string;
   answer_score : number;  // float 64
+  original_answer_score : number;
 }
 
 const SCORING_STREAM_NAME = 'scoring';
@@ -105,6 +106,11 @@ async function main(args : Params) {
           for (let enumKey in enumMap) {
             questionScoring.answer = enumKey;
             questionScoring.answer_score = enumMap[enumKey];
+            if (questionScoring.answer_score === 0) {
+              continue;
+            }
+            questionScoring.original_answer_score = questionScoring.answer_score;
+            questionScoring.answer_score = (questionScoring.answer_score + 1) / 2;
             pushFn(SCORING_STREAM_NAME, `${JSON.stringify(questionScoring)}\n`, 'utf-8');
           }
         }
