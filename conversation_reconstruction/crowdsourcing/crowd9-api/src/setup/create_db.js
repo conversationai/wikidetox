@@ -63,9 +63,18 @@ const request = {
     `CREATE INDEX QuestionByGroupIdTypeAndId
        ON Questions(question_group_id, type, question_id)`,
 
+    `CREATE TABLE QuestionScorings (
+        question_group_id       STRING(1024),
+        question_id             STRING(1024),
+        answer_part_id          STRING(1024),
+        answer                  STRING(1024),
+        answer_score            FLOAT64,
+      ) PRIMARY KEY (question_group_id, question_id)`,
+
     `CREATE TABLE Answers (
       answer                  STRING(MAX),
       answer_id               STRING(1024),
+      answer_part_id          STRING(1024),
       client_job_key          STRING(1024),
       question_group_id       STRING(1024),
       question_id             STRING(1024),
