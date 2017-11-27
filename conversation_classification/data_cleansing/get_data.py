@@ -46,17 +46,39 @@ def get_data(constraint):
              cur['timestamp_in_sec'] = (datetime.datetime.strptime(cur['timestamp'], '%Y-%m-%d %H:%M:%S UTC') -datetime.datetime(1970,1,1)).total_seconds() 
              cur['cleaned_content'] = wikipedia_format_clean(cur['content'])
              good_conversations[cur['conversation_id']][cur['id']] = cur
+    matches = {}
     with open('/scratch/wiki_dumps/matched_conversations/%s_bad.json'%(constraint)) as f:
          for line in f:
              cur = json.loads(line)
              cur['timestamp_in_sec'] = (datetime.datetime.strptime(cur['timestamp'], '%Y-%m-%d %H:%M:%S UTC') -datetime.datetime(1970,1,1)).total_seconds() 
              cur['cleaned_content'] = wikipedia_format_clean(cur['content'])
              bad_conversations[cur['conversation_id']][cur['id']] = cur
+             matches[cur['conversation_id']] = cur['good_conversation_id']
+    length = {}
+    cnt = 0
+    for badid, bad in bad_conversations.items():
+        match = matches[badid]
+        good = good_conversations[match]
+        bad_actions = list(bad.values())
+        good_actions = list(good.values())
+        bad_end = max([b['timestamp_in_sec'] for b in bad_actions])
+        good_end = max([a['timestamp_in_sec'] for a in good_actions])
+        bad_actions = [b for b in bad_actions if b['timestamp_in_sec'] < bad_end]
+        bad_users = len(set([b['user_text'] for b in bad_actions if 'user_text' in b]))
+        good_actions = [b for b in good_actions if b['timestamp_in_sec'] < good_end]
+        good_users = len(set([b['user_text'] for b in good_actions if 'user_text' in b]))
+        if not(len(bad_actions) == len(good_actions)) or not(bad_users == good_users):
+           cnt += 1
+           print('Sanity Check Error')
+        length[badid] = len(bad_actions)
+        length[match] = len(good_actions)
+    print(cnt)
     for conversations in [good_conversations, bad_conversations]:
         print(len(list(conversations.keys())))
         for key, val in conversations.items():
             new_val = replyTo_in_conv(val)
-            all_conversations.append((key, new_val))
+            if length[key] <= 10:
+               all_conversations.append((key, new_val))
     print(len(all_conversations))
     all_conversations = sorted(all_conversations, key=lambda k: len(k[1].keys()))
     
@@ -66,7 +88,7 @@ def get_data(constraint):
         with open('/scratch/wiki_dumps/%s/raw_data/data%d.json'%(constraint, ind%70), 'a') as f:
              f.write(json.dumps(line) +'\n')
     
-constraints = ['delta2_none', 'delta2_no_users', 'delta3_none', 'delta3_no_users']
+constraints = ['clean']#['delta2_none', 'delta2_no_users', 'delta3_none', 'delta3_no_users']
 
 #['none', 'attacker_in_conv', 'no_users', 'no_users_attacker_in_conv']    
 for c in constraints:
