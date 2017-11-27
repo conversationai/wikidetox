@@ -20,6 +20,13 @@ Usage: Convert answers with multiple parts into separate rows.
     --infile="./tmp/Questions.json" \
     --out_scorings_file="./tmp/Scorings.json" \
     --out_questions_file="./tmp/Questions2.json"
+
+bq --project=wikidetox --dataset_id=wikidetox:crowd9 \
+  load \
+  --schema=./tmp/Scorings.schema.json \
+  --source_format=NEWLINE_DELIMITED_JSON \
+  crowd9.Scorings ./tmp/Scorings.json
+
 */
 
 import * as yargs from 'yargs';
@@ -41,8 +48,6 @@ interface Params {
   out_scorings_file:string,
 };
 
-// "{\"identityHate\":\"NotAtAll\",\"threat\":\"NotAtAll\",\"readableAndInEnglish\":\"Yes\",\"toxic\":\"Somewhat\"}"
-
 interface QuestionT1 {
     accepted_answers : string;
     question : string;
@@ -57,19 +62,12 @@ type AnswerPartType = 'insult' | 'obscene' | 'comments' | 'identityHate' | 'thre
 const ANSWER_PART_TYPES : AnswerPartType[] = ['insult', 'obscene', 'comments', 'identityHate', 'threat',
                            'readableAndInEnglish', 'toxic'];
 
-// "accepted_answers": "{
-//   \"readableAndInEnglish\": {\"optional\":true,\"enum\":{\"yes\":1,\"no\":-1}},
-//   \"toxicity\":{\"enum\":{\"ok\":-1,\"somewhat\":1,\"very\":0}},
-//   \"obscene\":{\"optional\":true,\"enum\":{\"ok\":-1,\"somewhat\":1,\"very\":1}},
-//   \"identityHate\":{\"optional\":true,\"enum\":{\"ok\":-1,\"somewhat\":1,\"very\":1}},
-//   \"threat\":{\"optional\":true,\"enum\":{\"ok\":-1,\"somewhat\":1,\"very\":1}},
-//   \"insult\":{\"optional\":true,\"enum\":{\"ok\":-1,\"somewhat\":1,\"very\":1}}}"
-
 interface QuestionScoring {
   question_group_id : string;
   question_id : string;
   answer_part_id : string;
   answer : string;
+  type : string;
   answer_score : number;  // float 64
   original_answer_score : number;
 }
@@ -99,7 +97,8 @@ async function main(args : Params) {
         // console.log(answersObj);
         let questionScoring : QuestionScoring = {} as any;
         questionScoring.question_group_id = questionObj.question_group_id;
-        questionScoring.question_id = questionObj.question_id
+        questionScoring.question_id = questionObj.question_id;
+        questionScoring.type = questionObj.type;
         questionScoring.answer_part_id = answer_part;
         let enumMap = answersObj[answer_part].enum;
         if (enumMap) {
@@ -111,6 +110,9 @@ async function main(args : Params) {
             }
             questionScoring.original_answer_score = questionScoring.answer_score;
             questionScoring.answer_score = (questionScoring.answer_score + 1) / 2;
+            if(questionScoring.answer_score !== 0 && questionScoring.answer_score !== 1) {
+              questionScoring.answer_score = 0.5;
+            }
             pushFn(SCORING_STREAM_NAME, `${JSON.stringify(questionScoring)}\n`, 'utf-8');
           }
         }
