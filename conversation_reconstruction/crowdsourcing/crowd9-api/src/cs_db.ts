@@ -42,7 +42,7 @@ export interface ScoredAnswer {
   // Primary index:
   answer_id : string;
   worker_nonce : string;
-  question_group_id : string;
+  question : db_types.Question;
   question_id : string;
   client_job_key : string;
   // correct answer
@@ -142,11 +142,11 @@ export class CrowdsourceDB {
       jobKeyRestriction = `AND a.client_job_key = '${client_job_key}'`;
     }
     const query : spanner.Query = {
-      sql: `SELECT q.question_group_id, q.question_id, a.client_job_key, a.answer_id, a.worker_nonce,
-                   q.accepted_answers, a.answer, a.answer_score
+      sql: `SELECT q.question, q.question_id, a.client_job_key, a.answer_id, a.worker_nonce,
+                   q.accepted_answers,  a.answer, a.answer_id, a.answer_score
             FROM Answers as a
               JOIN Questions as q
-              ON a.question_id = q.question_id
+              ON a.question_group_id = q.question_group_id AND a.question_id = q.question_id
             WHERE (q.accepted_answers IS NOT NULL AND CHAR_LENGTH(q.accepted_answers) > 0)
                   ${jobKeyRestriction}`
     };
@@ -168,7 +168,8 @@ export class CrowdsourceDB {
               JOIN Questions as q
                 ON c.question_group_id = q.question_group_id
               JOIN Answers as a
-                ON a.question_id = q.question_id
+                ON a.question_group_id = q.question_group_id AND
+                   a.question_id = q.question_id
             WHERE c.client_job_key = "${client_job_key}"
               AND q.type != "training"
             GROUP BY q.question_id, q.question, c.answers_per_question
@@ -194,7 +195,8 @@ export class CrowdsourceDB {
               JOIN Questions as q
                 ON c.question_group_id = q.question_group_id
               LEFT JOIN Answers as a
-                ON a.question_id = q.question_id
+                ON a.question_group_id = q.question_group_id AND
+                   a.question_id = q.question_id
             WHERE c.client_job_key = "${client_job_key}"
               AND q.question_id = "${question_id}"
             GROUP BY q.question_id, q.question, c.answers_per_question
@@ -440,11 +442,12 @@ export class CrowdsourceDB {
               q.question_group_id, q.question_id,
               a.answer_id, a.worker_nonce,
               a.answer_score
-            FROM Answers as a
-                 JOIN Questions as q
-                   ON a.question_id = q.question_id
-            WHERE a.client_job_key="${client_job_key}" AND
-                  q.type != 'toanswer'`
+            FROM
+              (SELECT * FROM ClientJobs as c WHERE client_job_key="${client_job_key}") as c
+               JOIN Answers as a ON a.client_job_key = c.client_job_key
+               JOIN Questions as q ON q.question_group_id = c.question_group_id AND
+                                      a.question_id = q.question_id AND
+                                      q.type != 'toanswer'`
     };
     let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
     if(results.length === 0){
@@ -462,17 +465,13 @@ export class CrowdsourceDB {
       SELECT * FROM
         (SELECT COUNT(*) as answer_count
           FROM Answers as a
-              JOIN Questions as q
-                ON a.question_id = q.question_id
           WHERE a.client_job_key="${client_job_key}" AND
                 a.worker_nonce="${worker_nonce}")
         CROSS JOIN
         (SELECT AVG(a.answer_score) as mean_score
           FROM Answers as a
-              JOIN Questions as q
-                ON a.question_id = q.question_id
           WHERE a.client_job_key="${client_job_key}" AND
-                q.type != 'toanswer' AND
+                a.answer_score IS NOT NULL AND
                 a.worker_nonce="${worker_nonce}")
         `
     };
@@ -491,13 +490,15 @@ export class CrowdsourceDB {
     db_types.assertClientJobKey(client_job_key);
     db_types.assertWorkerNonce(worker_nonce);
     const query : spanner.Query = {
-      sql: `SELECT *
-          FROM Answers as a
-              JOIN Questions as q
-                ON a.question_id = q.question_id
-          WHERE a.client_job_key="${client_job_key}" AND
-                q.type = 'training' AND
-                a.worker_nonce="${worker_nonce}"
+      sql: `
+        SELECT a.client_job_key, a.answer_id, a.worker_nonce, a.answer, a.answer_score,
+               q.question, q.question_id, q.accepted_answers FROM
+        (SELECT * FROM ClientJobs WHERE client_job_key="${client_job_key}") as c
+          JOIN Answers as a ON a.client_job_key=c.client_job_key
+                          AND a.question_group_id=c.question_group_id
+                          AND a.worker_nonce="${worker_nonce}"
+          JOIN Questions as q ON q.question_group_id=c.question_group_id AND a.question_id = q.question_id
+                    AND q.type = 'training'
         `
     };
     let results:spanner.QueryResult[] = await this.spannerDatabase.run(query);
