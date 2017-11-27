@@ -58,7 +58,7 @@ typings/
 .env
 
 # Json dumps
-viz/**/*.json
+viz/wikiDataCollector/data/*.json
 
 # Compiled python
 *.pyc
