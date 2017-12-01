@@ -600,9 +600,9 @@ def _get_balance_features(actions):
 
     no_users = len(user_set.keys())
     ret = {'question_to_question': 0, 'question_to_non_question': 0, 'non_question_to_question': 0, \
-            'has_question' : 0}
+            'has_question' : 0} # question-answer-type pairs
     for adoption in ['content_words', 'stopwords']:
-        ret['has_%s_adoption'%(adoption)] = 0
+        ret['has_%s_adoption'%(adoption)] = 0 
     
     polarities = []
     toxicities = []
@@ -687,8 +687,8 @@ def _get_balance_features(actions):
             # question or not
             if '?' in action['unigrams'] and  '?' in parent['unigrams']:
                 ret['question_to_question'] = 1
-#            if '?' in action['unigrams'] and  not('?' in parent['unigrams']):
-#                ret['question_to_non_question'] = 1
+            if '?' in action['unigrams'] and  not('?' in parent['unigrams']):
+                ret['question_to_non_question'] = 1
             if not('?' in action['unigrams']) and  '?' in parent['unigrams']:
                 ret['non_question_to_question'] = 1
             if '?' in action['unigrams']:
