@@ -528,30 +528,34 @@ def _get_action_features(actions, LEXICONS):
         unigrams = [u.lower() for u in action['unigrams']]
         ret['has_agree'] = ret['has_agree'] or action['has_agree']
         ret['has_disagree'] = ret['has_disagree'] or action['has_disagree']
-        # Lexicons expressing gratitude or greetings 
+        # Lexicons expressing agreement or disagreement
+        
         ret['has_thank'] = ret['has_thank'] or ('thank' in unigrams) or ('thanks' in unigrams) or \
                            ('appreciated' in unigrams)
         ret['has_greetings'] = ret['has_greetings'] or ('hi' in unigrams) or ('hello' in unigrams) or \
                                ('hey' in unigrams)
-        # Utterances contain consecutive ? and !
+        
+            
         if not(unigrams == []):
             pre_u = unigrams[0]
             for u in unigrams[1:]:
                 if u in ['!', '?'] and pre_u in ['!', '?']:
                     ret['has_consecutive_?or!'] = 1
                 pre_u = u
-        # Sentences start with do or don't       
+                
+               
         for s in action['sentences']:
             if s.lower().startswith('do ') or s.lower().startswith('don\'t '):
                 ret['do/don\'t start'] = 1
-        # Sentences start with verb
+
         for p in action['pos_tags']:
             if p[0] == 'VB':
                 ret['verb start'] = 1
-        # All capitalized words 
+       
         for u in action['unigrams']:
             if len(u) > 1 and u == u.upper():
                 ret['has_all_cap'] = 1
+        
         # Polarity
         polarity = []
         for p in action['polarity']:
@@ -559,36 +563,22 @@ def _get_action_features(actions, LEXICONS):
                 ret['has_negative'] = 1
             if p['compound'] > 0.5:
                 ret['has_positive'] = 1
+
+        
         # Politeness
         if action['is_request']:
             if action['politeness_score']['polite'] >= 0.5:
                 ret['has_polite'] = 1
-        # Predefined lexicons 
+        
         for key in LEXICONS.keys():
             if action[ key]: ret['LEXICON_' +key] = 1
-    # Change name of the features
+
     new_ret = {}
     for key in ret.keys():
         new_ret['user_last_action_' + key] = ret[key]
     return new_ret
 
 def _get_repeatition_features(actions):
-    """
-        Extracts features that reflect the conversation dynamic of a single participant:
-           - negative_increase
-           - positive_decrease
-           - toxicity_raise
-           - consecutive_negative
-           - negative_decrease
-           - positive_increase 
-           - max_toxicity
-           - max_toxicity_gap
-           - mean_toxicity_gap
-           - last_toxicity_gap
-           - max_polarity_gap
-           - has_policy_intervention
-           - repeat percentage
-    """
     unigrams, bigrams = set([]), set([])
     ret = {'negative_increase': 0, 'positive_decrease': 0, 'toxicity_raise': 0, 'consecutive_negative': 0,
           'negative_decrease': 0, 'positive_increase': 0, 'max_toxicity': 0, 'max_toxicity_gap': 0, \
@@ -652,8 +642,13 @@ def _get_repeatition_features(actions):
                 if p['compound'] > 0.5: cur_p = 1
             if cur_p < last_p: ret['positive_decrease'] = 1
             if cur_p > last_p: ret['positive_increase'] = 1
+          #  self_feat += 1
     if total_gaps:
         ret['mean_toxicity_gap'] /= total_gaps
+    if len(appeared_users.keys()):
+        ret['repeat_percentage'] = len(repeat_users.keys()) / float(len(appeared_users.keys()))
+    else:
+        ret['repeat_percentage'] = 0
     return ret
 
 def _get_balance_features(actions):
