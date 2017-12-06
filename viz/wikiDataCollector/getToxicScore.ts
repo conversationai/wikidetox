@@ -117,7 +117,7 @@ export class GetToxicScore {
 
         const getRevIdAsFunctions = commentsData.map((dataRevId) => {
             return (cbRevId) => {
-                this.getToxicityScore(data.comment, cbRevId, dataRevId);
+                this.getToxicityScore(dataRevId.comment, cbRevId, dataRevId);
             };
         });
 
