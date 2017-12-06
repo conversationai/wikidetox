@@ -1,30 +1,56 @@
 #!/usr/bin/env node
 // jshint esnext:true
-/*global require, define,module*/
 
-const program = require('commander');
-const async = require('async');
+import * as async from "async";
+import * as program from "commander";
+import * as fs from "fs";
 
+import { BigQueryStore } from "./BigQueryStore";
+import { GetToxicScore } from "./getToxicScore";
+import { GetWikiData } from "./getWikiData";
+import { StoreData } from "./StoreData";
+import { TestCommentData } from "./testCommentData";
 
-const GetWikiData = require('./getWikiData');
-const GetToxicScore = require('./getToxicScore');
-const StoreData = require('./storeData');
-const TestCommentData = require('./testCommentData');
-const BigQueryStore = require('./bigQueryStore');
+const configPath = "config/dev.json";
+const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 
-const config = require('../config/default');
-
-
-const wikidata = new GetWikiData(config);
+const wikidata = new GetWikiData();
 const toxicScore = new GetToxicScore(config);
 const testCommentData = new TestCommentData(config);
 const bigquery = new BigQueryStore(config);
 
-//local store
-const storeData = new StoreData('/data');
+// local store
+const storeData = new StoreData("/data");
 
 const streamData = {
-    getRecentChanges: function (start, end, cb) {
+    addCommentForRevidData: (data, cb) => {
+        wikidata.addCommentForRevidData(data, (err, dataRevid) => {
+            if (err) {
+                cb(err);
+            } else {
+                cb(null, dataRevid);
+            }
+        });
+    },
+    addDataToBigQueryStore: (data, cb) => {
+        bigquery.addCommentData(data, (err, info) => {
+            if (err) {
+                console.log(err, info);
+            } else {
+                cb(null, info);
+            }
+        });
+    },
+    addToxicScore: (data, cb) => {
+        toxicScore.addToxicScore(data, (err, dataScore) => {
+            if (err) {
+                console.log(err, dataScore);
+            } else {
+                cb(null, dataScore);
+            }
+        });
+    },
+    getRecentChanges: (start, end, cb) => {
         wikidata.getRecentChanges(start, end, (err, data) => {
             if (err) {
                 cb(err);
@@ -33,134 +59,113 @@ const streamData = {
             }
         });
     },
-    addCommentForRevidData: function (data, cb) {
-        wikidata.addCommentForRevidData(data, (err, data) => {
-            if (err) {
-                cb(err);
-            } else {
-                cb(null, data);
-            }
-        });
-    },
-    addToxicScore: function (data, cb) {
-        toxicScore.addToxicScore(data, (err, data) => {
-            if (err) {
-                console.log(err, data);
-            } else {
-                cb(null, data);
-            }
-        });
-    },
-    addDataToBigQueryStore: function (data, cb) {
-        bigquery.addCommentData(data, (err, info) => {
-            if (err) {
-                console.log(err, info);
-            } else {
-                cb(null, info);
-            }
-        });
-    }
 };
 
-const doStreaming = function (start, end, cb) {
-    let t0 = new Date().getTime();
+const doStreaming = (start, end, cb) => {
+    const t0 = new Date().getTime();
     async.waterfall([
-        function (cb) {
+        (cb) => {
             streamData.getRecentChanges(start, end, cb);
         },
-        function (data, cb) {
+        (data, cb) => {
             streamData.addCommentForRevidData(data, cb);
         },
-        function (data, cb) {
+        (data, cb) => {
             streamData.addToxicScore(data, cb);
         },
-        function (data, cb) {
+        (data, cb) => {
             streamData.addDataToBigQueryStore(data, cb);
-        }
-    ], function (err, result) {
+        },
+    ], (err, result) => {
 
         if (err) {
-            cb(err)
+            cb(err);
         }
         cb(null, {
-            "result": result,
-            "timeTook": (new Date().getTime() - t0) / 1000 + 's'
-        })
+            result,
+            timeTook: (new Date().getTime() - t0) / 1000 + "s",
+        });
         console.log("Call took " + (new Date().getTime() - t0) / 1000 + " seconds.");
     });
-}
+};
 
-const getMonthData = function (start, end, cb) {
+const getMonthData = (start, end, cb) => {
     bigquery.getMonthData(start, end, cb);
+};
+
+export class Tasks {
+    public doStreaming = doStreaming;
+    public flagReverted = bigquery.flagReverted.bind(bigquery);
+    public logStreamTask = bigquery.logStreamTask.bind(bigquery);
+    public getMonthData = bigquery.getMonthData.bind(bigquery);
+    public getCalendarData = bigquery.getCalendarData.bind(bigquery);
 }
 
-
+/* CMD line interface for testing */
 
 program
-    .version('0.0.1')
-    .command('streamData <start_time> <end_time>')
-    .description('Collect, score and add data to BigQuery table.')
+    .version("0.0.1")
+    .command("streamData <start_time> <end_time>")
+    .description("Collect, score and add data to BigQuery table.")
     .action((start, end) => {
-        doStreaming(start, end, function (err, data) {
+        doStreaming(start, end, (err, data) => {
             if (err) {
-                console.log('Error : ', err);
+                console.log("Error : ", err);
                 return;
             }
-            console.log(data)
+            console.log(data);
         });
     });
 
-
 program
-    .version('0.0.1')
-    .command('flagRevert')
-    .description('Mark reverted commits')
+    .version("0.0.1")
+    .command("flagRevert")
+    .description("Mark reverted commits")
     .action((start, end) => {
-        bigquery.flagReverted();
+        bigquery.flagReverted(() => { console.log("Done"); });
     });
 
 program
-    .command('addComments <file_path>')
-    .description('Find revids for the given file and add comments to it.')
+    .command("addComments <file_path>")
+    .description("Find revids for the given file and add comments to it.")
     .action((file_path) => {
-        let t0 = new Date().getTime();
+        const t0 = new Date().getTime();
         storeData.readFile(file_path, (data) => {
 
-
-            if (typeof data === 'string') {
+            if (typeof data === "string") {
                 data = JSON.parse(data);
             }
-            data.forEach((r) => { r.revid = r.rev_id });
+            data.forEach((r) => { r.revid = r.rev_id; });
             console.log(data.length);
 
             function storeInter(data, i) {
-                let fileName = file_path.replace('.json', '');
+                const fileName = file_path.replace(".json", "");
 
                 storeData.createFolder(fileName);
                 storeData.clearFolder(fileName);
 
-                storeData.writeFile(fileName + '/' + fileName + '_' + i + '_with_comments.json', data, function () {
-                    console.log(fileName + '_' + i + '_with_comments.json file saved ');
-                });
+                storeData.writeFile(fileName + "/" + fileName + "_" + i + "_with_comments.json", data, () => {
+                    console.log(fileName + "_" + i + "_with_comments.json file saved ");
+                }, {});
             }
 
-            wikidata.addCommentForRevidData({ data: data, storeInterData: storeInter }, (err, data) => {
+            wikidata.addCommentForRevidData({ data, storeInterData: storeInter }, (err, data) => {
                 if (err) {
                     console.log(err);
                 } else {
-                    storeData.writeFile(file_path.replace('.json', '') + '_with_comments.json', data, function () {
-                        console.log(' file saved ');
-                        let t1 = new Date().getTime();
+                    storeData.writeFile(file_path.replace(".json", "") + "_with_comments.json", data, () => {
+                        console.log(" file saved ");
+                        const t1 = new Date().getTime();
                         console.log("Call to 'addComments' took " + (t1 - t0) / 1000 + " seconds.");
-                    });
+                    }, {});
                 }
             });
-        });
+        }, {});
     });
 
 program
-    .command('getComment <revid>')
-    .description('Get comment data for the given revison id')
+    .command("getComment <revid>")
+    .description("Get comment data for the given revison id")
     .action((revid) => {
 
         wikidata.getCommentForRevid(revid, (err, data) => {
@@ -173,24 +178,24 @@ program
     });
 
 program
-    .command('addToxicScore <file_path>')
-    .description('Add toxic score to the comments in the given file.')
+    .command("addToxicScore <file_path>")
+    .description("Add toxic score to the comments in the given file.")
     .action((file_path) => {
-        let t0 = new Date().getTime();
+        const t0 = new Date().getTime();
         storeData.readFile(file_path, (data) => {
 
             toxicScore.addToxicScore(data, (err, data) => {
                 if (err) {
                     console.log(err);
                 } else {
-                    storeData.writeFile(file_path.replace('_with_comments.json', '') + '_with_score.json', data, function () {
-                        console.log(' file saved ');
-                        let t1 = new Date().getTime();
+                    storeData.writeFile(file_path.replace("_with_comments.json", "") + "_with_score.json", data, () => {
+                        console.log(" file saved ");
+                        const t1 = new Date().getTime();
                         console.log("Call to 'addToxicScore' took " + (t1 - t0) / 1000 + " seconds.");
-                    });
+                    }, {});
                 }
             });
-        });
+        }, {});
     });
 /*
 
@@ -216,8 +221,6 @@ program
             }
         });
     });
-
-
 
 program
     .command('addToxicScore <file_path>')
@@ -268,7 +271,6 @@ program
         });
     });
 
-
 program
     .command('validateComments <file_path>')
     .description('Test the generated comments with Wmflabs detox api.')
@@ -283,20 +285,11 @@ program
     });
 */
 
+// program
+//     .command("*")
+//     .description("Help")
+//     .action(() => {
+//         console.log(program.help());
+//     });
 
-program
-    .command('*')
-    .description('Help')
-    .action(() => {
-        console.log(program.help())
-    });
-
-program.parse(process.argv);
-
-module.exports = {
-    doStreaming: doStreaming,
-    flagReverted: bigquery.flagReverted.bind(bigquery),
-    logStreamTask: bigquery.logStreamTask.bind(bigquery),
-    getMonthData: bigquery.getMonthData.bind(bigquery),
-    getCalendarData: bigquery.getCalendarData.bind(bigquery)
-};
+// program.parse(process.argv);

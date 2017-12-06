@@ -50,13 +50,13 @@ export class Server {
         });
 
         // start schedule tasks
-        this.app.get("/tasks/hourly", function(req, res) {
+        this.app.get("/tasks/hourly", (req, res) => {
             console.log("Received cron call at : ", new Date());
-            if (req.get("X-Appengine-Cron")) {
-                scheduleCronJobs.runJob(this.config);
-            } else {
-                console.log("Received cron call from unknown : ", new Date());
-            }
+            // if (req.get("X-Appengine-Cron")) {
+            scheduleCronJobs.runJob(this.config);
+            // } else {
+            //     console.log("Received cron call from unknown : ", new Date());
+            // }
             res.sendStatus(200);
         });
 
@@ -86,7 +86,7 @@ export class Server {
                 }
             });
         });
-        this.app.post("/feedback", function(req, res) {
+        this.app.post("/feedback", (req, res) => {
             this.postFeedback(req, res);
         });
 
