@@ -51,19 +51,6 @@ def wikipedia_format_clean(content):
     for p, r in sub_patterns:
         cleaned_content = re.sub(p, r, cleaned_content)
     return cleaned_content, feat
-"""
-    conversations = []
-    conv = defaultdict(dict)
-    with open('/scratch/wiki_dumps/conv_per_page/%s.json'%(filename), 'r') as f:
-         for line in f:
-             action = json.loads(line)
-             if action['id'] in ACTION_LST:
-                 conv[action['conversation_id']][action['id']] = action
-    for conv_id, actions in conv.items:
-        cur = {'id': conv_id, 'actions': actions, 'conversational_features': {}}
-        conversations.append(cur)
-    ret = ''
-""" 
 
 """
 FEATURE EXTRACTION:
@@ -174,10 +161,6 @@ def execute(args):
 with open('utils/lexicons') as f:
     LEXICONS = json.load(f)
 constraints = ['delta2_none', 'delta2_no_users', 'delta3_none', 'delta3_no_users'] 
-#['delta2_no_users_attacker_in_conv']
-#['delta2_attacker_in_conv', 'delta2_no_users_attacker_in_conv', 'delta3_attacker_in_conv', 'delta3_no_users_attacker_in_conv']
-
-#['none', 'attacker_in_conv', 'no_users', 'no_users_attacker_in_conv']
 lst = []
 for c in constraints:
     os.system('mkdir /scratch/wiki_dumps/expr_with_matching/%s/features'%(c)) 
