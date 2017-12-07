@@ -83,7 +83,7 @@ def run(argv = None):
 
     filenames = (p | ReadFromText(known_args.input)
                    | beam.ParDo(WriteDecompressedFile())
-                   | bigquery.WriteToBigQuery(known_args.table, known_args.schema, batch_size = None)) 
+                   | bigquery.WriteToBigQuery(known_args.table, known_args.schema, batch_size = 5)) 
                 # Considering change the batch size here
 #                   | WriteToText(known_args.output, file_name_suffix='.json', append_trailing_newlines=False))
 
