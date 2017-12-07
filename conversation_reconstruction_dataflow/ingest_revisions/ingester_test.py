@@ -46,8 +46,11 @@ class TestWikiIngester(unittest.TestCase):
         self.assertEqual(parsed_line['page_title'], 'Third Page (namespace 1)')
       if i == 2 or i == 3:
         self.assertEqual(parsed_line['page_id'], '54197571')
-    self.assertEqual(i, 3)
+      print(parsed_line.keys())
+      print((",").join([p + ':STRING' for p in parsed_line.keys()]))
 
+
+    self.assertEqual(i, 3)
 
 if __name__ == '__main__':
   unittest.main()

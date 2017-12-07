@@ -39,8 +39,7 @@ from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.io import ReadFromText
 from apache_beam.io import WriteToText
-
-
+from apache_beam.io.gcp import bigquery #WriteToBigQuery
 
 def run(argv = None):
   """Main entry point; defines and runs the wordcount pipeline."""
@@ -50,11 +49,24 @@ def run(argv = None):
                       dest='input',
                       default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_short_10.txt',
                       help='Input file to process.')
+  """
+  # Write to Dataflow args
   parser.add_argument('--output',
                       dest='output',
                       default='gs://wikidetox-viz-dataflow/ingested_sharded/talk_pages',
                       # Yiqing's comment: this goes to the sharded folder, but doesn't do the sharding
                       help='Output file to write results to.')
+  """
+  # Destination BigQuery Table
+  schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING'
+  parser.add_argument('--table',
+                      dest='table',
+                      default='wikidetox-viz:wikidetox_conversations.ingested_conversations',
+                      help='Output table to write results to.')
+  parser.add_argument('--schema',
+                      dest='schema',
+                      default=schema,
+                      help='Output table schema.')
   known_args, pipeline_args = parser.parse_known_args(argv)
   pipeline_args.extend([
     '--runner=DataflowRunner',
@@ -62,7 +74,7 @@ def run(argv = None):
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
     '--job_name=yiqing-test-job',
-    '--num_workers=90',
+    '--num_workers=10',
   ])
 
   pipeline_options = PipelineOptions(pipeline_args)
@@ -71,7 +83,9 @@ def run(argv = None):
 
     filenames = (p | ReadFromText(known_args.input)
                    | beam.ParDo(WriteDecompressedFile())
-                   | WriteToText(known_args.output, file_name_suffix='.json', append_trailing_newlines=False))
+                   | bigquery.WriteToBigQuery(known_args.table, known_args.schema, batch_size = None)) 
+                # Considering change the batch size here
+#                   | WriteToText(known_args.output, file_name_suffix='.json', append_trailing_newlines=False))
 
 class WriteDecompressedFile(beam.DoFn):
   def process(self, element):

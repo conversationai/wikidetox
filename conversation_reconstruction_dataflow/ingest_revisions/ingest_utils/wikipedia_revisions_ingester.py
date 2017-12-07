@@ -54,7 +54,7 @@ class ParserContentHandler(xml.sax.ContentHandler):
     # to determine when things go wrong.
     if self.xml_path.element_path_eq(self.revision_reset_path):
       if 'user_ip' in self.data:
-         self.data['user_id'] = -1
+         self.data['user_id'] = None
          self.data['user_text'] = self.data['user_ip']
       # assert page information has to be included
       if not('page_id' in self.page_data or 'page_namespace' in self.page_data or 'page_title' in self.page_data):
