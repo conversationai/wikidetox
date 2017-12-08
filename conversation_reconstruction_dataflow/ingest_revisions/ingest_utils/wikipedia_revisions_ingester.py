@@ -68,6 +68,8 @@ class ParserContentHandler(xml.sax.ContentHandler):
       if not('user_id' in self.data):
          self.data['user_id'] = None
          self.data['user_text'] = None
+      if not('comment' in self.data):
+         self.data['comment'] = None
       if self.data['page_namespace'] in TALK_PAGE_NAMESPACE and not('/Archive_' in self.data['page_title']):
          # filter out archives
         print(json.dumps(self.data))
