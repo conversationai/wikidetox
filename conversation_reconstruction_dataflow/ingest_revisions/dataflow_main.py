@@ -39,6 +39,7 @@ from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.io import ReadFromText
 from apache_beam.io import WriteToText
+from apache_beam.pipeline import AppliedPTransform
 from apache_beam.io.gcp import bigquery #WriteToBigQuery
 
 def run(argv = None):
@@ -58,10 +59,10 @@ def run(argv = None):
                       help='Output file to write results to.')
   """
   # Destination BigQuery Table
-  schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING'
+  schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING'
   parser.add_argument('--table',
                       dest='table',
-                      default='wikidetox-viz:wikidetox_conversations.ingested_conversations',
+                      default='wikidetox-viz:wikidetox_conversations.ingested_conversations_short_10',
                       help='Output table to write results to.')
   parser.add_argument('--schema',
                       dest='schema',
@@ -73,17 +74,17 @@ def run(argv = None):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=yiqing-test-job',
-    '--num_workers=10',
+    '--job_name=yiqing-ingest-job-short-10',
+    '--num_workers=90',
   ])
 
   pipeline_options = PipelineOptions(pipeline_args)
   pipeline_options.view_as(SetupOptions).save_main_session = True
   with beam.Pipeline(options=pipeline_options) as p:
 
-    filenames = (p | ReadFromText(known_args.input)
+    pcoll = (p | ReadFromText(known_args.input)
                    | beam.ParDo(WriteDecompressedFile())
-                   | bigquery.WriteToBigQuery(known_args.table, known_args.schema, batch_size = 5)) 
+                   | beam.io.Write(bigquery.BigQuerySink(known_args.table, schema=known_args.schema)))
                 # Considering change the batch size here
 #                   | WriteToText(known_args.output, file_name_suffix='.json', append_trailing_newlines=False))
 
@@ -102,10 +103,33 @@ class WriteDecompressedFile(beam.DoFn):
     ingestion_cmd = ['python2', '-m', 'ingest_utils.run_ingester', '-i', chunk_name]
     ingest_proc = subprocess.Popen(ingestion_cmd, stdout=subprocess.PIPE, bufsize = 4096)
     # Yiqing's comment: stdout is the result of the ingestion
+    cnt = 0
     for i, line in enumerate(ingest_proc.stdout):
       yield line
+      cnt += 1
+    logging.info('USERLOG: File %s complete! %s lines emitted.' % (chunk_name, cnt))
 
-    logging.info('USERLOG: File %s complete! %s lines emitted.' % (chunk_name, i))
+class WriteDecompressedFile(beam.DoFn):
+  def process(self, element):
+    logging.info('USERLOG: Working on %s' % element)
+    chunk_name = element
+
+    in_file_path = path.join('gs://wikidetox-viz-dataflow/raw-downloads/', chunk_name)
+
+    logging.info('USERLOG: Running gsutil %s ./' % in_file_path)
+    cp_local_cmd = (['gsutil', 'cp', in_file_path, './'])
+    subprocess.call(cp_local_cmd)
+
+    logging.info('USERLOG: Running ingestion process on %s' % chunk_name)
+    ingestion_cmd = ['python2', '-m', 'ingest_utils.run_ingester', '-i', chunk_name]
+    ingest_proc = subprocess.Popen(ingestion_cmd, stdout=subprocess.PIPE, bufsize = 4096)
+    # Yiqing's comment: stdout is the result of the ingestion
+    cnt = 0
+    for i, line in enumerate(ingest_proc.stdout):
+#      logging.info(list(json.loads(line).keys()))
+      yield json.loads(line)
+      cnt += 1
+    logging.info('USERLOG: File %s complete! %s lines emitted.' % (chunk_name, cnt))
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
