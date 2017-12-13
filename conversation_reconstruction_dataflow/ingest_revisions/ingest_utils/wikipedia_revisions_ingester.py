@@ -70,10 +70,10 @@ class ParserContentHandler(xml.sax.ContentHandler):
          self.data['user_text'] = None
       if not('comment' in self.data):
          self.data['comment'] = None
-      entry_list = ['page_id', 'page_title', 'page_namespace', 'text', 'user_id', 'user_text', 'timestamp', 'rev_id']
+#      entry_list = ['page_id', 'page_title', 'page_namespace', 'text', 'user_id', 'user_text', 'timestamp', 'rev_id']
       if self.data['page_namespace'] in TALK_PAGE_NAMESPACE and not('/Archive_' in self.data['page_title']):
          # filter out archives
-        ret = {x: self.data[x] for x in entry_list} 
+#        ret = {x: self.data[x] for x in entry_list} 
         print(json.dumps(self.data))
       self.data = {} 
        
