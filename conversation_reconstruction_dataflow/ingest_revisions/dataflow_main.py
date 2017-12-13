@@ -102,7 +102,7 @@ def gzipcontent(dic):
 def truncate_content(s):
     dic = json.loads(s) 
     dic['truncated'] = False
-    if sys.get_sizeof(s) > THERESHOLD:
+    if sys.getsizeof(s) > THERESHOLD:
        l = len(dic['text'])
        dic['truncated'] = True
        dic1 = copy.deepcopy(dic)
