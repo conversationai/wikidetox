@@ -31,6 +31,7 @@ import logging
 import subprocess
 import json
 import sys
+import zlib
 from os import path
 import xml.sax
 from ingest_utils import wikipedia_revisions_ingester as wiki_ingester
@@ -42,6 +43,8 @@ from apache_beam.io import ReadFromText
 from apache_beam.io import WriteToText
 from apache_beam.pipeline import AppliedPTransform
 from apache_beam.io.gcp import bigquery #WriteToBigQuery
+
+THERESHOLD = 10485760 
 
 def run(argv = None):
   """Main entry point; defines and runs the wordcount pipeline."""
@@ -60,10 +63,10 @@ def run(argv = None):
                       help='Output file to write results to.')
   """
   # Destination BigQuery Table
-  schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING'
+  schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN'
   parser.add_argument('--table',
                       dest='table',
-                      default='wikidetox-viz:wikidetox_conversations.ingested_conversations_short_10',
+                      default='wikidetox-viz:wikidetox_conversations.ingested_conversations_gzip',
                       help='Output table to write results to.')
   parser.add_argument('--schema',
                       dest='schema',
@@ -75,7 +78,7 @@ def run(argv = None):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=yiqing-ingest-job-short-10',
+    '--job_name=yiqing-ingest-job-gzipped-content',
     '--num_workers=90',
   ])
 
@@ -88,6 +91,28 @@ def run(argv = None):
                    | beam.io.Write(bigquery.BigQuerySink(known_args.table, schema=known_args.schema)))
                 # Considering change the batch size here
 #                   | WriteToText(known_args.output, file_name_suffix='.json', append_trailing_newlines=False))
+
+def getsize(dic):
+    del dic['text']
+    dic['text_size'] = sys.getsizeof(dic['text'])
+    return dic
+
+def gzipcontent(dic): 
+    dic['text'] = zlib.compress(dic['text'])
+    return dic
+
+def truncate_content(s):
+    dic = json.loads(s) 
+    dic['truncated'] = False
+    if sys.get_sizeof(s) > THERESHOLD:
+       l = len(dic['text'])
+       dic['truncated'] = True
+       dic1 = copy.deepcopy(dic)
+       dic1['text'] = dic1['text'][:l/2]
+       dic2 = copy.deepcopy(dic)
+       dic2['text'] = dic2['text'][l/2:]
+       return [dic1, dic2]
+    return [dic]
 
 class WriteDecompressedFile(beam.DoFn):
   def process(self, element):
@@ -107,7 +132,9 @@ class WriteDecompressedFile(beam.DoFn):
     cnt = 0
     maxsize = 0
     for i, line in enumerate(ingest_proc.stdout):
-      yield json.loads(line)
+      ret = truncate_content(line)
+      for r in ret:
+          yield r
       maxsize = max(maxsize, sys.getsizeof(line))
       cnt += 1
     logging.info('USERLOG: File %s complete! %s lines emitted, maxsize: %d' % (chunk_name, cnt, maxsize))
