@@ -78,7 +78,7 @@ def run(argv = None):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=yiqing-ingest-job-gzipped-content',
+    '--job_name=yiqing-ingest-job-truncated-content',
     '--num_workers=90',
   ])
 
@@ -89,9 +89,7 @@ def run(argv = None):
     pcoll = (p | ReadFromText(known_args.input)
                    | beam.ParDo(WriteDecompressedFile())
                    | beam.io.Write(bigquery.BigQuerySink(known_args.table, schema=known_args.schema)))
-                # Considering change the batch size here
-#                   | WriteToText(known_args.output, file_name_suffix='.json', append_trailing_newlines=False))
-
+"""
 def getsize(dic):
     del dic['text']
     dic['text_size'] = sys.getsizeof(dic['text'])
@@ -100,7 +98,7 @@ def getsize(dic):
 def gzipcontent(dic): 
     dic['text'] = zlib.compress(dic['text'])
     return dic
-
+"""
 def truncate_content(s):
     dic = json.loads(s) 
     dic['truncated'] = False
