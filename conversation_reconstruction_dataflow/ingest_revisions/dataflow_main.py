@@ -20,7 +20,7 @@ A dataflow pipeline to ingest the Wikipedia dump from 7zipped xml files to json.
 
 Run with:
 
-python dataflow_main.py --setup_file ./setup.py
+python dataflow_main.py --setup_file ./setup.py 
 
 """
 
@@ -54,7 +54,8 @@ def run(argv = None):
   parser.add_argument('--batchno', 
                       dest='batchno',
                       default=None,
-                      type=int)
+                      type=int, 
+                      help='If you want to run the input dumps in batch, pick a batch number to run')
   parser.add_argument('--input',
                       dest='input',
                       default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_short_10.txt',
