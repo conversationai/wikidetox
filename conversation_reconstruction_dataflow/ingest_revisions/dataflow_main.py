@@ -32,6 +32,7 @@ import subprocess
 import json
 import sys
 import zlib
+import copy
 from os import path
 import xml.sax
 from ingest_utils import wikipedia_revisions_ingester as wiki_ingester
@@ -50,23 +51,19 @@ def run(argv = None):
   """Main entry point; defines and runs the wordcount pipeline."""
 
   parser = argparse.ArgumentParser()
+  parser.add_argument('--batchno', 
+                      dest='batchno',
+                      default=None,
+                      type=int)
   parser.add_argument('--input',
                       dest='input',
                       default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_short_10.txt',
                       help='Input file to process.')
-  """
-  # Write to Dataflow args
-  parser.add_argument('--output',
-                      dest='output',
-                      default='gs://wikidetox-viz-dataflow/ingested_sharded/talk_pages',
-                      # Yiqing's comment: this goes to the sharded folder, but doesn't do the sharding
-                      help='Output file to write results to.')
-  """
   # Destination BigQuery Table
   schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN'
   parser.add_argument('--table',
                       dest='table',
-                      default='wikidetox-viz:wikidetox_conversations.ingested_conversations_gzip',
+                      default='wikidetox-viz:wikidetox_conversations.ingested_conversations',
                       help='Output table to write results to.')
   parser.add_argument('--schema',
                       dest='schema',
@@ -78,27 +75,21 @@ def run(argv = None):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=yiqing-ingest-job-truncated-content',
+    '--job_name=yiqing-ingest-job-truncated-content-run-in-batch',
     '--num_workers=90',
   ])
 
   pipeline_options = PipelineOptions(pipeline_args)
   pipeline_options.view_as(SetupOptions).save_main_session = True
+  if known_args.batchno:
+     known_args.input = 'gs://wikidetox-viz-dataflow/input_lists/7z_file_list_batched_%d.txt'%(known_args.batchno)
+     know_args.table = 'wikidetox-viz:wikidetox_conversations.ingested_conversations_batch_%d'%(known_args.batchno)   
+     print('Running batch %d'%(known_args.batchno))    
   with beam.Pipeline(options=pipeline_options) as p:
-
     pcoll = (p | ReadFromText(known_args.input)
                    | beam.ParDo(WriteDecompressedFile())
                    | beam.io.Write(bigquery.BigQuerySink(known_args.table, schema=known_args.schema)))
-"""
-def getsize(dic):
-    del dic['text']
-    dic['text_size'] = sys.getsizeof(dic['text'])
-    return dic
 
-def gzipcontent(dic): 
-    dic['text'] = zlib.compress(dic['text'])
-    return dic
-"""
 def truncate_content(s):
     dic = json.loads(s) 
     dic['truncated'] = False
