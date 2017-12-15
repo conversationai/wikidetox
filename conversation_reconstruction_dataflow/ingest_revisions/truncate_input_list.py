@@ -18,7 +18,7 @@ limitations under the License.
 
   Input: input list with all dumps
   Output: batched input list. Each batched input list contain batchsize(current value: 20) dumps.
-  Statistics: 24 batches of input lists are generated in the format: 7z_file_list_batched_(batch number).txt under the input_lists folder in dataflow storage.
+  Statistics: 25 batches of input lists are generated in the format: 7z_file_list_batched_(batch number).txt under the input_lists folder in dataflow storage.
   Note: This file was running locally to generate the results, the divided input lists were mannually uploaded to cloud storage.
 """
 
