@@ -1,45 +1,43 @@
-# Getting Wikipedia Revisions
+# Wikipedia Talk Page Ingestion
 
-This folder contains tools for downloading revisions from a Wikipedia dump and ingesting them into a json file.
+This folder contains tools for ingesting revisions from a Wikipedia into BigQuery records. 
 
 ## Prerequisites
 
 This code is written for Python 2.7.
 
+```
+pip install -r requirements.txt
+```
+
 ## Usage
 
-### Step 1: Downloading Wikipedia Revisions
+### Ingestion Utils
 
-In order to download the Wikipedia revisions from a dump, use:
+See detailed README under ingest_utils.
 
+### Test Ingest Utils
+
+Run
 ```
-python wikipedia_revisions_download.py --wikidump_url_root <path-to-dump> --output_dir <path-to-output>
+python ingester_test.py
 ```
+will test a wikipedia revision in xml format from ingest_utils package for ingestion utilities.
 
-Both arguments are optional and if a dump is not provided, the default will be 
-https://dumps.wikimedia.org/enwiki/20170601/
 
-The revisions will be stored in chunks as 7z files in the specified output directory.
+### Generate Batched Input Lists 
 
-### Step 2: Ingesting Revisions to .json
-
-The dumps are stored as xml files. We can reformat these to .json with:
-
+In order to divide the full input list with all dumps into batches, run
 ```
-python wikipedia_revisions_ingester.py --input <path-to-input-7z-chunk>
+python truncate_input_lists.py
 ```
+This code is used to run locally, please download the full list first and upload the batched input lists in cloud storage mannually.
 
-Note that the output is written to stdout and so should be redirected to an appropriate output file. 
+### Dataflow Pipeline for Ingesting Revisions into BigQuery Records 
 
-### Step 3: Transfer it into input format of conversation reconstruction
-
-The formatting script will turn the ingested json format into the the format of lists of pages, each item in the list is one revision with the same format that used in the conversation reconstruction.
-
-It also filtered out the archived talk page data.
-
+In order to ingest talk page revisions into BigQeury records, use:
 ```
-python wikipedia_revisions_ingester.py --input <path-to-input-7z-chunk> | python formatting.py
+python dataflow_main.py --setup_file ./setup.py 
 ```
-
-Like the previous step, note that the output is written to stdout and so should be redirected to an appropriate output file. 
-
+This will ingest from a short list of 10 dumps into BigQuery, if you choose to use optional argument batchno(in the range 0 to 25), you can select a particular batch of dumps you want to run, the ingestor will run the batch of 20 dumps. The input data consists of all the batches and the short list of 10 dumps.
+This code is used to run on Google DataFlow pipeline.
