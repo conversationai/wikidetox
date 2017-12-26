@@ -8,7 +8,8 @@
 
 <form (ngSubmit)="submitSearch()" #searchForm="ngForm">
 
-<button mat-button [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Search by
+<button mat-button type="button"
+  [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Search by
 </button>
 <mat-menu #menu="matMenu">
   <mat-radio-group class="searchby-radio-group"

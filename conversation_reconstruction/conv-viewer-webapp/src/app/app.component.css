@@ -22,3 +22,9 @@
   color: #AA0000;
   font-weight: 200%;
 }
+
+.menu {
+  display: inline-flex;
+  align-items: center;
+  padding-right: 5px;
+}
