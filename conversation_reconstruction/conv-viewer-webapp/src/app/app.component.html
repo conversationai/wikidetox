@@ -1,0 +1,33 @@
+<!--The content below is only a placeholder and can be replaced.-->
+<div style="text-align:center">
+  <h3>
+    WikiDetox Conversation Viewer
+  </h3>
+</div>
+<div>
+
+<form (ngSubmit)="submitSearch()" #searchForm="ngForm">
+
+<button mat-button [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Search by
+</button>
+<mat-menu #menu="matMenu">
+  <mat-radio-group class="searchby-radio-group"
+      (change)="updateLocationHash()"
+      [(ngModel)]="searchBy" name="searchBy">
+    <mat-radio-button class="searchby-radio-button" *ngFor="let s of searchBys"
+      [value]="s">{{s}}</mat-radio-button>
+  </mat-radio-group>
+</mat-menu>
+
+<mat-form-field class="search-text">
+  <input matInput placeholder="{{searchBy}}" [(ngModel)]="searchFor" name="searchFor">
+</mat-form-field>
+
+<button mat-raised-button
+  [disabled]="!searchForm.form.valid"
+  type="submit" color="primary">Search</button>
+</form>
+
+</div>
+<div *ngIf="errorMessage" class="errorMessage">{{errorMessage}}</div>
+<div id="debug-pre-output">{{searchResult}}</div>
