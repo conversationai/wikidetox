@@ -24,9 +24,11 @@
 </mat-form-field>
 
 <button mat-raised-button
-  [disabled]="!searchForm.form.valid"
+  [disabled]="!searchForm.form.valid || inFlightRequest"
   type="submit" color="primary">Search</button>
 </form>
+
+<mat-progress-bar *ngIf="inFlightRequest" mode="query"></mat-progress-bar>
 
 </div>
 <div *ngIf="errorMessage" class="errorMessage">{{errorMessage}}</div>
