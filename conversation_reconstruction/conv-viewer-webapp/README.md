@@ -4,7 +4,7 @@ This project was generated with [Angular CLI](https://github.com/angular/angular
 
 ## Development server
 
-Run `yarn run serve` for a dev server that proxies to port 8080 for the calls to `/api/*` (see `proxy.conf.json`). Then navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+Run `yarn run serve` for a dev server that proxies to port 8080 for the calls to `/api/*` (see `proxy.conf.json`). Then navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files. This assumes that you have the WikiDetox `conv-viewer-webapi` webapp running on localhost on port 8080.
 
 ## Code scaffolding
 
