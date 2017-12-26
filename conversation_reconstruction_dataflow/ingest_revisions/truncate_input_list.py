@@ -23,14 +23,14 @@ limitations under the License.
 """
 
 folder = 'input_lists/'
-full_list = '7z_file_list_exclude_10.txt'
+full_list = 'new_7z_file_list.txt'
 total = []
 with open(folder+full_list) as f:
      for line in f:
          total.append(line[:-1])
 cnt = 0
-batchsize = 20
-batch_no = 0
+batchsize = 20 
+batch_no = 3
 file_list = []
 for line in total:
     if cnt == batchsize:  
