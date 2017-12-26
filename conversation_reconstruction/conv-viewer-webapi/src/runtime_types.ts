@@ -26,11 +26,19 @@ export interface RevisionId extends String {
   // A fake field to make this type unique: fake nominal typing using npm namespace.
   __type__: '@conversationai/wikidetox/conv-viewer-webapi:runtime_types.RevisionId';
 }
+export interface PageId extends String {
+  // A fake field to make this type unique: fake nominal typing using npm namespace.
+  __type__: '@conversationai/wikidetox/conv-viewer-webapi:runtime_types.PageId';
+}
 export interface ConversationId extends String {
   // A fake field to make this type unique: fake nominal typing using npm namespace.
   __type__: '@conversationai/wikidetox/conv-viewer-webapi:runtime_types.ConversationId';
 }
 
+export interface PageTitleSearch extends String {
+  // A fake field to make this type unique: fake nominal typing using npm namespace.
+  __type__: '@conversationai/wikidetox/conv-viewer-webapi:runtime_types.PageTitleSearch';
+}
 
 export class RuntimeStringType<T> {
   constructor (public name : string, regexp :string | RegExp) {
@@ -51,3 +59,6 @@ export class RuntimeStringType<T> {
 
 export let RevisionId = new RuntimeStringType<RevisionId>('RevisionId', /^(\d+)$/);
 export let ConversationId = new RuntimeStringType<ConversationId>('ConversationId', /^(\d+\.\d+.\d+)$/);
+export let PageId = new RuntimeStringType<PageId>('PageId', /^(\d+)$/);
+// TODO(ldixon): support escaping for double quotes, or force quote them.
+export let PageTitleSearch = new RuntimeStringType<PageTitleSearch>('PageTitleSearch', /^([^"]+)$/);

@@ -24,7 +24,7 @@ import * as httpcodes from './http-status-codes';
 // for google cloud project.
 export function setup(app : express.Express, conf : config.Config, bqClient : bigquery.BigQueryClient ) {
 
-  app.get('/api/conversation/:conv_id', async (req, res) => {
+  app.get('/api/conversation-id/:conv_id', async (req, res) => {
 
     let conv_id : runtime_types.ConversationId =
       runtime_types.ConversationId.assert(req.params.conv_id);
@@ -34,12 +34,97 @@ export function setup(app : express.Express, conf : config.Config, bqClient : bi
       const sqlQuery = `SELECT *
       FROM \`${conf.bigQueryProjectId}.${conf.bigQueryDataSetId}.${conf.bigQueryTable}\`
       WHERE conversation_id="${conv_id}"
-      ORDER BY timestamp;`;
+      LIMIT 100`;
       // Query options list: https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
       const options = {
         query: sqlQuery,
         useLegacySql: false, // Use standard SQL syntax for queries.
       };
+
+      await bqClient
+        .query(options)
+        .then(results => {
+          const rows = results[0];
+          res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
+        });
+    } catch(e) {
+      console.error(`*** Failed: `, e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
+    }
+  });
+
+  app.get('/api/revision-id/:rev_id', async (req, res) => {
+    let rev_id : runtime_types.RevisionId =
+      runtime_types.RevisionId.assert(req.params.rev_id);
+
+    try {
+      // TODO remove outer try wrapper unless it get used.
+      const sqlQuery = `SELECT *
+      FROM \`${conf.bigQueryProjectId}.${conf.bigQueryDataSetId}.${conf.bigQueryTable}\`
+      WHERE rev_id=${rev_id}
+      LIMIT 100`;
+      // Query options list: https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
+      const options = {
+        query: sqlQuery,
+        useLegacySql: false, // Use standard SQL syntax for queries.
+      };
+
+      await bqClient
+        .query(options)
+        .then(results => {
+          const rows = results[0];
+          res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
+        });
+    } catch(e) {
+      console.error(`*** Failed: `, e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
+    }
+  });
+
+  app.get('/api/page-id/:page_id', async (req, res) => {
+    let page_id : runtime_types.PageId =
+      runtime_types.PageId.assert(req.params.page_id);
+
+    try {
+      // TODO remove outer try wrapper unless it get used.
+      const sqlQuery = `SELECT *
+      FROM \`${conf.bigQueryProjectId}.${conf.bigQueryDataSetId}.${conf.bigQueryTable}\`
+      WHERE page_id=${page_id}
+      LIMIT 100`;
+      // Query options list: https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
+      const options = {
+        query: sqlQuery,
+        useLegacySql: false, // Use standard SQL syntax for queries.
+      };
+
+      await bqClient
+        .query(options)
+        .then(results => {
+          const rows = results[0];
+          res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
+        });
+    } catch(e) {
+      console.error(`*** Failed: `, e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
+    }
+  });
+
+  app.get('/api/page-title/:page_title', async (req, res) => {
+    let page_title : runtime_types.PageTitleSearch =
+      runtime_types.PageTitleSearch.assert(req.params.page_title);
+
+    try {
+      // TODO remove outer try wrapper unless it get used.
+      const sqlQuery = `SELECT *
+      FROM \`${conf.bigQueryProjectId}.${conf.bigQueryDataSetId}.${conf.bigQueryTable}\`
+      WHERE page_title LIKE "${page_title}"
+      LIMIT 100`;
+      // Query options list: https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
+      const options = {
+        query: sqlQuery,
+        useLegacySql: false, // Use standard SQL syntax for queries.
+      };
+      console.log(sqlQuery);
 
       await bqClient
         .query(options)

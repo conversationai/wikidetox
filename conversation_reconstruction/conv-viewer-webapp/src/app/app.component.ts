@@ -1,16 +1,19 @@
 import { Component, OnInit } from '@angular/core';
 import { ViewChild } from '@angular/core/src/metadata/di';
 import { ElementRef } from '@angular/core/src/linker/element_ref';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
+import { Subscription } from 'rxjs/Subscription';
 
 const CONVERSATION_ID_TEXT = 'Conversation ID';
 const REVISION_ID_TEXT = 'Revision ID';
-const PAGE_NAME_TEXT = 'Page Name';
+const PAGE_ID_TEXT = 'Page ID';
+const PAGE_TITLE_TEXT = 'Page Name';
 
 const URL_PART_FOR_SEARCHBY: { [text: string]: string } = {};
-URL_PART_FOR_SEARCHBY[CONVERSATION_ID_TEXT] = 'conversation';
-URL_PART_FOR_SEARCHBY[REVISION_ID_TEXT] = 'revision';
-URL_PART_FOR_SEARCHBY[PAGE_NAME_TEXT] = 'page';
+URL_PART_FOR_SEARCHBY[CONVERSATION_ID_TEXT] = 'conversation-id';
+URL_PART_FOR_SEARCHBY[REVISION_ID_TEXT] = 'revision-id';
+URL_PART_FOR_SEARCHBY[PAGE_TITLE_TEXT] = 'page-title';
+URL_PART_FOR_SEARCHBY[PAGE_ID_TEXT] = 'page-id';
 
 @Component({
   selector: 'app-root',
@@ -18,9 +21,10 @@ URL_PART_FOR_SEARCHBY[PAGE_NAME_TEXT] = 'page';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
-  searchBys = [CONVERSATION_ID_TEXT, REVISION_ID_TEXT, PAGE_NAME_TEXT];
+  searchBys = [CONVERSATION_ID_TEXT, REVISION_ID_TEXT, PAGE_ID_TEXT, PAGE_TITLE_TEXT];
   searchBy: string;
   searchFor: string;
+  inFlightRequest?: Subscription;
 
   searchResult = '';
   errorMessage ?: string = null;
@@ -51,10 +55,14 @@ export class AppComponent implements OnInit {
     console.log(this.searchFor);
     this.updateLocationHash();
 
-    this.http
-      .get('/api/' + URL_PART_FOR_SEARCHBY[this.searchBy] + '/' + this.searchFor)
+    this.inFlightRequest = this.http
+      .get(encodeURI('/api/' + URL_PART_FOR_SEARCHBY[this.searchBy] + '/' + this.searchFor))
       .subscribe((data: string) => {
         this.searchResult = JSON.stringify(data, null, 2);
-    }, (e) => { this.errorMessage = e.message; });
+        delete this.inFlightRequest;
+    }, (e) => {
+      this.errorMessage = e.message;
+      delete this.inFlightRequest;
+    });
   }
 }
