@@ -29,7 +29,7 @@ with open(folder+full_list) as f:
      for line in f:
          total.append(line[:-1])
 cnt = 0
-batchsize = 20 
+batchsize = 50
 batch_no = 3
 file_list = []
 for line in total:
