@@ -23,18 +23,16 @@ declare module '@google-cloud/bigquery' {
       useLegacySql: boolean;
     }
 
+    export type BigQueryTimestamp = { value : string }
     // The value representation chosen here by the spanner nodejs client
     // library is pretty surprising: INT64s are converted into
     // Objects with a value field that is the string representation of the number.
     // Strings on the other hand are just strings.
-    export type ResultField = string | { value: string } | null | Date;
+    export type ResultField = string | number | null | BigQueryTimestamp;
     // Rows and Columns (Fields) in that row.
-    export type ResultRow = { name:string; value: ResultField; }[]
-    export type QueryResult = {
-      id: string;
-      getMetadata() : { status: { errors : Error[] } };
-    }
-    export type QueryResults = ResultRow[];
+    export type ResultRow = { [key:string]: ResultField }
+    export type QueryResult = ResultRow[];
+    export type QueryResults = QueryResult[];
 
     export interface Operation {}
 

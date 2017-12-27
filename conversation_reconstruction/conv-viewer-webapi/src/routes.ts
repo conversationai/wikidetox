@@ -20,6 +20,26 @@ import * as config from './config';
 import * as runtime_types from './runtime_types';
 import * as httpcodes from './http-status-codes';
 
+function convertToSimpleTypes(rows: bigquery.QueryResult) {
+  // console.log(JSON.stringify(rows, null, 2));
+  for(let r of rows) {
+    for (let key in r) {
+      let obj = r[key];
+      if (obj === null || typeof(obj) === 'string' || typeof(obj) === 'number' ) {
+        continue;
+      }
+      // if(obj) {
+      //   console.log(`key: ${key} type: ${typeof(r[key])} constructor: ${obj.constructor.name}`);
+      // } else {
+      //   console.log(`skipping key: ${key} type: ${typeof(r[key])}.`);
+      // }
+      if (obj && obj.constructor.name === "BigQueryTimestamp" && 'value' in obj) {
+        r[key] = obj.value;
+      }
+    }
+  }
+}
+
 // TODO(ldixon): consider using passport auth
 // for google cloud project.
 export function setup(app : express.Express, conf : config.Config, bqClient : bigquery.BigQueryClient ) {
@@ -45,6 +65,7 @@ export function setup(app : express.Express, conf : config.Config, bqClient : bi
         .query(options)
         .then(results => {
           const rows = results[0];
+          convertToSimpleTypes(rows);
           res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
         });
     } catch(e) {
@@ -73,6 +94,7 @@ export function setup(app : express.Express, conf : config.Config, bqClient : bi
         .query(options)
         .then(results => {
           const rows = results[0];
+          convertToSimpleTypes(rows);
           res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
         });
     } catch(e) {
@@ -101,6 +123,7 @@ export function setup(app : express.Express, conf : config.Config, bqClient : bi
         .query(options)
         .then(results => {
           const rows = results[0];
+          convertToSimpleTypes(rows);
           res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
         });
     } catch(e) {
@@ -130,6 +153,7 @@ export function setup(app : express.Express, conf : config.Config, bqClient : bi
         .query(options)
         .then(results => {
           const rows = results[0];
+          convertToSimpleTypes(rows);
           res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
         });
     } catch(e) {
