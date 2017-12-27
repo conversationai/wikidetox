@@ -39,6 +39,7 @@ import {CdkTableModule} from '@angular/cdk/table';
 import {HttpClientModule} from '@angular/common/http';
 
 import { AppComponent } from './app.component';
+import { ConversationComponent } from './conversation/conversation.component';
 
 
 @NgModule({
@@ -83,6 +84,7 @@ import { AppComponent } from './app.component';
   ],
   declarations: [
     AppComponent,
+    ConversationComponent,
   ],
   providers: [],
   bootstrap: [AppComponent]

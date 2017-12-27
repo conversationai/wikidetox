@@ -34,7 +34,6 @@ export interface ConversationId extends String {
   // A fake field to make this type unique: fake nominal typing using npm namespace.
   __type__: '@conversationai/wikidetox/conv-viewer-webapi:runtime_types.ConversationId';
 }
-
 export interface PageTitleSearch extends String {
   // A fake field to make this type unique: fake nominal typing using npm namespace.
   __type__: '@conversationai/wikidetox/conv-viewer-webapi:runtime_types.PageTitleSearch';
