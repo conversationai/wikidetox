@@ -68,17 +68,22 @@ def run(known_args, pipeline_args):
   with beam.Pipeline(options=pipeline_options) as p:
     pcoll = (p | ReadFromText(known_args.input)
                    | beam.ParDo(WriteDecompressedFile())
-                   | beam.io.Write(bigquery.BigQuerySink(known_args.table, schema=known_args.schema)))
+                   | beam.io.Write(bigquery.BigQuerySink(known_args.table, schema=known_args.schema, validate = True)))
 
 def truncate_content(s):
     dic = json.loads(s) 
     dic['truncated'] = False
+    dic['no_records'] = 1
+    dic['record_index'] = 0
     if sys.getsizeof(s) > THERESHOLD:
        l = len(dic['text'])
        dic['truncated'] = True
+       dic['no_records'] = 2
        dic1 = copy.deepcopy(dic)
        dic1['text'] = dic1['text'][:l/2]
+       dic1['record_index'] = 0
        dic2 = copy.deepcopy(dic)
+       dic2['record_index'] = 1
        dic2['text'] = dic2['text'][l/2:]
        return [dic1, dic2]
     return [dic]
@@ -121,7 +126,7 @@ if __name__ == '__main__':
                       default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_short_10.txt',
                       help='Input file to process.')
   # Destination BigQuery Table
-  schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN'
+  schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,no_records:INTEGER,record_index:INTEGER'
   parser.add_argument('--table',
                       dest='table',
                       default='wikidetox-viz:wikidetox_conversations.ingested_conversations',
