@@ -15,15 +15,33 @@ limitations under the License.
 */
 import { should } from "fuse-test-runner";
 import * as conversation from "./conversation";
-import { example_conversation1, example_conversation2,
-         example_conversation3 }
-  from "./testdata/example_conversations";
+import { example_conversation1,
+         example_conversation2,
+         example_conversation3,
+         example_conversation4
+       } from "./testdata/example_conversations";
 
 export class ConversationTest {
+  "compareDateFn"() {
+    let da = new Date("2007-09-23T09:05:52.000Z");
+    let db = new Date("2007-08-23T09:05:52.000Z");
+    should(conversation.compareDateFn(da, da)).equal(0);
+    should(conversation.compareDateFn(da, db)).equal(1);
+    should(conversation.compareDateFn(db, da)).equal(-1);
+  }
+
   "structureConversaton"() {
     let rootComment =
       conversation.structureConversaton(
         JSON.parse(JSON.stringify(example_conversation1)))
+    should(rootComment).beOkay();
+    should(rootComment!.isRoot).equal(true);
+  }
+
+  "structureConversatonWithHeaderAndFirstCommentFromSameRev"() {
+    let rootComment =
+      conversation.structureConversaton(
+        JSON.parse(JSON.stringify(example_conversation4)))
     should(rootComment).beOkay();
     should(rootComment!.isRoot).equal(true);
   }

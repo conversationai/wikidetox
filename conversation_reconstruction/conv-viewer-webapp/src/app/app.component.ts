@@ -3,6 +3,7 @@ import { ViewChild } from '@angular/core/src/metadata/di';
 import { ElementRef } from '@angular/core/src/linker/element_ref';
 import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Subscription } from 'rxjs/Subscription';
+import * as wpconvlib from '@conversationai/wpconvlib';
 
 const CONVERSATION_ID_TEXT = 'Conversation ID';
 const REVISION_ID_TEXT = 'Revision ID';
@@ -25,6 +26,7 @@ export class AppComponent implements OnInit {
   searchBy: string;
   searchFor: string;
   inFlightRequest?: Subscription;
+  rootComment?: wpconvlib.Comment;
 
   searchResult = '';
   errorMessage ?: string = null;
@@ -57,9 +59,24 @@ export class AppComponent implements OnInit {
 
     this.inFlightRequest = this.http
       .get(encodeURI('/api/' + URL_PART_FOR_SEARCHBY[this.searchBy] + '/' + this.searchFor))
-      .subscribe((data: string) => {
-        this.searchResult = JSON.stringify(data, null, 2);
+      .subscribe((actions: wpconvlib.Comment[]) => {
+        console.log('got conversation!');
+        this.searchResult = JSON.stringify(actions, null, 2);
         delete this.inFlightRequest;
+
+        const conversation: wpconvlib.Conversation = {};
+        for (const a of actions) {
+          conversation[a.id] = a;
+        }
+
+        console.log(conversation);
+
+        this.rootComment = wpconvlib.structureConversaton(conversation);
+        if (!this.rootComment) {
+          this.errorMessage = 'No Root comment in conversation';
+          return;
+        }
+
     }, (e) => {
       this.errorMessage = e.message;
       delete this.inFlightRequest;

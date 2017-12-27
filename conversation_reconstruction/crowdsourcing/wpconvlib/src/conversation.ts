@@ -16,9 +16,9 @@ limitations under the License.
 export interface Comment {
   id: string;
   comment_type : 'COMMENT_MODIFICATION' | 'COMMENT_ADDING' | 'SECTION_CREATION';
-  status: 'just added' | 'content changed';
   content: string;
-  parent_id: string;
+  parent_id: string|null;
+  indent ?: number;
   user_text: string;
   timestamp : string;
   page_title : string;
@@ -48,9 +48,20 @@ export function interpretId(id:string)
   };
 }
 
+export function compareDateFn(da: Date, db: Date) : number {
+  if (db < da) {
+    return 1;
+  } else if (da < db) {
+    return -1;
+  } else {
+    return 0;
+  }
+}
 
 export function compareByDateFn(a: Comment, b: Comment) : number {
-  return Date.parse(b.timestamp) - Date.parse(a.timestamp);
+  let db = Date.parse(b.timestamp);
+  let da = Date.parse(a.timestamp);
+  return db - da;
 }
 
 //
@@ -75,7 +86,7 @@ export function compareCommentOrder(comment1:Comment, comment2:Comment){
   let actionDiff = id1.action - id2.action;
   return revisionDiff !== 0 ? revisionDiff
          : (tokenDiff !== 0 ? tokenDiff
-         : (actionDiff !== 0 ? actionDiff : 0));
+            : (actionDiff !== 0 ? actionDiff : 0));
 }
 
 export function compareCommentOrderSmallestFirst(
@@ -85,7 +96,7 @@ export function compareCommentOrderSmallestFirst(
 
 export function indentOfComment(comment: Comment, conversation: Conversation)
    : number {
-  if(comment.parent_id === '') {
+  if(comment.parent_id === '' || comment.parent_id === null) {
     return 0;
   }
   let parent = conversation[comment.parent_id];
@@ -174,6 +185,33 @@ export function makeParent(comment: Comment, parent: Comment) {
   comment.isRoot = false;
 }
 
+function selectRootComment(comment: Comment, rootComment: Comment|null) {
+  // This can happen when two comments from the same revision occur,
+  // and they are the first comment in the conversation.
+  // Both the section creation action and the comment have no parent.
+  // At this point, we get down to comparing offsets to choose the parent.
+  if (rootComment) {
+    let commentCmp = compareCommentOrder(rootComment, comment);
+    if(commentCmp < 0) {
+      makeParent(comment, rootComment);
+    } else if (commentCmp > 0) {
+      makeParent(rootComment, comment);
+      comment.isRoot = true;
+      rootComment = comment;
+    } else {
+      console.warn(`Duplicate root comment IDs (old and new):
+        Choosing root by comment time-stamp.
+        Old: ${JSON.stringify(rootComment, null, 2)}
+        New: ${JSON.stringify(comment, null, 2)}
+      `);
+    }
+  } else {
+    comment.isRoot = true;
+    rootComment = comment;
+  }
+  return rootComment;
+}
+
 // Add and sort children to each comment in a conversation.
 // Also set the isRoot field of every comment, and return the
 // overall root comment of the conversation.
@@ -181,7 +219,7 @@ export function structureConversaton(conversation : Conversation)
     : Comment|null {
   let ids = Object.keys(conversation);
 
-  let rootComment : Comment | null = null;
+  let rootComment : Comment|null = null;
   let latestComments : Comment[] = [];
 
   for(let i of ids) {
@@ -200,29 +238,19 @@ export function structureConversaton(conversation : Conversation)
     }
 
     if(!comment.children) { comment.children = []; }
-    let parent = conversation[comment.parent_id];
-    if(parent) {
-      makeParent(comment, parent)
-    } else {
-      if (rootComment) {
-        let commentCmp = compareCommentOrder(rootComment, comment);
-        if(commentCmp < 0) {
-          makeParent(comment, rootComment);
-        } else {
-          makeParent(rootComment, comment);
-          comment.isRoot = true;
-          rootComment = comment;
-        }
-        console.warn(`Extra root comments (old and new):
-          Choosing root by comment time-stamp.
-          Old: ${JSON.stringify(rootComment, null, 2)}
-          New: ${JSON.stringify(comment, null, 2)}
-        `);
+    if(comment.parent_id !== null && comment.parent_id !== "") {
+      let parent = conversation[comment.parent_id];
+      if (parent) {
+        makeParent(comment, parent);
       } else {
-        comment.isRoot = true;
-        rootComment = comment;
+        console.error(`Parent of this comment is missing from conversation:
+         ${JSON.stringify(rootComment, null, 2)}`);
+        rootComment = selectRootComment(comment, rootComment);
       }
+    } else {
+      rootComment = selectRootComment(comment, rootComment);
     }
+
   }  // For comments.
 
   // Identify the final comment w.r.t. dfs. i.e. the one at the bottom.
@@ -245,6 +273,10 @@ export function structureConversaton(conversation : Conversation)
   // latestComments[].forEach(c => {
   //   c.isLatest = true;
   // });
+  // for(let i of ids) {
+  //   let comment : Comment = conversation[i];
+  //   comment.indent = indentOfComment(comment, conversation);
+  // }
 
   return rootComment;
 }
