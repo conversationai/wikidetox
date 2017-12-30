@@ -29,6 +29,7 @@ from __future__ import absolute_import
 import argparse
 import logging
 import subprocess
+from threading import Timer
 import json
 import sys
 import zlib
@@ -47,6 +48,7 @@ from apache_beam.pipeline import AppliedPTransform
 from apache_beam.io.gcp import bigquery #WriteToBigQuery
 
 THERESHOLD = 10485760 
+my_timeout = 5
 
 def run(known_args, pipeline_args):
   """Main entry point; defines and runs the wordcount pipeline."""
@@ -114,19 +116,26 @@ class WriteDecompressedFile(beam.DoFn):
 
     logging.info('USERLOG: Running ingestion process on %s' % chunk_name)
     ingestion_cmd = ['python2', '-m', 'ingest_utils.run_ingester', '-i', chunk_name]
+    kill = lambda process: process.kill()
     ingest_proc = subprocess.Popen(ingestion_cmd, stdout=subprocess.PIPE, bufsize = 4096)
-    # Yiqing's comment: stdout is the result of the ingestion
-    cnt = 0
-    maxsize = 0
-    for i, line in enumerate(ingest_proc.stdout):
-      ret = truncate_content(line)
-      for r in ret:
-          yield r
-      if len(ret) > 1:
-         logging.info('USERLOG: File %s contains large row, rowsize %d, being truncated to %d pieces' % (chunk_name, sys.getsizeof(line), len(ret)))
-      maxsize = max(maxsize, sys.getsizeof(line))
-      cnt += 1
-    logging.info('USERLOG: File %s complete! %s lines emitted, maxsize: %d' % (chunk_name, cnt, maxsize))
+    timer = Timer(my_timeout, kill, [ingest_proc])
+    try: 
+       timer.start()
+       stdout, stderr = ingest_proc.communicate()
+       logging.info('USERLOG: File %s timeout.' % (chunk_name))
+    finally:
+       timer.cancel()
+       cnt = 0
+       maxsize = 0
+       for i, line in enumerate(ingest_proc.stdout):
+         ret = truncate_content(line)
+         for r in ret:
+             yield r
+         if len(ret) > 1:
+            logging.info('USERLOG: File %s contains large row, rowsize %d, being truncated to %d pieces' % (chunk_name, sys.getsizeof(line), len(ret)))
+         maxsize = max(maxsize, sys.getsizeof(line))
+         cnt += 1
+       logging.info('USERLOG: File %s complete! %s lines emitted, maxsize: %d' % (chunk_name, cnt, maxsize))
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
@@ -138,13 +147,13 @@ if __name__ == '__main__':
                       help='If you want to run the input dumps in batch, pick a batch number to run')
   parser.add_argument('--input',
                       dest='input',
-                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_short_10.txt',
+                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_stuck.txt',
                       help='Input file to process.')
   # Destination BigQuery Table
   schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,no_records:INTEGER,record_index:INTEGER'
   parser.add_argument('--table',
                       dest='table',
-                      default='wikidetox-viz:wikidetox_conversations.ingested_conversations',
+                      default='wikidetox-viz:wikidetox_conversations.ingested_conversations_stuck',
                       help='Output table to write results to.')
   parser.add_argument('--schema',
                       dest='schema',
