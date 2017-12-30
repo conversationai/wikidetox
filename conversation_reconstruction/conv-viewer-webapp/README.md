@@ -1,9 +1,9 @@
 # ConversationAI - Wikidetox Conversation Viewer WebApp
 
 This directory contains a WebApp that uses the
-[ConversationAI Wikidetox Conversation Viewer](../conv-viewer-webapi/README.md)
-to provide a UI for viewing conversations on Wikipedia Talk pages.
-It looks roughly like this:
+[ConversationAI Wikidetox Conversation Viewer API](../conv-viewer-webapi/README.md)
+to talk to BigQuery, and then provides a UI for viewing conversations of
+the Wikipedia Talk page actions in BigQuery. It looks roughly like this:
 
 ![Example Screenshot](./docs/screenshot.png)
 
