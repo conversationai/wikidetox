@@ -1,6 +1,6 @@
-# ConversationAI Wikidetox Conversation Viewer
+# ConversationAI - Wikidetox Conversation Viewer API
 
-This directory contains an experimental viewer for conversations on Wikipedia.
+This directory contains an experimental api to supporting viewing conversations on Wikipedia talk pages.
 
 ## Setup
 
