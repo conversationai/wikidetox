@@ -43,7 +43,9 @@ export class AppComponent implements OnInit {
     } catch (e) {
       this.searchBy = CONVERSATION_ID_TEXT;
       this.searchFor = '';
-      this.errorMessage = e.message;
+      if (document.location.hash !== '' && document.location.hash !== '#') {
+        this.errorMessage = e.message;
+      }
     }
   }
 
