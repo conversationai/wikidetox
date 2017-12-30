@@ -1,4 +1,11 @@
-# ConvViewerWebapp
+# ConversationAI - Wikidetox Conversation Viewer WebApp
+
+This directory contains a WebApp that uses the
+[ConversationAI Wikidetox Conversation Viewer](../conv-viewer-webapi/README.md)
+to provide a UI for viewing conversations on Wikipedia Talk pages.
+It looks roughly like this:
+
+![Example Screenshot](./docs/screenshot.png)
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 1.6.2.
 
