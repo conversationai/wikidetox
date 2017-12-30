@@ -1,4 +1,8 @@
-# ConvViewerWebapp
+# Wikidetox - Conversation Viewer Webapp
+
+This project provides a UI to view conversations in Wikipedia Talk pages.
+
+
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 1.6.2.
 
