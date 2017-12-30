@@ -13,7 +13,8 @@ import traceback
 import atexit
 import os
 from .utils.rev_clean import clean
-from .utils.diff import diff
+#from .utils.diff import diff
+from deltas import sequence_matcher
 from .utils.insert_utils import *
 from .utils.actions import *
 
@@ -36,7 +37,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
     removed_actions = {}
     old_actions = sorted(page['actions'].keys())
     modification_actions = defaultdict(int)
-    rev_text = text_split.tokenize('\n' + rev['text'])
+    rev_text = text_split.tokenize(rev['text'])
     for op in rev['diff']:
         if DEBUGGING_MODE : 
            print(op['name'], op['a1'], op['a2'], op['b1'], op['b2'])
@@ -268,7 +269,7 @@ class Conversation_Constructor:
         rev['text'] = clean(rev['text'])
         #print(rev['text'])
         pid = rev['page_id']
-        rev['diff'] = list(diff(self.latest_content[pid], rev['text'])) 
+        rev['diff'] = list(deltas.sequence_matcher(self.latest_content[pid], rev['text'])) 
         if pid not in self.pages:
             self.previous_comments[pid] = NoAho()
             self.latest_content[pid] = ""
