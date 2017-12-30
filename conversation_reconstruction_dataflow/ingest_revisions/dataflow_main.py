@@ -36,6 +36,7 @@ import copy
 from os import path
 import xml.sax
 from ingest_utils import wikipedia_revisions_ingester as wiki_ingester
+import math
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
@@ -75,17 +76,29 @@ def truncate_content(s):
     dic['truncated'] = False
     dic['no_records'] = 1
     dic['record_index'] = 0
-    if sys.getsizeof(s) > THERESHOLD:
+    filesize = sys.getsizeof(s)
+    if filesize > THERESHOLD:
+       pieces = math.ceil(filesize / THERESHOLD)
        l = len(dic['text'])
+       piece_size = l / pieces
        dic['truncated'] = True
-       dic['no_records'] = 2
-       dic1 = copy.deepcopy(dic)
-       dic1['text'] = dic1['text'][:l/2]
-       dic1['record_index'] = 0
-       dic2 = copy.deepcopy(dic)
-       dic2['record_index'] = 1
-       dic2['text'] = dic2['text'][l/2:]
-       return [dic1, dic2]
+       dics = []
+       last = 0
+       ind = 0
+       while (last < l):
+           cur_dic = copy.deepcopy(dic)
+           if last + piece_size >= l:
+              cur_dic['text'] = cur_dic['text'][last:]
+           else:
+              cur_dic['text'] = cur_dic['text'][last:last+piece_size]
+           last += piece_size
+           cur_dic['record_index'] = ind
+           dics.append(cur_dic)
+           ind += 1
+       no_records = len(dics)
+       for dic in dics:
+           dic['no_records'] = no_records
+       return dics
     return [dic]
 
 class WriteDecompressedFile(beam.DoFn):
@@ -109,6 +122,8 @@ class WriteDecompressedFile(beam.DoFn):
       ret = truncate_content(line)
       for r in ret:
           yield r
+      if len(ret) > 1:
+         logging.info('USERLOG: File %s contains large row, rowsize %d, being truncated to %d pieces' % (chunk_name, sys.getsizeof(line), len(ret)))
       maxsize = max(maxsize, sys.getsizeof(line))
       cnt += 1
     logging.info('USERLOG: File %s complete! %s lines emitted, maxsize: %d' % (chunk_name, cnt, maxsize))
