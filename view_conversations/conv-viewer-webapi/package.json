@@ -11,8 +11,8 @@
     "build:watch": "tsc --outdir build/server/ --watch",
     "serve": "node build/server/run_server.js build/config/server_config.json",
     "serve:watch": "yarn run build:watch & NODE_ENV='development' nodemon --inspect build/server/run_server.js build/config/server_config.json",
-    "serve-dev": "NODE_ENV='development' node build/server/run_server.js build/config/server_config.json",
-    "serve-prod": "NODE_ENV='production' node build/server/run_server.js build/config/server_config.json",
+    "serve:dev": "NODE_ENV='development' node build/server/run_server.js build/config/server_config.json",
+    "serve:prod": "NODE_ENV='production' node build/server/run_server.js build/config/server_config.json",
     "test": "mocha build/server/*_test.js build/server/setup/*_test.js"
   },
   "dependencies": {
