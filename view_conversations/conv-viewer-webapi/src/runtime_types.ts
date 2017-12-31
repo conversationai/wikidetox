@@ -39,7 +39,7 @@ export interface PageTitleSearch extends String {
   __type__: '@conversationai/wikidetox/conv-viewer-webapi:runtime_types.PageTitleSearch';
 }
 
-export class RuntimeStringType<T> {
+export class RuntimeStringType<T extends String> {
   constructor (public name : string, regexp :string | RegExp) {
     this.valid_regexp = new RegExp(regexp);
   }
@@ -53,6 +53,14 @@ export class RuntimeStringType<T> {
   }
   isValid(x:string) : boolean {
     return this.valid_regexp.test(x);
+  }
+
+  toString(x:T) : string {
+    return x as any as string;
+  }
+
+  fromString(x:string) : T {
+    return x as any as T;
   }
 }
 
