@@ -88,7 +88,12 @@ export class AppComponent implements OnInit {
           return;
         }
     }, (e) => {
-      this.errorMessage = e.message;
+      console.log(e);
+      if (e.error && e.error.error) {
+        this.errorMessage = e.message + '\n' + e.error.error;
+      } else {
+        this.errorMessage = e.message;
+      }
       delete this.inFlightRequest;
     });
   }
