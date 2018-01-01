@@ -34,7 +34,7 @@ def _get_last_n_action_features(actions, cnt, LEXICONS):
           - Parameters: 
                - cnt: N
                - LEXICONS: dictionary of predefined lexicons
-          - Features collected:
+          - Returns a dictionary with following features:
               - Linguistic features at utterance level:
                     - has_positive: has utterance contain positive polarity
                     - has_negative: has utterance contain negative polarity
@@ -124,7 +124,7 @@ def _get_action_features(actions, LEXICONS):
       Extracts linguistic features at utterance level for last utterances from each participant.
           - Parameters: 
                - LEXICONS: dictionary of predefined lexicons
-          - Features colloected:
+          - Features collected:
               - Linguistic features at utterance level:
                     - has_positive: has utterance contain positive polarity
                     - has_negative: has utterance contain negative polarity
