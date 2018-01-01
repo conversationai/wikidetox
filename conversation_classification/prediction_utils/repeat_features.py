@@ -25,13 +25,15 @@ import math
 import re
 import copy
 
+TOXICITY_RAISE_THERESHOLD = 0.05
+
 
 def _get_repeatition_features(actions):
     """
         Extracts features that reflect changes in two consecutive utterances A and A' from a single participant:
            - negative_increase: has participant expressing no negative polarity in A, but expressing negative polartiy in A' 
            - positive_decrease: has participant expressing positive polarity in A, but expressing no positive polartiy in A' 
-           - toxicity_raise: has participant with toxicity score in A' larger than then toxicity score in A by a margin(0.05 in the code)
+           - toxicity_raise: has participant with toxicity score in A' larger than then toxicity score in A by a margin that's > TOXICITY_RAISE_THERESHOLD
            - consecutive_negative: has participant expressing negative polarity in both A and A'
            - negative_decrease: has participant expressing negative polarity in A, but expressing no negative polartiy in A' 
            - positive_increase: has participant expressing no positive polarity in A, but expressing positive polartiy in A'  
@@ -69,7 +71,7 @@ def _get_repeatition_features(actions):
                 if cur_repeat > 0:
                     ret['has_%s_repeat'%(repeat)] = 1 
             # Change of toxicity score of utterance
-            if last_self['score'] < action['score'] - 0.05:
+            if last_self['score'] < action['score'] - TOXICITY_RAISE_THERESHOLD:
                 ret['toxicity_raise'] = 1
             ret['max_toxicity_gap'] = max(ret['max_toxicity_gap'], action['score'] - last_self['score'])
             ret['last_toxicity_gap'] = action['score'] - last_self['score']

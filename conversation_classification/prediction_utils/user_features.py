@@ -30,11 +30,12 @@ def attacker_profile(document, user_infos, ASPECTS):
       Given the user information in conversations and a set of aspects to be inspected
       Returns the profile of the last participant in the conversation
       For a certain aspect(for example, age), 
-      returns if the last participant's value is min, max or in the middle compared to other users.
-      If all the users have the same value, return 'No Gap'.
-      If the last participant only appeared at the end, return 'New Comer'.
-      If the last participant doesn't have user name, return 'Anonymous'.
-      If the last participant is a bot, return 'Bot'.
+         returns if the last participant's value is min, max or in the middle compared to other users.
+            If all the users have the same value, return 'No Gap'.
+            If the last participant only appeared at the end, return 'New Comer'.
+            If the last participant doesn't have user name, return 'Anonymous'.
+            If the last participant is a bot, return 'Bot'.
+         Return type: a dictionary with keys as aspects(for example, age), a value denoting the participant's relative position in the group('No Gap', 'New Comer', 'Anonymous', 'Bot' etc.) 
     """
     actions = document['action_feature']
     end_time = 0
