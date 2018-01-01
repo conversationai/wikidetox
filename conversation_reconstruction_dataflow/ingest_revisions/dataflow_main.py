@@ -77,13 +77,14 @@ def run(known_args, pipeline_args):
 def truncate_content(s):
     dic = json.loads(s) 
     dic['truncated'] = False
-    dic['no_records'] = 1
+    dic['records_count'] = 1
     dic['record_index'] = 0
     filesize = sys.getsizeof(s)
-    if filesize > THERESHOLD:
-       pieces = math.ceil(filesize / THERESHOLD)
+    if filesize <= THERESHOLD:
+       return [dic]
+    else:
        l = len(dic['text'])
-       piece_size = l / pieces
+       piece_size = THERESHOLD 
        dic['truncated'] = True
        dics = []
        last = 0
@@ -100,9 +101,8 @@ def truncate_content(s):
            ind += 1
        no_records = len(dics)
        for dic in dics:
-           dic['no_records'] = no_records
+           dic['records_count'] = no_records
        return dics
-    return [dic]
 
 class WriteDecompressedFile(beam.DoFn):
   def process(self, element):
@@ -154,7 +154,7 @@ if __name__ == '__main__':
                       default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_stuck',
                       help='Input file to process.')
   # Destination BigQuery Table
-  schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,no_records:INTEGER,record_index:INTEGER'
+  schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
   parser.add_argument('--table',
                       dest='table',
                       default='wikidetox-viz:wikidetox_conversations.ingested_conversations_stuck',
