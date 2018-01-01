@@ -52,7 +52,7 @@ THERESHOLD = 10485760
 my_timeout = 15 * 60 * 60 # 15 hours timeout
 
 def run(known_args, pipeline_args):
-  """Main entry point; defines and runs the wordcount pipeline."""
+  """Main entry point; defines and runs the ingestion pipeline."""
 
   pipeline_args.extend([
     '--runner=DataflowRunner',
@@ -75,6 +75,16 @@ def run(known_args, pipeline_args):
                    | beam.io.Write(bigquery.BigQuerySink(known_args.table, schema=known_args.schema, validate = True)))
 
 def truncate_content(s):
+    """
+      Truncate a large revision into small pieces. BigQuery supports line size less than 10MB. 
+      Input: Ingested revision in json format, 
+              - Fields with data type string: sha1,user_id,format,user_text,timestamp,text,page_title,model,page_namespace,page_id,rev_id,comment, user_ip
+      Output: A list of ingested revisions as dictionaries, each dictionary has size <= 10MB.
+              - Contains same fields with input 
+              - Constains additional fields: truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER
+              - The list if revisions shared the same basic information expect 'text'
+              - Concatenating the 'text' field of the list returns the original text content.
+    """
     dic = json.loads(s) 
     dic['truncated'] = False
     dic['records_count'] = 1
@@ -84,7 +94,9 @@ def truncate_content(s):
        return [dic]
     else:
        l = len(dic['text'])
-       piece_size = THERESHOLD 
+       contentsize = sys.getsizeof(dic['text'])
+       pieces = math.ceil(contentsize / (THERESHOLD - (filesize - contentsize)))
+       piece_size = int(l / pieces)
        dic['truncated'] = True
        dics = []
        last = 0
@@ -103,6 +115,7 @@ def truncate_content(s):
        for dic in dics:
            dic['records_count'] = no_records
        return dics
+
 
 class WriteDecompressedFile(beam.DoFn):
   def process(self, element):
