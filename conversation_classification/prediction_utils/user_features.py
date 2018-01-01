@@ -95,33 +95,35 @@ def _user_features(actions, user_features, ASPECTS, STATUS):
     """
       Given user features collected for all users in the dataset, generates participant feature vectors and return the values of participant profiles for a particular conversation.
           - Parameters:
-               - document: current conversation 
+               - actions: current conversation 
                - user_features: Wikipedia user features for all users in the dataset
-               - ASPECTS: set of aspects(A subset of participant historical information)
-               - STATUS: self defined grouping of user roles
+               - ASPECTS: set of aspects(A subset of participant historical information, the full set described in details below), in a list of strings
+               - STATUS: self defined grouping of user roles in dictionary format key as an integer of the level of status grouping(larger values indicate higher status), value as a list of user roles in the grouping. 
+          - Returns a feature dictionary of participant features, dictionary of participant information with the key as a participant, value as a dictionary of behaviors of following aspects.(described in details below) 
           - Participant Feature:
                - For each aspect in ASPECTS, compute the max, min and entropy values of among pariticipants'.
                - has_anon: Conversation has anonymous participant
                - has_blocked: Conversation has participant with a block in history
                - has_bot: Converesation has a bot
-          - Participant Behavior in the Conversation(to be passed on to compute attacker plot)
-               - proportion_of_being_replied : # comments being replied / # comments posted by the participant
-               - total_reply_time_gap : For all the comments that were replied, sum of the time between the reply and the comment.
-               - proportion_of_utterance_over_all: # comments by the participant / # comments in the conversation
-               - total_length_of_utterance: Total number of tokens in the participant's comments.
-               - maximum_toxicity: Max of toxicity scores of comments of the participant.
-               - pron_you_usage: Total number of usage of pronoun 'you' by the participant.
-               - gratitude_usage: Total number of usage of words with gratitude by the participant.
-               - max_negativity: Max of polarity score indicating negative polarity of comments by the participant.
-               - reply_latency: Total number of the reply gap between replies by the participant and the post it replies to.
-          - Participant History before the Conversation 
-               - age: Number of the months since participant's registration 
-               - status: Wikipedia user group of the participant 
-               - comments_on_same_talk_page: Number of comments on the same talk page 
-               - comments_on_all_talk_pages: Number of comments on all talk pages 
-               - edits_on_subjectpage: Number of edits on the corresponding wikipedia article pages 
-               - edits_on_wikipedia_articles: Number of edits on the all wikipedia article pages 
-               - history_toxicity: Average toxicity score of the most recent 100 comments posted by the participant at least a week before the conversation. 
+          - Participant Information Aspects:
+               - Participant Behavior in the Conversation(to be passed on to compute attacker plot)
+                    - proportion_of_being_replied : # comments being replied / # comments posted by the participant
+                    - total_reply_time_gap : For all the comments that were replied, sum of the time between the reply and the comment.
+                    - proportion_of_utterance_over_all: # comments by the participant / # comments in the conversation
+                    - total_length_of_utterance: Total number of tokens in the participant's comments.
+                    - maximum_toxicity: Max of toxicity scores of comments of the participant.
+                    - pron_you_usage: Total number of usage of pronoun 'you' by the participant.
+                    - gratitude_usage: Total number of usage of words with gratitude by the participant.
+                    - max_negativity: Max of polarity score indicating negative polarity of comments by the participant.
+                    - reply_latency: Total number of the reply gap between replies by the participant and the post it replies to.
+               - Participant History before the Conversation 
+                    - age: Number of the months since participant's registration 
+                    - status: Wikipedia user group of the participant 
+                    - comments_on_same_talk_page: Number of comments on the same talk page 
+                    - comments_on_all_talk_pages: Number of comments on all talk pages 
+                    - edits_on_subjectpage: Number of edits on the corresponding wikipedia article pages 
+                    - edits_on_wikipedia_articles: Number of edits on the all wikipedia article pages 
+                    - history_toxicity: Average toxicity score of the most recent 100 comments posted by the participant at least a week before the conversation. 
     """
     # Initialization 
     EPS = 0.001
