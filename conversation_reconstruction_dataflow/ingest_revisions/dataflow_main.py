@@ -38,6 +38,7 @@ from os import path
 import xml.sax
 from ingest_utils import wikipedia_revisions_ingester as wiki_ingester
 import math
+import os
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
@@ -48,7 +49,7 @@ from apache_beam.pipeline import AppliedPTransform
 from apache_beam.io.gcp import bigquery #WriteToBigQuery
 
 THERESHOLD = 10485760 
-my_timeout = 5
+my_timeout = 15 * 60 * 60 # 15 hours timeout
 
 def run(known_args, pipeline_args):
   """Main entry point; defines and runs the wordcount pipeline."""
@@ -116,26 +117,29 @@ class WriteDecompressedFile(beam.DoFn):
 
     logging.info('USERLOG: Running ingestion process on %s' % chunk_name)
     ingestion_cmd = ['python2', '-m', 'ingest_utils.run_ingester', '-i', chunk_name]
-    kill = lambda process: process.kill()
+    status = 'success'
+    kill = lambda process, status: process.kill();status='timeout'
     ingest_proc = subprocess.Popen(ingestion_cmd, stdout=subprocess.PIPE, bufsize = 4096)
-    timer = Timer(my_timeout, kill, [ingest_proc])
-    try: 
-       timer.start()
-       stdout, stderr = ingest_proc.communicate()
-       logging.info('USERLOG: File %s timeout.' % (chunk_name))
-    finally:
-       timer.cancel()
-       cnt = 0
-       maxsize = 0
-       for i, line in enumerate(ingest_proc.stdout):
-         ret = truncate_content(line)
-         for r in ret:
-             yield r
-         if len(ret) > 1:
-            logging.info('USERLOG: File %s contains large row, rowsize %d, being truncated to %d pieces' % (chunk_name, sys.getsizeof(line), len(ret)))
-         maxsize = max(maxsize, sys.getsizeof(line))
-         cnt += 1
-       logging.info('USERLOG: File %s complete! %s lines emitted, maxsize: %d' % (chunk_name, cnt, maxsize))
+    timer = Timer(my_timeout, kill, (ingest_proc, status))
+    timer.start()
+    ingest_proc.wait()
+    timer.cancel()
+    cnt = 0
+    maxsize = 0
+    for i, line in enumerate(ingest_proc.stdout):
+      try:
+         content = json.loads(line) 
+      except:
+         break
+      last_revision = content['rev_id']
+      ret = truncate_content(line)
+      for r in ret:
+          yield r
+      if len(ret) > 1:
+         logging.info('USERLOG: File %s contains large row, rowsize %d, being truncated to %d pieces' % (chunk_name, sys.getsizeof(line), len(ret)))
+      maxsize = max(maxsize, sys.getsizeof(line))
+      cnt += 1
+    logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, maxsize: %d, last_revision %s, finishing status: %s' % (chunk_name, cnt, maxsize, last_revision, status))
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
@@ -147,7 +151,7 @@ if __name__ == '__main__':
                       help='If you want to run the input dumps in batch, pick a batch number to run')
   parser.add_argument('--input',
                       dest='input',
-                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_stuck.txt',
+                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_stuck',
                       help='Input file to process.')
   # Destination BigQuery Table
   schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,no_records:INTEGER,record_index:INTEGER'
