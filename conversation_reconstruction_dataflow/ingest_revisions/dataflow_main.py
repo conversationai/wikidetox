@@ -130,13 +130,11 @@ class WriteDecompressedFile(beam.DoFn):
 
     logging.info('USERLOG: Running ingestion process on %s' % chunk_name)
     ingestion_cmd = ['python2', '-m', 'ingest_utils.run_ingester', '-i', chunk_name]
-    status = 'success'
     kill = lambda process, status: process.kill();status='timeout'
+    status = 'success'
     ingest_proc = subprocess.Popen(ingestion_cmd, stdout=subprocess.PIPE, bufsize = 4096)
     timer = Timer(my_timeout, kill, (ingest_proc, status))
     timer.start()
-    ingest_proc.wait()
-    timer.cancel()
     cnt = 0
     maxsize = 0
     for i, line in enumerate(ingest_proc.stdout):
@@ -153,6 +151,9 @@ class WriteDecompressedFile(beam.DoFn):
       maxsize = max(maxsize, sys.getsizeof(line))
       cnt += 1
     logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, maxsize: %d, last_revision %s, finishing status: %s' % (chunk_name, cnt, maxsize, last_revision, status))
+    ingest_proc.wait()
+    timer.cancel()
+
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
