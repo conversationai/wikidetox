@@ -22,7 +22,6 @@ import traceback
 
 
 def run(arg_dict):
-  """Main entry point; defines and runs the wordcount pipeline."""
 
   parser = argparse.ArgumentParser()
   parser.add_argument('--input',
@@ -31,23 +30,16 @@ def run(arg_dict):
                       help='Input file to process.')
   parser.add_argument('--output',
                       dest='output',
-                      # CHANGE 1/5: The Google Cloud Storage path is required
-                      # for outputting the results.
                       default= str(arg_dict.pop('output')),
                       help='Output file to write results to.')
   argv = [str('--%s=%s' % (k,v)) for k,v in arg_dict.items()]
   known_args, pipeline_args = parser.parse_known_args(argv)
   
-  # We use the save_main_session option because one or more DoFn's in this
-  # workflow rely on global context (e.g., a module imported at module level).
   pipeline_options = PipelineOptions(pipeline_args)
-#  pipeline_options.view_as(SetupOptions).save_main_session = True
   with beam.Pipeline(options=pipeline_options) as p:
-
-    # Read the text file[pattern] into a PCollection.
-    filenames = (p | "ReadFromJson" >> ReadFromText(known_args.input)
-          #         | beam.Flatten()
-                   | beam.ParDo(ReconstructConversation(known_args.output)))
+    filenames = (p | "ReadFromBigQeury" >> beam.io.Read(beam.io.BigQuerySource(query='SELECT page_id FROM %s'%known_args.input_table))
+                   | beam.ParDo(ReconstructConversation())
+                   | beam.io.Write(bigquery.BigQuerySink(known_args.output_table, schema=known_args.output_schema, validate = True)))
 
 class ReconstructConversation(beam.DoFn):
   def process(self, element):
