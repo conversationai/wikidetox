@@ -137,6 +137,7 @@ class WriteDecompressedFile(beam.DoFn):
     timer.start()
     cnt = 0
     maxsize = 0
+    last_revision = 'None'
     for i, line in enumerate(ingest_proc.stdout):
       try:
          content = json.loads(line) 
