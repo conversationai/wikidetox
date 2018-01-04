@@ -21,21 +21,9 @@ from google.cloud import storage
 import traceback
 
 
-def run(arg_dict):
-  """Main entry point; defines and runs the wordcount pipeline."""
+def run(known_args, pipeline_args):
+  """Main entry point; defines and runs the reconstruction pipeline."""
 
-  parser = argparse.ArgumentParser()
-  parser.add_argument('--input',
-                      dest='input',
-                      default=str(arg_dict.pop('input')),
-                      help='Input file to process.')
-  parser.add_argument('--output_table',
-                      dest='output_table',
-                      default= ,
-                      help='Output BigQueryTable to write results to.')
-  argv = [str('--%s=%s' % (k,v)) for k,v in arg_dict.items()]
-  known_args, pipeline_args = parser.parse_known_args(argv)
-  
   pipeline_options = PipelineOptions(pipeline_args)
   with beam.Pipeline(options=pipeline_options) as p:
 
@@ -101,9 +89,21 @@ class ReconstructConversation(beam.DoFn):
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
-  with open("args_config.json") as f:
-    arg_dict = json.loads(f.read())
-  run(arg_dict)
+  parser = argparse.ArgumentParser()
+  # Input BigQuery Table
+  input_schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
+  parser.add_argument('--input_table',
+                      dest='input_table',
+                      default='wikidetox-viz:wikidetox_conversations.ingested_conversations_stuck',
+                      help='Input table for reconstruction.')
+  parser.add_argument('--input_schema',
+                      dest='input_schema',
+                      default=input_schema,
+                      help='Input table schema.')
+
+  known_args, pipeline_args = parser.parse_known_args()
+
+  run(known_args, pipeline_args)
 
 
 
