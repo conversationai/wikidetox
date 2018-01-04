@@ -62,13 +62,8 @@ class build(_build):  # pylint: disable=invalid-name
 #
 # The output of custom commands (including failures) will be logged in the
 # worker-startup log.
-CUSTOM_COMMANDS = [
-    ['apt-get', 'update'],
-    ['apt-get', '--assume-yes', 'install', 'p7zip-full'],
-    ['python', 'construct_utils/mwparserfromhell/setup.py', 'install'],
-    ['echo', 'Custom command worked!']]
-
-
+CUSTOM_COMMANDS = []
+#    ['python', 'construct_utils/mwparserfromhell/setup.py', 'install']]
 
 class CustomCommands(setuptools.Command):
   """A setuptools Command class able to run arbitrary commands."""
@@ -102,14 +97,15 @@ class CustomCommands(setuptools.Command):
 # so this dependency will not trigger anything to be installed unless a version
 # restriction is specified.
 REQUIRED_PACKAGES = [
-    'google-cloud >= 0.27.0',
-    'google-cloud-storage >= 1.3.2',
+    'google-cloud == 0.27.0',
+    'google-cloud-storage == 1.3.2',
+    'google-apitools == 0.5.10' 
     ]
 
 setuptools.setup(
     name='construct_utils',
     version='0.0.1',
-    description='A package to ingest Wikipedia comments.',
+    description='A package to reconstruct Wikipedia conversations.',
     install_requires=REQUIRED_PACKAGES,
     packages=setuptools.find_packages(),
     cmdclass={
