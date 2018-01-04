@@ -169,8 +169,8 @@ if __name__ == '__main__':
                       help='Input file to process.')
   # Destination BigQuery Table
   schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
-  parser.add_argument('--table',
-                      dest='table',
+  parser.add_argument('--output_table',
+                      dest='output_table',
                       default='wikidetox-viz:wikidetox_conversations.ingested_conversations_stuck',
                       help='Output table to write results to.')
   parser.add_argument('--schema',
