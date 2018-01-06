@@ -27,7 +27,7 @@ import xml.sax
 import subprocess
 import argparse
 from os import path
-from google.cloud import bigquery
+from google.cloud import bigquery as bigquery_op
 import json
 from .conversation_constructor import Conversation_Constructor
 
@@ -37,14 +37,39 @@ parser.add_argument('--table',  dest='table', required = True, help='BigQeury ta
 args = parser.parse_args()
 UPDATE_RATE = 200
 
+def QueryResult2json(queryresults): 
+    ret = {}
+    ret['sha1'] = queryresults.sha1
+    ret['user_id'] = queryresults.user_id
+    ret['format'] = queryresults.format
+    ret['user_text'] = queryresults.user_text
+    ret['timestamp'] = queryresults.timestamp
+    ret['text'] = queryresults.text
+    ret['page_title'] = queryresults.page_title
+    ret['model'] = queryresults.model
+    ret['page_namespace'] = queryresults.page_namespace
+    ret['page_id'] = queryresults.page_id
+    ret['rev_id'] = queryresults.rev_id
+    ret['comment'] = queryresults.comment
+    ret['user_ip'] = queryresults.user_ip
+    ret['truncated'] = queryresults.truncated
+# TODO: Part of the data doesn't have 'records_count' and record_index
+#    ret['records_count'] = queryresults.records_count
+#    ret['record_index'] = queryresults.record_index
+    return ret
+
 def run(revision_ids, table):
-  wikipedia_revisions_constructor.reconstruct(revision_ids, table)
   page_history = []
   client = bigquery_op.Client(project='wikidetox-viz')
   processor = Conversation_Constructor()
   for ind, rev_id in enumerate(revision_ids):
       query = ("select * from %s where rev_id=\"%s\""%(table, rev_id))
-      revision = client.query(query)
+      ret = client.query(query)
+      print(ret.state)
+      revision = {}
+      for row in ret.result():
+          revision = QueryResult2json(row)
+      print(revision.keys())
       actions = processor.process(revision, DEBUGGING_MODE = False)
       for action in actions:
           print(json.dumps(action) + '\n')

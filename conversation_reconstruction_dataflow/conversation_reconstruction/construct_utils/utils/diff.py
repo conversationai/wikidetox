@@ -1,6 +1,6 @@
 
 from future.builtins.disabled import *
-from .tokenizers import text_split
+from .deltas.tokenizers import text_split
 from collections import defaultdict
 import copy
 import re

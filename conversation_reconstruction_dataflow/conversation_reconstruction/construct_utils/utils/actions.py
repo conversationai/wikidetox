@@ -2,7 +2,6 @@ from __future__ import absolute_import, division, print_function
 
 import re
 from collections import defaultdict
-from .tokenizers import text_split
 from .insert_utils import *
 
 def comment_adding(insert_op, rev, page_actions):

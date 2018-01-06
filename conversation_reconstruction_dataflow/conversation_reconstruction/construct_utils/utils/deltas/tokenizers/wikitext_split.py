@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from .tokenizer import RegexTokenizer
 
 PLAIN_PROTO = [r'bitcoin', r'geo', r'magnet', r'mailto', r'news', r'sips?',
