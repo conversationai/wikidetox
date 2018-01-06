@@ -11,7 +11,7 @@ class Token(str):
     """
     Constructs a typed sub-string extracted from a text.
     """
-    __slots__ = ("type")
+    __dicts__= ("type")
 
     def __new__(cls, content, *args, **kwargs):
         if isinstance(content, cls):
