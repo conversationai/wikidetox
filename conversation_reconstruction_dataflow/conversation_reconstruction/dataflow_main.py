@@ -46,7 +46,7 @@ class ReconstructConversation(beam.DoFn):
 #    from construct_utils import constructing_pipeline
     import logging
     from google.cloud import bigquery as bigquery_op 
-    input_table = "wikidetox-viz:wikidetox_conversations.test_page_3_issue21" 
+    input_table = "wikidetox_conversations.test_page_3_issue21" 
 
     logging.info('USERLOG: Work start')
     page_id = row['page_id']
@@ -54,8 +54,8 @@ class ReconstructConversation(beam.DoFn):
     query = ("SELECT rev_id FROM %s WHERE page_id = \"%s\""%(input_table, page_id))
     query_job = client.query(query)
     rev_ids = []
-    for row in query_job:
-        rev_ids.append(row['rev_id'])
+    for row in query_job.result:
+        rev_ids.append(row.rev_id)
 
     return 
     construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_table, '--revisions', rev_ids]

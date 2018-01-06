@@ -7,7 +7,6 @@ from builtins import (
          pow, round, super,
          filter, map, zip)
 
-from mwtypes import Timestamp
 from bs4 import BeautifulSoup
 import mwparserfromhell
 import re

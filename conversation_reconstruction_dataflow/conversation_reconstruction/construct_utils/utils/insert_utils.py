@@ -1,5 +1,5 @@
 from __future__ import absolute_import, division, print_function
-from .tokenizers import text_split
+from .deltas.tokenizers import text_split
 import re
 import copy
 from collections import defaultdict

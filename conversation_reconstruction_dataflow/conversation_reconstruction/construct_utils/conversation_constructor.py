@@ -4,7 +4,7 @@ from future.builtins.disabled import *
 
 import copy
 import json
-from .utils.tokenizers import text_split
+from .utils.deltas.tokenizers import text_split
 from collections import defaultdict
 from noaho import NoAho
 import re
@@ -14,7 +14,7 @@ import atexit
 import os
 from .utils.rev_clean import clean
 #from .utils.diff import diff
-from deltas import sequence_matcher
+from .utils.deltas.algorithms import sequence_matcher
 from .utils.insert_utils import *
 from .utils.actions import *
 
@@ -232,7 +232,10 @@ class Conversation_Constructor:
         
     def process(self, rev, DEBUGGING_MODE = False):
         rev['text'] = clean(rev['text'])
-        rev['diff'] = list(deltas.sequence_matcher(self.latest_content, rev['text'])) 
+        a = text_split.tokenize(self.latest_content)
+        print(rev['text'])
+        b = text_split.tokenize(rev['text']) 
+        rev['diff'] = list(sequence_matcher.diff(a, b))
         if self.NOT_EXISTED:
             self.previous_comments = NoAho()
             updated_page = self.page_creation(rev)
