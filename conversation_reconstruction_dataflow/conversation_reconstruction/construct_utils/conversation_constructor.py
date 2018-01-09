@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 from builtins import *
 from future.builtins.disabled import *
@@ -40,7 +41,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
     rev_text = text_split.tokenize(rev['text'])
     for op in rev['diff']:
         if DEBUGGING_MODE : 
-           print(op['name'], op['a1'], op['a2'], op['b1'], op['b2'])
+           print(op['name'], op['a1'], op['a2'], op['b1'], op['b2'], rev_text[op['b1']-1].type)
            if 'tokens' in op: print(''.join(op['tokens']))
         if op['name'] == 'equal':
             continue
@@ -219,27 +220,40 @@ class Conversation_Constructor:
         self.page = {}
         self.THERESHOLD = 3 # A comment with at least THERESHOLD number of tokens will be recorded 
         self.latest_content = ""
-        NOT_EXISTED = True
+        self.NOT_EXISTED = True
            
     def page_creation(self, rev):
-        op = rev['diff'][0]
+#        op = rev['diff'][0]
         page = {}
         page['page_id'] = rev['page_id']
         page['actions'] = {}
         page['page_title'] = rev['page_title']
         page['actions'][0] = (-1, -1) 
+        self.NOT_EXISTED = False 
         return page        
+
+    def convert_diff_format(self, x, a, b):
+        ret = {}
+        ret['name'] = x.name
+        ret['a1'] = x.a1
+        ret['a2'] = x.a2
+        ret['b1'] = x.b1
+        ret['b2'] = x.b2
+        if x.name == 'insert':
+           ret['tokens'] = b[x.b1:x.b2]
+        if x.name == 'delete':
+           ret['tokens'] = a[x.a1:x.a2]
+        return ret
         
     def process(self, rev, DEBUGGING_MODE = False):
         rev['text'] = clean(rev['text'])
         a = text_split.tokenize(self.latest_content)
-        print(rev['text'])
+#        print(rev['text'])
         b = text_split.tokenize(rev['text']) 
-        rev['diff'] = list(sequence_matcher.diff(a, b))
+        rev['diff'] = [self.convert_diff_format(x, a, b) for x in list(sequence_matcher.diff(a, b))]
         if self.NOT_EXISTED:
             self.previous_comments = NoAho()
-            updated_page = self.page_creation(rev)
-            self.page = updated_page
+            old_page = self.page_creation(rev)
         else:    
             old_page = self.page
         self.latest_content = rev['text']

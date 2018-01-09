@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 from future.builtins.disabled import *
 from .deltas.tokenizers import text_split
