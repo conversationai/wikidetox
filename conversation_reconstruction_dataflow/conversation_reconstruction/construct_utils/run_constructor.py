@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Copyright 2017 Google Inc.
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -65,11 +66,11 @@ def run(revision_ids, table):
   for ind, rev_id in enumerate(revision_ids):
       query = ("select * from %s where rev_id=\"%s\""%(table, rev_id))
       ret = client.query(query)
-      print(ret.state)
+#      print('REQUEST STATUS:', ret.state)
       revision = {}
       for row in ret.result():
           revision = QueryResult2json(row)
-      print(revision.keys())
+      print('REQUEST RECEIVED:', revision['rev_id'])
       actions = processor.process(revision, DEBUGGING_MODE = False)
       for action in actions:
           print(json.dumps(action) + '\n')
@@ -77,3 +78,4 @@ def run(revision_ids, table):
 
 if __name__ == '__main__':
   run(json.loads(args.revision_ids), args.table)
+
