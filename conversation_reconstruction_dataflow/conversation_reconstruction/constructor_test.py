@@ -45,9 +45,13 @@ class TestWikiConstructor(unittest.TestCase):
     with open(input_file) as f:
          input_data = json.load(f)
     construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_data['table'], '--revisions', json.dumps(input_data['revisions'])]
-    construct_proc = subprocess.Popen(construction_cmd, stdout=subprocess.PIPE, bufsize = 4096)
+    construct_proc = subprocess.Popen(construction_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 4096)
     for i, line in enumerate(construct_proc.stdout):
-        print(json.loads(line))   
+        try:
+           output = json.loads(line)
+           print(output)   
+        except:
+           print(line)
 
 if __name__ == '__main__':
   unittest.main()

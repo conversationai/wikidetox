@@ -54,10 +54,9 @@ class ReconstructConversation(beam.DoFn):
     query = ("SELECT rev_id FROM %s WHERE page_id = \"%s\""%(input_table, page_id))
     query_job = client.query(query)
     rev_ids = []
-    for row in query_job.result:
+    for row in query_job.result():
         rev_ids.append(row.rev_id)
 
-    return 
     construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_table, '--revisions', rev_ids]
     ingest_proc = subprocess.Popen(construction_cmd, stdout=subprocess.PIPE, bufsize = 4096)
 

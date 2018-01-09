@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Tokens represent chuncks of text that have semantic meaning.  A Token class that
 extends :class:`str` is provided.
@@ -7,7 +8,7 @@ extends :class:`str` is provided.
 """
 
 
-class Token(str):
+class Token(unicode):
     """
     Constructs a typed sub-string extracted from a text.
     """
@@ -17,7 +18,7 @@ class Token(str):
         if isinstance(content, cls):
             return content
         else:
-            return super().__new__(cls, content)
+            return super(Token, cls).__new__(cls, content)
 
     def tokens(self):
         """
@@ -35,5 +36,5 @@ class Token(str):
     def __repr__(self):
         return "{0}({1}, type={2})" \
                .format(self.__class__.__name__,
-                       super().__repr__(),
+                       super(Token, self).__repr__(),
                        repr(self.type))

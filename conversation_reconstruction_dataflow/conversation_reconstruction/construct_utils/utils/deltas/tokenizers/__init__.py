@@ -13,6 +13,15 @@ based on a lexicon.
     punctuation, symbols and whitespace as well as wikitext markup elements
     (e.g. ('dcurly_open', "{{") and ('bold', "'''"))
 """
+# -*- coding: utf-8 -*-
+
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import (
+         bytes, dict, int, list, object, range, str,
+         ascii, chr, hex, input, next, oct, open,
+         pow, round, super,
+         filter, map, zip)
 from .tokenizer import Tokenizer, RegexTokenizer
 from .token import Token
 from .text_split import text_split
