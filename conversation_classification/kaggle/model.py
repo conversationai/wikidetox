@@ -179,7 +179,7 @@ def main():
     data = WikiData(FLAGS.train_data)
 
     x_train_text, x_test_text, y_train, y_test \
-      = data.split(TRAIN_PERCENT, 'toxic', DATA_SEED)
+      = data.split(TRAIN_PERCENT, FLAGS.y_class, DATA_SEED)
 
     # Process data
     vocab_processor = tf.contrib.learn.preprocessing.VocabularyProcessor(
