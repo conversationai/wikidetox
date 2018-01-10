@@ -31,6 +31,7 @@ MAX_DOCUMENT_LENGTH = 500 # Max length of each comment in words
 # Model Params
 EMBEDDING_SIZE = 50 # Size of learned  word embedding
 WORDS_FEATURE = 'words' # Name of the input words feature.
+MODEL_LIST = ['bag_of_words']
 
 # Training Params
 TRAIN_SEED = 9812 # Random seed used to initialize training
@@ -194,7 +195,12 @@ def main():
     tf.logging.info('Total words: %d' % n_words)
 
     # Build model
-    model_fn = bag_of_words_model
+    if FLAGS.model == 'bag_of_words':
+      model_fn = bag_of_words_model
+    else:
+      tf.logging.error("Unknown specified model '{}', must be one of {}"
+                       .format(FLAGS.model, MODEL_LIST))
+      raise ValueError
 
     # Subtract 1 because VocabularyProcessor outputs a word-id matrix where word
     # ids start from 1 and 0 means 'no word'. But categorical_column_with_identity
@@ -292,6 +298,9 @@ if __name__ == '__main__':
   parser.add_argument(
       "--y_class", type=str, default="toxic",
     help="Class to train model against, one of {}".format(Y_CLASSES))
+  parser.add_argument(
+      "--model", type=str, default="bag_of_words",
+    help="The model to train, one of {}".format(MODEL_LIST))
 
   FLAGS, unparsed = parser.parse_known_args()
 
