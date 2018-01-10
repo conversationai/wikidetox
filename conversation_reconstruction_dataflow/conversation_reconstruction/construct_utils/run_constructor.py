@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Copyright 2017 Google Inc.
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +19,7 @@ Run Constructor
 Runs wikipedia_revisions_constructor.py with command line arguments for input.
 """
 
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -66,12 +66,12 @@ def run(revision_ids, table):
   for ind, rev_id in enumerate(revision_ids):
       query = ("select * from %s where rev_id=\"%s\""%(table, rev_id))
       ret = client.query(query)
-#      print('REQUEST STATUS:', ret.state)
+      print('REQUEST STATUS:', ret.state)
       revision = {}
+      print('REQUEST FOR REVISION:', rev_id)
       for row in ret.result():
           revision = QueryResult2json(row)
-      print('REQUEST RECEIVED:', revision['rev_id'])
-      actions = processor.process(revision, DEBUGGING_MODE = False)
+      actions = processor.process(revision, DEBUGGING_MODE = True)
       for action in actions:
           print(json.dumps(action) + '\n')
   return processor.page

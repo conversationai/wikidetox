@@ -18,6 +18,8 @@ Specifically, this library understands and produces three types of operations:
 
 .. autoclass:: deltas.Operation
 """
+
+# -*- coding: utf-8 -*-
 from collections import namedtuple
 
 Operation = namedtuple("Operation", ['name', 'a1', 'a2', 'b1', 'b2'])

@@ -21,6 +21,7 @@ A unit test for wikipedia_revisions_ingester.py and run_ingester.py
 Run with  python -m ingest_utils.ingester_test
 """
 
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -44,14 +45,20 @@ class TestWikiConstructor(unittest.TestCase):
     input_file = path.join('construct_utils', 'testdata', 'test_revisions_list.json')
     with open(input_file) as f:
          input_data = json.load(f)
+    point = 0
+    input_data['revisions'] = input_data['revisions'][:point+1]
     construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_data['table'], '--revisions', json.dumps(input_data['revisions'])]
-    construct_proc = subprocess.Popen(construction_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 4096)
-    for i, line in enumerate(construct_proc.stdout):
-        try:
-           output = json.loads(line)
-           print(output)   
-        except:
-           print(line)
+    construct_proc = subprocess.Popen(construction_cmd)#, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 4096)
+#    for i, line in enumerate(construct_proc.stdout):
+#        print(line)
+    #    try:
+    #       output = json.loads(line)
+    #       print(output)   
+    #    except:
+    #       print(line)
+#    for i, line in enumerate(construct_proc.stderr):
+#        print(line)
+
 
 if __name__ == '__main__':
   unittest.main()

@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 from builtins import *
@@ -5,7 +6,6 @@ from future.builtins.disabled import *
 
 import copy
 import json
-from .utils.deltas.tokenizers import text_split
 from collections import defaultdict
 from noaho import NoAho
 import re
@@ -13,8 +13,9 @@ import sys
 import traceback
 import atexit
 import os
+from .utils.deltas.tokenizers import text_split
 from .utils.rev_clean import clean
-#from .utils.diff import diff
+from .utils.diff import diff_tuning
 from .utils.deltas.algorithms import sequence_matcher
 from .utils.insert_utils import *
 from .utils.actions import *
@@ -41,19 +42,22 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
     rev_text = text_split.tokenize(rev['text'])
     for op in rev['diff']:
         if DEBUGGING_MODE : 
-           print(op['name'], op['a1'], op['a2'], op['b1'], op['b2'], rev_text[op['b1']-1].type)
+           print(op['name'], op['a1'], op['a2'], op['b1'], op['b2'])
            if 'tokens' in op: print(''.join(op['tokens']))
+           if op['b2'] < len(rev_text): print(rev_text[op['b2']].type) 
         if op['name'] == 'equal':
             continue
         
         if op['name'] == 'insert':
             if op['a1'] in old_actions and (op['tokens'][0].type == 'break' \
-                or op['a1'] == 0 or rev_text[op['b1'] - 1].type == 'break') and \
+                or op['b1'] == 0 or (op['b1'] > 0 and rev_text[op['b1'] - 1].type == 'break')) and \
                 (op['b2'] == len(rev_text) or op['tokens'][-1].type == 'break' or \
                 rev_text[op['b2']].type == 'break'):
                     content = "".join(op['tokens'])
                     for c in divide_into_section_headings_and_contents(op, content):
                         comment_additions.append(c)
+                        if DEBUGGING_MODE:
+                           print('COMMENT ADDITIONS:', c['a1'], c['a2'], c['b1'], c['b2'], ''.join(c['tokens']), len(c['tokens']))
             else:
                 old_action_start = get_action_start(old_actions, op['a1'])
                 modification_actions[old_action_start] = True
@@ -250,7 +254,9 @@ class Conversation_Constructor:
         a = text_split.tokenize(self.latest_content)
 #        print(rev['text'])
         b = text_split.tokenize(rev['text']) 
-        rev['diff'] = [self.convert_diff_format(x, a, b) for x in list(sequence_matcher.diff(a, b))]
+        rev['diff'] = sorted([self.convert_diff_format(x, a, b) for x in list(sequence_matcher.diff(a, b))], key=lambda k: k['a1'])
+        rev['diff'] = diff_tuning(rev['diff'], a, b)
+        rev['diff'] = sorted(rev['diff'], key=lambda k: k['a1'])
         if self.NOT_EXISTED:
             self.previous_comments = NoAho()
             old_page = self.page_creation(rev)

@@ -3,6 +3,7 @@ Apply operations
 ================
 """
 
+# -*- coding: utf-8 -*-
 from .operations import Delete, Equal, Insert
 
 
