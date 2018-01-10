@@ -30,14 +30,14 @@ def isheading(line):
 
 def divide_into_section_headings_and_contents(op, content):
     assert len(text_split.tokenize(content)) == op['b2'] - op['b1']
-    content += '\n==LASTLINESYMBOL=='
+    content += '==LASTLINESYMBOL==\n'
     lines = content.splitlines()
     comments = []
     last_pos = 0
     last_tok = 0
     for line in lines:
         if isheading(line):
-            cur_pos = content.find(line) - 1
+            cur_pos = content.find(line) 
             cur_tok = last_tok + len(text_split.tokenize(content[:cur_pos]))
             comments.append([content[:cur_pos], last_tok, cur_tok])
             last_tok = cur_tok

@@ -914,7 +914,8 @@ class Tokenizer(object):
                 stack = self._parse(new_ctx)
             else:
                 return self._emit_text("''")
-        self._emit_style_tag("i", "''", stack)
+        else: 
+            self._emit_style_tag("i", "''", stack)
 
     def _parse_bold(self):
         """Parse wiki-style bold."""

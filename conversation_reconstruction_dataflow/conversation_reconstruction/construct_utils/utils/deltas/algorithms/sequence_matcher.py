@@ -13,6 +13,7 @@ simple wrapper around :class:`difflib.SequenceMatcher`.
     :members:
 """
 
+# -*- coding: utf-8 -*-
 from difflib import SequenceMatcher as SM
 
 from ..operations import Delete, Equal, Insert

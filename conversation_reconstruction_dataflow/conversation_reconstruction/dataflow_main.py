@@ -1,3 +1,5 @@
+
+# -*- coding: utf-8 -*-
 """
 A dataflow pipeline to reconstruct conversations on Wikipedia talk pages from ingested json files.
 
