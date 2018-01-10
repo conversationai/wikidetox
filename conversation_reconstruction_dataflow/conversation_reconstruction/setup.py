@@ -63,7 +63,7 @@ class build(_build):  # pylint: disable=invalid-name
 # The output of custom commands (including failures) will be logged in the
 # worker-startup log.
 CUSTOM_COMMANDS = []
-#    ['python', 'construct_utils/mwparserfromhell/setup.py', 'install']]
+#    ['python', 'mwparserfromhell/setup.py', 'install']]
 
 class CustomCommands(setuptools.Command):
   """A setuptools Command class able to run arbitrary commands."""
@@ -81,8 +81,9 @@ class CustomCommands(setuptools.Command):
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     # Can use communicate(input='y\n'.encode()) if the command run requires
     # some confirmation.
-    stdout_data, _ = p.communicate()
+    stdout_data, stderr_data = p.communicate()
     print 'Command output: %s' % stdout_data
+    print 'Command error: %s' % stderr_data 
     if p.returncode != 0:
       raise RuntimeError(
           'Command %s failed: exit code: %s' % (command_list, p.returncode))
@@ -97,9 +98,10 @@ class CustomCommands(setuptools.Command):
 # so this dependency will not trigger anything to be installed unless a version
 # restriction is specified.
 REQUIRED_PACKAGES = [
-    'google-cloud == 0.27.0',
-    'google-cloud-storage == 1.3.2',
-    'google-apitools == 0.5.10' 
+    'google-cloud == 0.28.0',
+    'google-cloud-bigquery== 0.28.0'
+#    'google-cloud-storage == 1.3.2',
+#    'google-apitools == 0.5.10' 
     ]
 
 setuptools.setup(
@@ -107,11 +109,24 @@ setuptools.setup(
     version='0.0.1',
     description='A package to reconstruct Wikipedia conversations.',
     install_requires=REQUIRED_PACKAGES,
-    packages=setuptools.find_packages(),
-    cmdclass={
+    packages=setuptools.find_packages()#,
+#    cmdclass={
         # Command class instantiated and run during pip install scenarios.
-        'build': build,
-        'CustomCommands': CustomCommands,
-        }
+#        'build': build,
+#        'CustomCommands': CUSTOM_COMMANDS,
+#        }
+    )
+
+setuptools.setup(
+    name='mwparserfromhell',
+    version='0.0.1',
+    description='A package to parse Wikipedia talk pages.',
+    install_requires=[],
+    packages=setuptools.find_packages()#,
+#    cmdclass={
+        # Command class instantiated and run during pip install scenarios.
+#        'build': build,
+#        'CustomCommands': [['python', 'setup.py', 'install']],
+#        }
     )
 
