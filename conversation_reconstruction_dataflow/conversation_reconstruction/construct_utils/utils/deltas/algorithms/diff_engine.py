@@ -6,6 +6,8 @@ state, various efficiencies can be implemented.
 .. autoclass:: deltas.DiffEngine
     :members:
 """
+
+# -*- coding: utf-8 -*-
 import yamlconf
 
 
