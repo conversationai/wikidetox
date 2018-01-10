@@ -4,7 +4,7 @@ challenge, https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challeng
 
 To Run:
 
-python3 model.py --train_data=train.csv --predict_data=test.csv
+python3 model.py --train_data=train.csv --predict_data=test.csv --y_class=toxic
 
 Output:
   * writes predictions on heldout test data to TEST_OUT_PATH
@@ -221,7 +221,7 @@ def main():
 
     classifier.train(input_fn=train_input_fn, steps=TRAIN_STEPS)
 
-    # Predict on test data (i.e. held-out data)
+    # Predict on held-out test data
     test_input_fn = tf.estimator.inputs.numpy_input_fn(
       x={WORDS_FEATURE: x_test},
       y=y_test,
@@ -238,6 +238,7 @@ def main():
     test_out['comment_text'] = x_train_text
     test_out['y_true'] = y_test
 
+    # Write out predictions and probabilities for test data
     tf.logging.info("Writing test predictions to {}".format(TEST_OUT_PATH))
     test_out.to_csv(TEST_OUT_PATH)
 
@@ -275,6 +276,7 @@ def main():
     )
     unlabeled_out['comment_text'] = data_unlabeled['comment_text']
 
+    # Write out predictions and probabilities for unlabled "predict" data
     tf.logging.info("Writing predictions to {}".format(PREDICT_OUT_PATH))
     unlabeled_out.to_csv(PREDICT_OUT_PATH)
 
