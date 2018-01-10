@@ -1,19 +1,15 @@
-#
-# A basic Bag of Words classifier for the Toxic Comment Classification Kaggle
-# challenge, https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge
-#
-# To Run:
-#
-#   python3 model.py --train_data=train.csv --predict_data=test.csv
-#
-# Output:
-#  * writes predictions on heldout test data to TEST_OUT_PATH
-#  * writes predictions on unlabled predict data to PREDICT_OUT_PATH
-#
-# TODO:
-#  * Build a better way to view predictions
-#  * Hook up Tensorboard
-#  * Allow user to specify a model_dir
+"""
+A basic Bag of Words classifier for the Toxic Comment Classification Kaggle
+challenge, https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge
+
+To Run:
+
+python3 model.py --train_data=train.csv --predict_data=test.csv
+
+Output:
+  * writes predictions on heldout test data to TEST_OUT_PATH
+  * writes predictions on unlabled predict data to PREDICT_OUT_PATH
+"""
 
 import argparse
 import sys
@@ -28,22 +24,22 @@ FLAGS = None
 # Data Params
 MAX_LABEL = 2
 Y_CLASSES = ['toxic', 'severe_toxic','obscene','threat','insult','identity_hate']
-DATA_SEED = 48173         # Random seed used for splitting the data into train/test
-TRAIN_PERCENT = .8        # Percent of data to allocate to training
+DATA_SEED = 48173 # Random seed used for splitting the data into train/test
+TRAIN_PERCENT = .8 # Percent of data to allocate to training
 MAX_DOCUMENT_LENGTH = 500 # Max length of each comment in words
 
 # Model Params
-EMBEDDING_SIZE = 50     # Size of learned  word embedding
+EMBEDDING_SIZE = 50 # Size of learned  word embedding
 WORDS_FEATURE = 'words' # Name of the input words feature.
 
 # Training Params
-TRAIN_SEED = 9812  # Random seed used to initialize training
+TRAIN_SEED = 9812 # Random seed used to initialize training
 TRAIN_STEPS = 1000 # Number of steps to take while training
 LEARNING_RATE = 0.01
 BATCH_SIZE = 120
 
 # Output Params
-TEST_OUT_PATH = 'test_out.csv'       # Where to write results on heldout "test" data
+TEST_OUT_PATH = 'test_out.csv' # Where to write results on heldout "test" data
 PREDICT_OUT_PATH = 'predict_out.csv' # Where to write results on unlabled "predict" data
 
 class WikiData:
@@ -250,7 +246,7 @@ def main():
     tf_scores = classifier.evaluate(input_fn=test_input_fn)
 
     tf.logging.info('')
-    tf.logging.info('----------Evaluation Held-Out Data---------')
+    tf.logging.info('----------Evaluation on Held-Out Data---------')
     tf.logging.info('Accuracy (sklearn)\t: {0:f}'.format(sklearn_score))
     tf.logging.info('Accuracy (tensorflow)\t: {0:f}'.format(tf_scores['accuracy']))
     tf.logging.info('')
