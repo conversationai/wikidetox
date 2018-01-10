@@ -197,16 +197,16 @@ def main():
     # Build model
     if FLAGS.model == 'bag_of_words':
       model_fn = bag_of_words_model
+
+      # Subtract 1 because VocabularyProcessor outputs a word-id matrix where word
+      # ids start from 1 and 0 means 'no word'. But categorical_column_with_identity
+      # assumes 0-based count and uses -1 for missing word.
+      x_train -= 1
+      x_test -= 1
     else:
       tf.logging.error("Unknown specified model '{}', must be one of {}"
                        .format(FLAGS.model, MODEL_LIST))
       raise ValueError
-
-    # Subtract 1 because VocabularyProcessor outputs a word-id matrix where word
-    # ids start from 1 and 0 means 'no word'. But categorical_column_with_identity
-    # assumes 0-based count and uses -1 for missing word.
-    x_train -= 1
-    x_test -= 1
 
     classifier = tf.estimator.Estimator(
       model_fn=model_fn,
