@@ -66,12 +66,12 @@ def run(revision_ids, table):
   for ind, rev_id in enumerate(revision_ids):
       query = ("select * from %s where rev_id=\"%s\""%(table, rev_id))
       ret = client.query(query)
-      print('REQUEST STATUS:', ret.state)
+#      print('REQUEST STATUS:', ret.state)
       revision = {}
-      print('REQUEST FOR REVISION:', rev_id)
+#      print('REQUEST FOR REVISION:', rev_id)
       for row in ret.result():
           revision = QueryResult2json(row)
-      actions = processor.process(revision, DEBUGGING_MODE = True)
+      actions = processor.process(revision, DEBUGGING_MODE = False)
       for action in actions:
           print(json.dumps(action) + '\n')
   return processor.page
