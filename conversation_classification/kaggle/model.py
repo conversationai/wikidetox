@@ -4,7 +4,7 @@ challenge, https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challeng
 
 To Run:
 
-python3 model.py --train_data=train.csv --predict_data=test.csv --y_class=toxic
+python model.py --train_data=train.csv --predict_data=test.csv --y_class=toxic
 
 Output:
   * writes predictions on heldout test data to TEST_OUT_PATH
@@ -40,8 +40,8 @@ LEARNING_RATE = 0.01
 BATCH_SIZE = 120
 
 # Output Params
-TEST_OUT_PATH = 'test_out.csv' # Where to write results on heldout "test" data
-PREDICT_OUT_PATH = 'predict_out.csv' # Where to write results on unlabled "predict" data
+TEST_OUT_PATH = 'test_out.csv' # Where to write results on heldout data
+PREDICT_OUT_PATH = 'predict_out.csv' # Where to write results on unlabled data
 
 class WikiData:
 
