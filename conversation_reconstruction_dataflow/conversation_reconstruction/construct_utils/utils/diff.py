@@ -274,8 +274,8 @@ def matched(x, y):
     return [new_op]
 
 def diff(cont_a, cont_b):
-    a_lines = [text_split.tokenize('\n' + x) for x in cont_a.splitlines()]
-    b_lines = [text_split.tokenize('\n' + x) for x in cont_b.splitlines()]
+    a_lines = [text_split.tokenize('\n' + x) for x in cont_a.splitlines() if not(x == '')]
+    b_lines = [text_split.tokenize('\n' + x) for x in cont_b.splitlines() if not(x == '')]
     
     lengths = [[0 for j in range(len(b_lines)+1)] for i in range(len(a_lines)+1)]
     matching_res = defaultdict(dict)

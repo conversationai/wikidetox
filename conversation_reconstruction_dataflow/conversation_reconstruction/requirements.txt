@@ -3,3 +3,4 @@ requests
 mwtypes
 beautifulsoup4
 yamlconf
+deltas
