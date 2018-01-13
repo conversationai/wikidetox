@@ -100,8 +100,6 @@ class CustomCommands(setuptools.Command):
 REQUIRED_PACKAGES = [
     'google-cloud == 0.28.0',
     'google-cloud-bigquery== 0.28.0'
-#    'google-cloud-storage == 1.3.2',
-#    'google-apitools == 0.5.10' 
     ]
 
 setuptools.setup(
@@ -109,13 +107,8 @@ setuptools.setup(
     version='0.0.1',
     description='A package to reconstruct Wikipedia conversations.',
     install_requires=REQUIRED_PACKAGES,
-    packages=setuptools.find_packages()#,
-#    cmdclass={
-        # Command class instantiated and run during pip install scenarios.
-#        'build': build,
-#        'CustomCommands': CUSTOM_COMMANDS,
-#        }
-    )
+    packages=setuptools.find_packages()    
+)
 
 setuptools.setup(
     name='mwparserfromhell',
