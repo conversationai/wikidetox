@@ -29,7 +29,7 @@ def run(known_args, pipeline_args):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=yiqing-reconstruction-test',
+    '--job_name=reconstruction-test',
     '--num_workers=30',
   ])
 
@@ -48,19 +48,22 @@ class ReconstructConversation(beam.DoFn):
 #    from construct_utils import constructing_pipeline
     import logging
     from google.cloud import bigquery as bigquery_op 
+    import subprocess
     input_table = "wikidetox_conversations.test_page_3_issue21" 
 
     logging.info('USERLOG: Work start')
     page_id = row['page_id']
     client = bigquery_op.Client(project='wikidetox-viz')
     query = ("SELECT rev_id FROM %s WHERE page_id = \"%s\" ORDER BY timestamp"%(input_table, page_id))
-    query_job = client.query(query)
+    query_job = client.run_sync_query(query)
+    query_job.run()
     rev_ids = []
-    for row in query_job.result():
-        rev_ids.append(row.rev_id)
 
-    construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_table, '--revisions', rev_ids]
-    ingest_proc = subprocess.Popen(construction_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 4096)
+    for row in query_job.rows:
+        rev_ids.append(row[0])
+
+    construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_table, '--revisions', json.dumps(rev_ids)]
+    construct_proc = subprocess.Popen(construction_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 4096)
     last_revision = 'None'
     for i, line in enumerate(construct_proc.stdout): 
         output = json.loads(line)
