@@ -40,23 +40,10 @@ UPDATE_RATE = 200
 
 def QueryResult2json(queryresults): 
     ret = {}
-    ret['sha1'] = queryresults.sha1
-    ret['user_id'] = queryresults.user_id
-    ret['format'] = queryresults.format
-    ret['user_text'] = queryresults.user_text
-    ret['timestamp'] = queryresults.timestamp
-    ret['text'] = queryresults.text
-    ret['page_title'] = queryresults.page_title
-    ret['model'] = queryresults.model
-    ret['page_namespace'] = queryresults.page_namespace
-    ret['page_id'] = queryresults.page_id
-    ret['rev_id'] = queryresults.rev_id
-    ret['comment'] = queryresults.comment
-    ret['user_ip'] = queryresults.user_ip
-    ret['truncated'] = queryresults.truncated
-# TODO: Part of the data doesn't have 'records_count' and record_index
-#    ret['records_count'] = queryresults.records_count
-#    ret['record_index'] = queryresults.record_index
+    fields = ['sha1', 'user_id', 'format', 'user_text', 'timestamp', 'text', 'page_title',\
+    'model', 'page_namespace', 'page_id', 'rev_id', 'comment', 'user_ip', 'truncated', 'record_count', 'record_index']
+    for ind, val in enumerate(queryresults): 
+        ret[fields[ind]] = val
     return ret
 
 def run(revision_ids, table):
@@ -65,11 +52,10 @@ def run(revision_ids, table):
   processor = Conversation_Constructor()
   for ind, rev_id in enumerate(revision_ids):
       query = ("select * from %s where rev_id=\"%s\""%(table, rev_id))
-      ret = client.query(query)
-#      print('REQUEST STATUS:', ret.state)
+      ret = client.run_sync_query(query)
+      ret.run()
       revision = {}
-#      print('REQUEST FOR REVISION:', rev_id)
-      for row in ret.result():
+      for row in ret.rows:
           revision = QueryResult2json(row)
       actions = processor.process(revision, DEBUGGING_MODE = False)
       for action in actions:
