@@ -17,7 +17,8 @@ import sys
 import pandas as pd
 import tensorflow as tf
 import numpy as np
-from sklearn import metrics
+import sklearn as sk
+from sklearn.model_selection import train_test_split
 
 FLAGS = None
 
@@ -80,18 +81,13 @@ class WikiData:
             .format(train_percent))
       raise ValueError
 
-    tf.logging.info("Training on class '{}'".format(y_class))
+    tf.logging.info("Training on class: '{}'".format(y_class))
+    tf.logging.info("Training data split: {}".format(train_percent))
 
-    # Sample the data to create training data
-    data_train = self.data.sample(frac=train_percent, random_state=seed)
-
-    # Use remaining examples as test data
-    data_test = self.data[self.data["id"].isin(data_train["id"]) == False]
-
-    x_train = data_train['comment_text']
-    x_test = data_test['comment_text']
-    y_train = data_train[y_class]
-    y_test = data_test[y_class]
+    X = self.data['comment_text']
+    y = self.data[y_class]
+    x_train, x_test, y_train, y_test = train_test_split(
+      X, y, test_size=1-train_percent, random_state=seed)
 
     return x_train, x_test, y_train, y_test
 
@@ -249,7 +245,7 @@ def main():
     test_out.to_csv(TEST_OUT_PATH)
 
     # Score with sklearn and TensorFlow (hopefully they're the same!)
-    sklearn_score = metrics.accuracy_score(y_test, test_out['y_predicted'])
+    sklearn_score = sk.metrics.accuracy_score(y_test, test_out['y_predicted'])
     tf_scores = classifier.evaluate(input_fn=test_input_fn)
 
     tf.logging.info('')
