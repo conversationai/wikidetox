@@ -1,0 +1,16 @@
+bleach==1.5.0
+enum34==1.1.6
+html5lib==0.9999999
+Markdown==2.6.10
+numpy==1.13.3
+pandas==0.22.0
+protobuf==3.5.1
+python-dateutil==2.6.1
+pytz==2017.3
+scikit-learn==0.19.1
+scipy==1.0.0
+six==1.11.0
+sklearn==0.0
+tensorflow==1.4.1
+tensorflow-tensorboard==0.4.0rc3
+Werkzeug==0.14.1
