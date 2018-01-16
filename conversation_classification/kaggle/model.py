@@ -213,7 +213,7 @@ def main():
       config=tf.contrib.learn.RunConfig(
         tf_random_seed=TRAIN_SEED,
       ),
-      model_dir=None)
+      model_dir=FLAGS.model_dir)
 
     # Train model
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -252,39 +252,20 @@ def main():
     sklearn_score = metrics.accuracy_score(y_test, test_out['y_predicted'])
     tf_scores = classifier.evaluate(input_fn=test_input_fn)
 
+    baseline = len(y_train[y_train==0]) / len(y_train)
+    if baseline < .5:
+      baseline = 1 - baseline
+
     tf.logging.info('')
     tf.logging.info('----------Evaluation on Held-Out Data---------')
-    tf.logging.info('Accuracy (sklearn)\t: {0:f}'.format(sklearn_score))
-    tf.logging.info('Accuracy (tensorflow)\t: {0:f}'.format(tf_scores['accuracy']))
+    tf.logging.info('Baseline (class distribution): {0:f}'.format(baseline))
+    tf.logging.info('Accuracy (sklearn): {0:f}'.format(sklearn_score))
+    tf.logging.info('Accuracy (tensorflow): {0:f}'.format(tf_scores['accuracy']))
     tf.logging.info('')
 
-    # If specified, predict on unlabeled data
-    if FLAGS.predict_data is None:
-      return
+    # Export the model
+    # tf.estimator.export_savedmodel(FLAGS.model_dir, serving_input_receiver_fn)
 
-    data_unlabeled = WikiData(FLAGS.predict_data).data
-
-    tf.logging.info('Generating predictions for {0} unlabeled examples in {1}'
-                    .format(len(data_unlabeled), FLAGS.predict_data))
-
-    x_unlabeled = np.array(list(
-      vocab_processor.fit_transform(data_unlabeled['comment_text'])))
-
-    unlabled_input_fn = tf.estimator.inputs.numpy_input_fn(
-      x={WORDS_FEATURE: x_unlabeled},
-      num_epochs=1,
-      shuffle=False)
-
-    predicted_unlabeled = classifier.predict(input_fn=unlabled_input_fn)
-    unlabeled_out = pd.DataFrame(
-      [(p['classes'], p['probs'][1]) for p in predicted_unlabeled],
-      columns=['y_pred', 'prob']
-    )
-    unlabeled_out['comment_text'] = data_unlabeled['comment_text']
-
-    # Write out predictions and probabilities for unlabled "predict" data
-    tf.logging.info("Writing predictions to {}".format(PREDICT_OUT_PATH))
-    unlabeled_out.to_csv(PREDICT_OUT_PATH)
 
 if __name__ == '__main__':
 
@@ -292,9 +273,9 @@ if __name__ == '__main__':
   parser.add_argument(
       '--verbose', help='Run in verbose mode.', action='store_true')
   parser.add_argument(
-      "--train_data", type=str, default="", help="Path to the training data.")
+    "--train_data", type=str, default="", help="Path to the training data.")
   parser.add_argument(
-      "--predict_data", type=str, default="", help="Path to the prediction data.")
+      "--model_dir", type=str, default="model", help="Place to save model files")
   parser.add_argument(
       "--y_class", type=str, default="toxic",
     help="Class to train model against, one of {}".format(Y_CLASSES))
