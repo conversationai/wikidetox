@@ -59,7 +59,7 @@ def run(revision_ids, table):
           revision = QueryResult2json(row)
       actions = processor.process(revision, DEBUGGING_MODE = False)
       for action in actions:
-          print(json.dumps(action) + '\n')
+          print(json.dumps(action))
   return processor.page
 
 if __name__ == '__main__':
