@@ -15,6 +15,7 @@ import json
 from os import path
 import urllib2
 import traceback
+from google.cloud import bigquery as bigquery_op 
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
@@ -30,11 +31,13 @@ def run(known_args, pipeline_args):
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
     '--job_name=reconstruction-test',
-    '--num_workers=30',
+    '--num_workers=30'#,
+#    '--network=wikidetox-viz-dataflow-internal-network-1',
   ])
 
 
   pipeline_options = PipelineOptions(pipeline_args)
+  pipeline_options.view_as(SetupOptions).save_main_session = True
   with beam.Pipeline(options=pipeline_options) as p:
 
     # Read the text file[pattern] into a PCollection.
@@ -45,14 +48,13 @@ def run(known_args, pipeline_args):
 class ReconstructConversation(beam.DoFn):
   def process(self, row):
 
-#    from construct_utils import constructing_pipeline
-    import logging
-    from google.cloud import bigquery as bigquery_op 
-    import subprocess
+    return
     input_table = "wikidetox_conversations.test_page_3_issue21" 
 
     logging.info('USERLOG: Work start')
     page_id = row['page_id']
+    logging.info('Read page_id: %s'%page_id)
+
     client = bigquery_op.Client(project='wikidetox-viz')
     query = ("SELECT rev_id FROM %s WHERE page_id = \"%s\" ORDER BY timestamp"%(input_table, page_id))
     query_job = client.run_sync_query(query)
@@ -61,16 +63,18 @@ class ReconstructConversation(beam.DoFn):
 
     for row in query_job.rows:
         rev_ids.append(row[0])
+    logging.info('Retrieved revision list: %d revisions'%len(rev_ids))
 
     construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_table, '--revisions', json.dumps(rev_ids)]
     construct_proc = subprocess.Popen(construction_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 4096)
     last_revision = 'None'
+    for i, line in enumerate(construct_proc.stderr):
+        logging.info('USERLOG: Error while running the recostruction process on page %s, error information: %s' % (page_id, line))
+
     for i, line in enumerate(construct_proc.stdout): 
         output = json.loads(line)
         last_revsion = output['rev_id']
         yield output
-    for i, line in enumerate(construct_proc.stderr):
-        logging.info('USERLOG: Error while running the recostruction process on page %s, error information: %s' % (page_id, line))
     logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' %(page_id, last_revision))
 
 if __name__ == '__main__':

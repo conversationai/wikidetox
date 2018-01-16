@@ -103,7 +103,7 @@ REQUIRED_PACKAGES = [
     'NoAho==0.9.6.1',
     'yamlconf==0.2.3', 
     'mwtypes==0.3.0',
-    'beautifulsoup4==4.6.0']
+    'beautifulsoup4==4.5.1']
 
 setuptools.setup(
     name='construct_utils',
