@@ -62,7 +62,7 @@ class build(_build):  # pylint: disable=invalid-name
 #
 # The output of custom commands (including failures) will be logged in the
 # worker-startup log.
-CUSTOM_COMMANDS = []
+CUSTOM_COMMANDS = [['apt-get', 'update']]
 
 class CustomCommands(setuptools.Command):
   """A setuptools Command class able to run arbitrary commands."""
@@ -110,18 +110,14 @@ setuptools.setup(
     version='0.0.1',
     description='A package to reconstruct Wikipedia conversations.',
     install_requires=REQUIRED_PACKAGES,
-    packages=setuptools.find_packages()    
+    packages=setuptools.find_packages(),
+    cmdclass={
+        'build': build,
+        'CustomCommands': CustomCommands,
+        }
+
 )
 
 import os
 
-os.system('cd mwparserfromhell\npython setup.py install')
-"""
-setuptools.setup(
-    name='mwparserfromhell',
-    version='0.0.1',
-    description='A package to parse Wikipedia talk pages.',
-    install_requires=REQUIRED_PACKAGES,
-    packages=setuptools.find_packages()    
-)
-"""
+os.system('cd third_pary/mwparserfromhell\npython setup.py install')
