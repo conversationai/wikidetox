@@ -14,11 +14,12 @@ limitations under the License.
 
 -------------------------------------------------------------------------------
 
-Ingester Test
+Constructor Test
 
-A unit test for wikipedia_revisions_ingester.py and run_ingester.py
+A unit test for conversation_construtor.py and run_constructor.py
 
-Run with  python -m ingest_utils.ingester_test
+Run with  python -m constructor_text.py 
+Find testdata in construct_utils/testdata
 """
 
 # -*- coding: utf-8 -*-
@@ -48,16 +49,16 @@ class TestWikiConstructor(unittest.TestCase):
     point = 0
     input_data['revisions'] = input_data['revisions'][:point+1]
     construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_data['table'], '--revisions', json.dumps(input_data['revisions'])]
-    construct_proc = subprocess.Popen(construction_cmd)#, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 4096)
-#    for i, line in enumerate(construct_proc.stdout):
-#        print(line)
-    #    try:
-    #       output = json.loads(line)
-    #       print(output)   
-    #    except:
-    #       print(line)
-#    for i, line in enumerate(construct_proc.stderr):
-#        print(line)
+    construct_proc = subprocess.Popen(construction_cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 4096)
+    for i, line in enumerate(construct_proc.stdout):
+        print(line)
+        try:
+           output = json.loads(line)
+           print(output)   
+        except:
+           print(line)
+    for i, line in enumerate(construct_proc.stderr):
+        print(line)
 
 
 if __name__ == '__main__':

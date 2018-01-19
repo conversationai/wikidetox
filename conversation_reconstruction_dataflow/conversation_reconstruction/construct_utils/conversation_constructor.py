@@ -1,5 +1,21 @@
-
 # -*- coding: utf-8 -*-
+"""
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-------------------------------------------------------------------------------
+"""
+
 from __future__ import absolute_import, division, print_function
 from builtins import *
 from future.builtins.disabled import *
@@ -13,27 +29,16 @@ import sys
 import traceback
 import atexit
 import os
-from .utils.deltas.tokenizers import text_split
-from .utils.rev_clean import clean
+from .utils.third_party.deltas.tokenizers import text_split
+from .utils.third_party.rev_clean import clean
 from .utils.diff import diff_tuning
-from .utils.deltas.algorithms import sequence_matcher
+from .utils.third_party.deltas.algorithms import sequence_matcher
 from .utils.insert_utils import *
 from .utils.actions import *
 
 def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
     
-    # divide ins and dels
-    # ideas:
-        # types of dels: 1) remove a previous action 2) remove in the middle of an action
-        # types of ins : 1) add after an action 2) add inside a comment
-        # for each action, find the ins and dels corresponding to the action
-            # types: 1) full removal
-            #        2) add after the action 
-            #            a) started a newline -- addition
-            #            b) if not -- modification
-            #        3) modification
-            #        4) ins and dels matching(later)
-    
+   
     comment_removals = []
     comment_additions = []
     removed_actions = {}
@@ -174,8 +179,6 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
             updated_actions.append(comment_restoration(val[0], tokens[k1_tok:k2_tok], k1_tok + insert_op['b1'], rev, insert_op['a1']))
             updated_page['actions'][k1_tok + insert_op['b1']] = val
             end_tokens.append((k1_tok + insert_op['b1'], k2_tok + insert_op['b1']))
-   #         if DEBUGGING_MODE:
-   #            print(k1_tok + insert_op['b1'], k2_tok + insert_op['b1'])
             last_tok = k2_tok
             last_pos = k2
         last_op = {}
@@ -227,7 +230,6 @@ class Conversation_Constructor:
         self.NOT_EXISTED = True
            
     def page_creation(self, rev):
-#        op = rev['diff'][0]
         page = {}
         page['page_id'] = rev['page_id']
         page['actions'] = {}
@@ -252,7 +254,6 @@ class Conversation_Constructor:
     def process(self, rev, DEBUGGING_MODE = False):
         rev['text'] = clean(rev['text'])
         a = text_split.tokenize(self.latest_content)
-#        print(rev['text'])
         b = text_split.tokenize(rev['text']) 
         rev['diff'] = sorted([self.convert_diff_format(x, a, b) for x in list(sequence_matcher.diff(a, b))], key=lambda k: k['a1'])
         rev['diff'] = diff_tuning(rev['diff'], a, b)
@@ -272,9 +273,7 @@ class Conversation_Constructor:
             traceback.print_exception(e_type, e_val, tb)
             tb_info = traceback.extract_tb(tb)
             filename, line, func, text = tb_info[-1]
-#            self.save('%s_error_stopped.json'%(rev['rev_id']))
             print('An error occurred on line {} in statement {} when parsing revision {}'.format(line, text, rev['rev_id']))
-#            print('Intermediate file has been saved in %s_error_stopped.json, load from it to continue when ready.'%(rev['rev_id']))
             return
 
         self.page = updated_page

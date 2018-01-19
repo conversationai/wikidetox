@@ -1,6 +1,21 @@
 
 # -*- coding: utf-8 -*-
 """
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-------------------------------------------------------------------------------
+
 A dataflow pipeline to reconstruct conversations on Wikipedia talk pages from ingested json files.
 
 Run with:
@@ -22,6 +37,8 @@ from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.io.gcp import bigquery as bigquery_io 
 
+LOG_INTERVAL = 1000
+
 def run(known_args, pipeline_args):
   """Main entry point; defines and runs the reconstruction pipeline."""
 
@@ -31,8 +48,7 @@ def run(known_args, pipeline_args):
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
     '--job_name=reconstruction-test',
-    '--num_workers=30'#,
-#    '--network=wikidetox-viz-dataflow-internal-network-1',
+    '--num_workers=30'  
   ])
 
 
@@ -70,10 +86,14 @@ class ReconstructConversation(beam.DoFn):
     last_revision = 'None'
     for i, line in enumerate(construct_proc.stderr):
         logging.info('USERLOG: Error while running the recostruction process on page %s, error information: %s' % (page_id, line))
+    
+    cnt = 0 
 
     for i, line in enumerate(construct_proc.stdout): 
         output = json.loads(line)
-        last_revsion = output['rev_id']
+        last_revision = output['rev_id']
+        if cnt % LOG_INTERVAL == 0:
+           logging.info('DEBUGGING INFO: %d revision(reivision id %s) on page %s output: %s'%(cnt, last_revision, page_id, line))
         yield output
     logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' %(page_id, last_revision))
 
