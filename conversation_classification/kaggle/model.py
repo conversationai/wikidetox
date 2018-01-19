@@ -12,12 +12,15 @@ Output:
 """
 
 import argparse
+import os
 import sys
+import shutil
 
 import pandas as pd
 import tensorflow as tf
 import numpy as np
 from sklearn import metrics
+from sklearn.model_selection import train_test_split
 
 FLAGS = None
 
@@ -35,7 +38,7 @@ MODEL_LIST = ['bag_of_words']
 
 # Training Params
 TRAIN_SEED = 9812 # Random seed used to initialize training
-TRAIN_STEPS = 1000 # Number of steps to take while training
+TRAIN_STEPS = 100 # Number of steps to take while training
 LEARNING_RATE = 0.01
 BATCH_SIZE = 120
 
@@ -45,28 +48,81 @@ PREDICT_OUT_PATH = 'predict_out.csv' # Where to write results on unlabled data
 
 class WikiData:
 
-  def __init__(self, path):
-    self.data = self._load_data(path)
-    self.data['comment_text'] = self.data['comment_text'].astype(str)
+  def __init__(self, data_path, y_class, vocab_processor_path=None,
+               test_mode=False, seed=None, train_percent=None):
+    """
+    Args:
+      * data_path (string): path to file containing train or test data
+      * y_class (string): the class we're training or testing on
+      * vocab_processor_path (string): if provided, the comment_text data will be
+          processed with the vocab processor at that location. If not, a new
+          vocab_processor will be created using the training data.
+      * test_mode (boolean): true if loading data just to test on, not training a model
+      * seed (integer): a random seed to use for data splitting
+      * train_percent (fload): the percent of data we should use for training data
+    """
+    data = self._load_data(data_path)
+
+    self.x_train, self.x_train_text = None, None
+    self.x_test, self.x_test_text = None, None
+    self.y_train = None
+    self.y_test = None
+    self.vocab_processor = None
+
+    # If test_mode is True, then put all the data in x_test and y_test
+    if test_mode:
+      train_percent = 0
+      seed = None
+
+    # Split the data into test / train sets
+    self.x_train_text, self.x_test_text, self.y_train, self.y_test \
+      = self._split(data, train_percent, 'comment_text', y_class, seed)
+
+    # Either load a VocabularyProcessor or compute one from the training data
+    if test_mode:
+
+      # If test_mode is True and no vocab_processor_path is specified, then
+      # return an error. We shouldn't train a VocabProcessor at test time.
+      if vocab_processor_path is None:
+        tf.logging.error("Loading data in test_mode with no vocab_processor_path")
+        raise ValueError
+
+      self.vocab_processor = self.load_vocab_processor(vocab_processor_path)
+
+    else:
+      self.vocab_processor = tf.contrib.learn.preprocessing.VocabularyProcessor(
+        MAX_DOCUMENT_LENGTH)
+      self.x_train = np.array(list(self.vocab_processor.fit_transform(
+        self.x_train_text)))
+
+    # Apply the VocabularyProcessor to the test data
+    self.x_test = np.array(list(self.vocab_processor.transform(
+      self.x_test_text)))
+
+  def _load_vocab_processor(self, path):
+    """Load a VocabularyProcessor from the provided path"""
+    return tf.contrib.learn.preprocessing.VocabularyProcessor.restore(path)
 
   def _load_data(self, path):
       df =  pd.read_csv(path)
-
       return df
 
-  def split(self, train_percent, y_class, seed):
+  def _split(self, data, train_percent, x_field, y_class, seed=None):
     """
     Split divides the Wikipedia data into test and train subsets.
 
     Args:
+      * data (dataframe): a dataframe with data for 'comment_text' and y_class
       * train_percent (float): the fraction of data to use for training
-      * y_class (string): the attribute of the wiki data to predict, e.g. 'toxic'
+      * x_field (string): attribute of the wiki data to use to train, e.g.
+                          'comment_text'
+      * y_class (string): attribute of the wiki data to predict, e.g. 'toxic'
       * seed (integer): a seed to use to split the data in a reproducible way
 
     Returns:
-      x_train (dataframe): the comment_text for the training data
+      x_train (dataframe): the features for the training data
       y_train (dataframe): the 0 or 1 labels for the training data
-      x_test (dataframe):  the comment_text for the test data
+      x_test (dataframe):  the features for the test data
       y_test (dataframe):  the 0 or 1 labels for the test data
     """
 
@@ -75,25 +131,17 @@ class WikiData:
             .format(y_class, Y_CLASSES))
       raise ValueError
 
-    if train_percent >= 1 or train_percent <= 0:
+    if train_percent > 1 or train_percent < 0:
       tf.logging.error('Specified train_percent {0} is not between 0 and 1'\
             .format(train_percent))
       raise ValueError
 
-    tf.logging.info("Training on class '{}'".format(y_class))
+    X = data[x_field]
+    y = data[y_class]
+    x_train, x_test, y_train, y_test = train_test_split(
+      X, y, test_size=1-train_percent, random_state=seed)
 
-    # Sample the data to create training data
-    data_train = self.data.sample(frac=train_percent, random_state=seed)
-
-    # Use remaining examples as test data
-    data_test = self.data[self.data["id"].isin(data_train["id"]) == False]
-
-    x_train = data_train['comment_text']
-    x_test = data_test['comment_text']
-    y_train = data_train[y_class]
-    y_test = data_test[y_class]
-
-    return x_train, x_test, y_train, y_test
+    return x_train, x_test, np.array(y_train), np.array(y_test)
 
 def estimator_spec_for_softmax_classification(logits, labels, mode):
   """
@@ -131,15 +179,21 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
       loss=loss,
       train_op=train_op,
       training_hooks=[logging_hook],
-      predictions={'loss': loss}
+      predictions={'loss': loss},
+      export_outputs={'output': tf.estimator.export.ExportOutput()}
     )
 
   # EVAL Mode
   eval_metric_ops = {
     'accuracy': tf.metrics.accuracy(labels=labels, predictions=predicted_classes)
   }
+
   return tf.estimator.EstimatorSpec(
-    mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
+    mode=mode,
+    loss=loss,
+    eval_metric_ops=eval_metric_ops,
+    export_outputs={'output': tf.estimator.export.ExportOutput()}
+  )
 
 def bag_of_words_model(features, labels, mode):
   """
@@ -175,23 +229,16 @@ def main():
       tf.logging.info('Running in verbose mode')
       tf.logging.set_verbosity(tf.logging.DEBUG)
 
+    if os.path.isdir(FLAGS.model_dir):
+      tf.logging.info("Removing model data from '/{0}'".format(FLAGS.model_dir))
+      shutil.rmtree(FLAGS.model_dir)
+
     # Load and split data
-    tf.logging.debug('Loading data {}'.format(FLAGS.train_data))
-    data = WikiData(FLAGS.train_data)
+    tf.logging.debug('Loading data from {0}'.format(FLAGS.train_data))
+    data = WikiData(
+      FLAGS.train_data, FLAGS.y_class, seed=DATA_SEED, train_percent=TRAIN_PERCENT)
 
-    x_train_text, x_test_text, y_train, y_test \
-      = data.split(TRAIN_PERCENT, FLAGS.y_class, DATA_SEED)
-
-    # Process data
-    vocab_processor = tf.contrib.learn.preprocessing.VocabularyProcessor(
-      MAX_DOCUMENT_LENGTH)
-
-    x_train = np.array(list(vocab_processor.fit_transform(x_train_text)))
-    x_test = np.array(list(vocab_processor.transform(x_test_text)))
-    y_train = np.array(y_train)
-    y_test = np.array(y_test)
-
-    n_words = len(vocab_processor.vocabulary_)
+    n_words = len(data.vocab_processor.vocabulary_)
     tf.logging.info('Total words: %d' % n_words)
 
     # Build model
@@ -201,8 +248,8 @@ def main():
       # Subtract 1 because VocabularyProcessor outputs a word-id matrix where word
       # ids start from 1 and 0 means 'no word'. But categorical_column_with_identity
       # assumes 0-based count and uses -1 for missing word.
-      x_train -= 1
-      x_test -= 1
+      data.x_train = data.x_train - 1
+      data.x_test = data.x_test - 1
     else:
       tf.logging.error("Unknown specified model '{}', must be one of {}"
                        .format(FLAGS.model, MODEL_LIST))
@@ -217,55 +264,60 @@ def main():
 
     # Train model
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
-      x={WORDS_FEATURE: x_train},
-      y=y_train,
+      x={WORDS_FEATURE: data.x_train},
+      y=data.y_train,
       batch_size=BATCH_SIZE,
       num_epochs=None, # Note: For training, set this to None, so the input_fn
                        # keeps returning data until the required number of train
                        # steps is reached.
       shuffle=True)
-
     classifier.train(input_fn=train_input_fn, steps=TRAIN_STEPS)
 
     # Predict on held-out test data
     test_input_fn = tf.estimator.inputs.numpy_input_fn(
-      x={WORDS_FEATURE: x_test},
-      y=y_test,
+      x={WORDS_FEATURE: data.x_test},
+      y=data.y_test,
       num_epochs=1,     # Note: For evaluation and prediction set this to 1,
                         # so the input_fn will iterate over the data once and
                         # then raise OutOfRangeError
       shuffle=False)
-
     predicted_test = classifier.predict(input_fn=test_input_fn)
     test_out = pd.DataFrame(
       [(p['classes'], p['probs'][1]) for p in predicted_test],
       columns=['y_predicted', 'prob']
     )
-    test_out['comment_text'] = x_train_text
-    test_out['y_true'] = y_test
+    test_out['comment_text'] = data.x_train_text
+    test_out['y_true'] = data.y_test
 
-    # Write out predictions and probabilities for test data
-    tf.logging.info("Writing test predictions to {}".format(TEST_OUT_PATH))
-    test_out.to_csv(TEST_OUT_PATH)
-
-    # Score with sklearn and TensorFlow (hopefully they're the same!)
-    sklearn_score = metrics.accuracy_score(y_test, test_out['y_predicted'])
+    # Score with sklearn and TensorFlow
+    sklearn_score = metrics.accuracy_score(data.y_test, test_out['y_predicted'])
     tf_scores = classifier.evaluate(input_fn=test_input_fn)
+    train_size = len(data.x_train)
+    test_size = len(data.x_test)
 
-    baseline = len(y_train[y_train==0]) / len(y_train)
+    baseline = len(data.y_train[data.y_train==0]) / len(data.y_train)
     if baseline < .5:
       baseline = 1 - baseline
 
     tf.logging.info('')
     tf.logging.info('----------Evaluation on Held-Out Data---------')
+    tf.logging.info('Train Size: {0} Test Size: {1}'.format(train_size, test_size))
     tf.logging.info('Baseline (class distribution): {0:f}'.format(baseline))
     tf.logging.info('Accuracy (sklearn): {0:f}'.format(sklearn_score))
     tf.logging.info('Accuracy (tensorflow): {0:f}'.format(tf_scores['accuracy']))
     tf.logging.info('')
 
     # Export the model
-    # tf.estimator.export_savedmodel(FLAGS.model_dir, serving_input_receiver_fn)
+    feature_spec = {
+      WORDS_FEATURE: tf.placeholder(
+        dtype=tf.int32, shape=[1, MAX_DOCUMENT_LENGTH], name=WORDS_FEATURE)
+    }
 
+    import pdb; pdb.set_trace()
+    serving_input_receiver_fn = tf.estimator.export.build_raw_serving_input_receiver_fn(feature_spec)
+    classifier.export_savedmodel("/my_model",  serving_input_receiver_fn)
+
+    import pdb; pdb.set_trace()
 
 if __name__ == '__main__':
 
