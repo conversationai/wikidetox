@@ -99,7 +99,7 @@ class CustomCommands(setuptools.Command):
 REQUIRED_PACKAGES = [
     'google-cloud == 0.27.0',
     'google-cloud-storage == 1.3.2',
-    'google-apitools == 0.5.10',
+    'google-apitools == 0.5.18',
     'NoAho==0.9.6.1',
     'yamlconf==0.2.3', 
     'mwtypes==0.3.0',
