@@ -59,7 +59,7 @@ def run(known_args, pipeline_args):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=yiqing-ingest-job-truncated-content-run-in-batch',
+    '--job_name=ingest-job-truncated-content-run-in-batch',
     '--num_workers=90',
   ])
 
