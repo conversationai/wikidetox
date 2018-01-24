@@ -269,8 +269,8 @@ class Conversation_Constructor:
             actions, updated_page = insert(rev, old_page, self.previous_comments, DEBUGGING_MODE)
         except:
             e_type, e_val, tb = sys.exc_info()
-            traceback.print_tb(tb) 
-            traceback.print_exception(e_type, e_val, tb)
+     #       traceback.print_tb(tb) 
+     #       traceback.print_exception(e_type, e_val, tb)
             tb_info = traceback.extract_tb(tb)
             filename, line, func, text = tb_info[-1]
             print('An error occurred on line {} in statement {} when parsing revision {}'.format(line, text, rev['rev_id']))
