@@ -193,6 +193,11 @@ def _get_balance_features(actions):
                 cur_adoption = (len(set(action[adoption]) & set(parent[adoption])) > 0)
                 if cur_adoption > 0:
                     ret['has_%s_adoption'%(adoption)] = 1 
+    total_time = 0
+    for user in time_gap:
+        if reply_no[user]:
+           time_gap[user] /= reply_no[user]
+           total_time += time_gap[user]
     # Compute interaction density
     if no_users:
         ret['interaction_density'] = len(reply_pair.keys()) / (no_users * no_users)
