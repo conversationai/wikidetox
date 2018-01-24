@@ -19,12 +19,6 @@ from __future__ import unicode_literals
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import datetime
 from collections import defaultdict
-#from builtins import (
-#         bytes, dict, int, list, object, range, str,
-#         ascii, chr, hex, input, next, oct, open,
-#         pow, round, super,
-#         filter, map, zip)
-
 
 import json
 import fileinput
