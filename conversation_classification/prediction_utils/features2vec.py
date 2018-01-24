@@ -117,7 +117,7 @@ def get_features(user_features, documents, ARGS, BOW = False, Conversational = F
                     ender = a['user_text']
                 else:
                     ender = 'anon'
-        feature_set, user_infos = _user_features(actions, user_features[conv_id], ASPECTS, STATUS)
+        feature_set, user_infos = _user_features(actions, user_features[conv_id], ASPECTS, STATUS, QUESTIONS[conv_id])
         # last participant's profile
         p, b = attacker_profile(conversation,  user_infos, attacker_profile_ASPECTS)
         user_info.append(user_infos)
@@ -161,8 +161,8 @@ def _get_question_features(conv_id, QUESTIONS):
     for ind in range(8):
         ret['question_type%d'%(ind)] = 0
     if conv_id in QUESTIONS:
-        for x in QUESTIONS[conv_id]:
-            ret['question_type%d'%(x)] = 1
+        for pair in QUESTIONS[conv_id]:
+            ret['question_type%d'%(pair['question_type'])] = 1
     return ret
 
 def documents2feature_vectors(document_features):
