@@ -48,7 +48,8 @@ def run(known_args, pipeline_args):
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
     '--job_name=reconstruction-test',
-    '--num_workers=30'  
+    '--num_workers=30',
+    '--extra_package=third_party/mwparserfromhell.tar.gz'
   ])
 
 
@@ -64,9 +65,7 @@ def run(known_args, pipeline_args):
 class ReconstructConversation(beam.DoFn):
   def process(self, row):
 
-    return
-    input_table = "wikidetox_conversations.test_page_3_issue21" 
-
+    input_table = known_args.input_table[14:] 
     logging.info('USERLOG: Work start')
     page_id = row['page_id']
     logging.info('Read page_id: %s'%page_id)
@@ -85,7 +84,7 @@ class ReconstructConversation(beam.DoFn):
     construct_proc = subprocess.Popen(construction_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 4096)
     last_revision = 'None'
     for i, line in enumerate(construct_proc.stderr):
-        logging.info('USERLOG: Error while running the recostruction process on page %s, error information: %s' % (page_id, line))
+        logging.info('USERLOG: Error while running the reconstruction process on page %s, error information: %s' % (page_id, line))
     
     cnt = 0 
 
@@ -97,6 +96,7 @@ class ReconstructConversation(beam.DoFn):
         yield output
     logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' %(page_id, last_revision))
 
+
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
   parser = argparse.ArgumentParser()
@@ -104,7 +104,7 @@ if __name__ == '__main__':
   input_schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
   parser.add_argument('--input_table',
                       dest='input_table',
-                      default='wikidetox-viz:wikidetox_conversations.test_page_3_issue21',
+                      default='wikidetox-viz:wikidetox_conversations.test_page_1_issue26',
                       help='Input table for reconstruction.')
   parser.add_argument('--input_schema',
                       dest='input_schema',
@@ -114,7 +114,7 @@ if __name__ == '__main__':
   output_schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
   parser.add_argument('--output_table',
                       dest='output_table',
-                      default='wikidetox-viz:wikidetox_conversations.reconstructed_conversation_test_page_3',
+                      default='wikidetox-viz:wikidetox_conversations.reconstructed_test_page_1',
                       help='Output table for reconstruction.')
   output_schema = 'user_id:STRING,user_text:STRING, timestamp:STRING, content:STRING, parent_id:STRING, replyTo_id:STRING, indentation:INTEGER,page_id:STRING,page_title:STRING,type:STRING, id:STRING,rev_id:STRING'  
   parser.add_argument('--output_schema',
