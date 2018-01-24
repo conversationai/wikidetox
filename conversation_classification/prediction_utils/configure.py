@@ -38,7 +38,7 @@ def configure(constraint):
 
     attacker_profile_ASPECTS =['proportion_of_being_replied',\
                                  'total_reply_time_gap', 'reply_latency',\
-                                'age', 'status', \
+                                'age', 'status', 'number_of_questions_asked', \
 				'edits_on_wikipedia_articles']     
     with open('feature_extraction/utils/lexicons') as f:
         LEXICONS = json.load(f)

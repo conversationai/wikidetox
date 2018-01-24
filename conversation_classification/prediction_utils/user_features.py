@@ -162,8 +162,8 @@ def _user_features(actions, user_features, ASPECTS, STATUS, question_feat):
     for u in users:
         user_info = {'proportion_of_being_replied' : 0, 'total_reply_time_gap' : 0, \
                 'proportion_of_utterance_over_all': 0, 'total_length_of_utterance': 0, \
-                 'maximum_toxicity' : 0, 'pron_you_usage': 0, \
-                    'gratitude_usage' : 0, 'max_negativity': 0, 'reply_latency': 0}
+                 'maximum_toxicity' : 0, 'pron_you_usage': 0, 'no_replies': 0, 'no_replied': 0,\
+                    'gratitude_usage' : 0, 'max_negativity': 0, 'reply_latency': 0, 'number_of_questions_asked': 0}
         for typ in range(8):
             user_info.update({'question_type%d'%(typ):0})
             user_info.update({'being_asked_question_type%d'%(typ):0})
@@ -217,6 +217,7 @@ def _user_features(actions, user_features, ASPECTS, STATUS, question_feat):
         if 'user_text' in action:
            user = action['user_text']
            user_infos[user]['question_type%d'%typ] += 1 
+           user_infos[user]['number_of_questions_asked'] += 1
         if not('replyTo_id' not in action or action['replyTo_id'] == None):
            receiver = action_dict[action['replyTo_id']]
            if 'user_text' in receiver:
@@ -240,17 +241,24 @@ def _user_features(actions, user_features, ASPECTS, STATUS, question_feat):
             if not('replyTo_id' not in action or action['replyTo_id'] == None):
                 replied[action['replyTo_id']] = action['timestamp_in_sec']
                 user_infos[user]['reply_latency'] += action['timestamp_in_sec'] - action_dict[action['replyTo_id']]['timestamp_in_sec']
+                user_infos[user]['no_replies'] += 1
 
     for key in replied.keys():
         if 'user_text' in action_dict[key]:
             user = action_dict[key]['user_text']
+            user_infos[u]['no_replied'] += 1
             user_infos[user]['proportion_of_being_replied'] += 1
             user_infos[user]['total_reply_time_gap'] += replied[key] - action_dict[key]['timestamp_in_sec']
+    no_replied = len(replied.keys())
     for u in user_infos.keys():
         for key in ['proportion_of_being_replied']:
             if user_infos[u]['proportion_of_utterance_over_all']:
                user_infos[u][key] /= user_infos[u]['proportion_of_utterance_over_all']
         user_infos[u]['proportion_of_utterance_over_all'] /= total_utterances
+        if user_infos[u]['no_replies']:
+           user_infos[u]['reply_latency'] /= user_infos[u]['no_replies'] 
+        if user_infos[u]['no_replied']:
+           user_infos[u]['total_reply_time_gap'] /= user_infos[u]['no_replied']
 
     # Compute pariticipant features 
     for aspect in ASPECTS:
