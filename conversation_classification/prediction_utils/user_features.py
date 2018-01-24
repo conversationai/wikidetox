@@ -91,7 +91,7 @@ def attacker_profile(document, user_infos, ASPECTS):
         cnts['experience'] = profile['comments_on_all_talk_pages']
     return cnts, blocked
 
-def _user_features(actions, user_features, ASPECTS, STATUS):
+def _user_features(actions, user_features, ASPECTS, STATUS, question_feat):
     """
       Given user features collected for all users in the dataset, generates participant feature vectors and return the values of participant profiles for a particular conversation.
           - Parameters:
@@ -164,6 +164,9 @@ def _user_features(actions, user_features, ASPECTS, STATUS):
                 'proportion_of_utterance_over_all': 0, 'total_length_of_utterance': 0, \
                  'maximum_toxicity' : 0, 'pron_you_usage': 0, \
                     'gratitude_usage' : 0, 'max_negativity': 0, 'reply_latency': 0}
+        for typ in range(8):
+            user_info.update({'question_type%d'%(typ):0})
+            user_info.update({'being_asked_question_type%d'%(typ):0})
         if u in user_features:
             user = user_features[u]
             if 'blocked' in user:
@@ -208,6 +211,17 @@ def _user_features(actions, user_features, ASPECTS, STATUS):
         user_infos[u] = user_info
 
     # Collect participant behavior
+    for questions in question_feat:
+        action = action_dict[questions['action_id']]
+        typ = questions['question_type'] 
+        if 'user_text' in action:
+           user = action['user_text']
+           user_infos[user]['question_type%d'%typ] += 1 
+        if not('replyTo_id' not in action or action['replyTo_id'] == None):
+           receiver = action_dict[action['replyTo_id']]
+           if 'user_text' in receiver:
+              user_infos[receiver['user_text']]['being_asked_question_type%d'%typ] += 1 
+     
     for action in actions:
         if not(action['comment_type'] == 'SECTION_CREATION' or action['comment_type'] == 'COMMENT_ADDING'):
             continue
@@ -226,6 +240,7 @@ def _user_features(actions, user_features, ASPECTS, STATUS):
             if not('replyTo_id' not in action or action['replyTo_id'] == None):
                 replied[action['replyTo_id']] = action['timestamp_in_sec']
                 user_infos[user]['reply_latency'] += action['timestamp_in_sec'] - action_dict[action['replyTo_id']]['timestamp_in_sec']
+
     for key in replied.keys():
         if 'user_text' in action_dict[key]:
             user = action_dict[key]['user_text']

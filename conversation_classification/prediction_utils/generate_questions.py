@@ -17,9 +17,9 @@ limitations under the License.
 import json
 
 questions = []
-constraints = ['constraintA+B'] #'delta2_no_users_attacker_in_conv'] # 
+constraints = ['constraintA+B'] 
 for constraint in constraints:
-    with open('/scratch/wiki_dumps/paired_conversations/%s/data/all.json'%(constraint)) as f:
+    with open('../data/%s.json'%(constraint)) as f:
          for line in f:
              conv_id, clss, conversation = json.loads(line)
              end_time = max([a['timestamp_in_sec'] for a in conversation['action_feature']])
@@ -36,7 +36,6 @@ for constraint in constraints:
                                     'sentence index' : ind, \
                                     'content' : s}
                         questions.append(question)  
-#'/scratch/wiki_dumps/questions_altered.json'
 with open('input_constraintA+B.json', 'w') as w:
      json.dump(questions, w)
 #     for question in questions:
