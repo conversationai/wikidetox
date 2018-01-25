@@ -37,7 +37,7 @@ from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.io.gcp import bigquery as bigquery_io 
 
-LOG_INTERVAL = 1000
+LOG_INTERVAL = 5
 
 def run(known_args, pipeline_args):
   """Main entry point; defines and runs the reconstruction pipeline."""
@@ -83,18 +83,32 @@ class ReconstructConversation(beam.DoFn):
     construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_table, '--revisions', json.dumps(rev_ids)]
     construct_proc = subprocess.Popen(construction_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 4096)
     last_revision = 'None'
-    for i, line in enumerate(construct_proc.stderr):
-        logging.info('USERLOG: Error while running the reconstruction process on page %s, error information: %s' % (page_id, line))
-    
+   
     cnt = 0 
 
+    error_encountered = False
+    error_log = ""
     for i, line in enumerate(construct_proc.stdout): 
-        output = json.loads(line)
+        try:
+           output = json.loads(line)
+        except:
+           error_log += line + '\n'
+           error_encountered = True
+           continue
         last_revision = output['rev_id']
         if cnt % LOG_INTERVAL == 0:
            logging.info('DEBUGGING INFO: %d revision(reivision id %s) on page %s output: %s'%(cnt, last_revision, page_id, line))
         yield output
-    logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' %(page_id, last_revision))
+        cnt += 1
+    if error_encountered:
+       logging.info('USERLOG: Error while running the reconstruction process on page %s' % (page_id))
+       logging.info('USERLOG: reconstruction process on page %s stopped at revision %s' % (page_id, last_revision))
+       logging.info('ERROR ENCOUNTERED: %s' %(error_log))
+       for i, line in enumerate(construct_proc.stderr):
+           logging.info('ERRORLOG: %s' % (line))
+ 
+    if not(error_encountered):
+       logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' %(page_id, last_revision))
 
 
 if __name__ == '__main__':
@@ -104,7 +118,7 @@ if __name__ == '__main__':
   input_schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
   parser.add_argument('--input_table',
                       dest='input_table',
-                      default='wikidetox-viz:wikidetox_conversations.test_page_1_issue26',
+                      default='wikidetox-viz:wikidetox_conversations.test_page_2_issue24',
                       help='Input table for reconstruction.')
   parser.add_argument('--input_schema',
                       dest='input_schema',
@@ -114,7 +128,7 @@ if __name__ == '__main__':
   output_schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
   parser.add_argument('--output_table',
                       dest='output_table',
-                      default='wikidetox-viz:wikidetox_conversations.reconstructed_test_page_1',
+                      default='wikidetox-viz:wikidetox_conversations.reconstructed_test_page_2',
                       help='Output table for reconstruction.')
   output_schema = 'user_id:STRING,user_text:STRING, timestamp:STRING, content:STRING, parent_id:STRING, replyTo_id:STRING, indentation:INTEGER,page_id:STRING,page_title:STRING,type:STRING, id:STRING,rev_id:STRING'  
   parser.add_argument('--output_schema',
