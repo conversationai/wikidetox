@@ -183,7 +183,7 @@ def main():
       MAX_DOCUMENT_LENGTH)
 
     x_train = np.array(list(vocab_processor.fit_transform(x_train_text)))
-    x_test = np.array(list(vocab_processor.fit_transform(x_test_text)))
+    x_test = np.array(list(vocab_processor.transform(x_test_text)))
     y_train = np.array(y_train)
     y_test = np.array(y_test)
 
@@ -264,7 +264,7 @@ def main():
                     .format(len(data_unlabeled), FLAGS.predict_data))
 
     x_unlabeled = np.array(list(
-      vocab_processor.fit_transform(data_unlabeled['comment_text'])))
+      vocab_processor.transform(data_unlabeled['comment_text'])))
 
     unlabled_input_fn = tf.estimator.inputs.numpy_input_fn(
       x={WORDS_FEATURE: x_unlabeled},
