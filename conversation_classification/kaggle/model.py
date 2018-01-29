@@ -6,9 +6,7 @@ To Run:
 
 python model.py --train_data=train.csv --predict_data=test.csv --y_class=toxic
 
-Output:
-  * writes predictions on heldout test data to TEST_OUT_PATH
-  * writes predictions on unlabled predict data to PREDICT_OUT_PATH
+
 """
 
 import argparse
@@ -38,7 +36,7 @@ MODEL_LIST = ['bag_of_words']
 
 # Training Params
 TRAIN_SEED = 9812 # Random seed used to initialize training
-TRAIN_STEPS = 1000 # Number of steps to take while training
+TRAIN_STEPS = 10 # Number of steps to take while training
 LEARNING_RATE = 0.01
 BATCH_SIZE = 120
 
@@ -150,16 +148,26 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
   Returns EstimatorSpec instance for softmax classification.
   """
   predicted_classes = tf.argmax(logits, axis=1)
+  predicted_probs = tf.nn.softmax(logits, name='softmax_tensor')
   predictions = {
     'classes': predicted_classes,
 
     # Add softmax_tensor to the graph. It is used for PREDICT.
-    'probs': tf.nn.softmax(logits, name='softmax_tensor')
+    'probs': predicted_probs
+  }
+
+  # Represents an output of a model that can be served.
+  export_outputs = {
+    'output': tf.estimator.export.ClassificationOutput(scores=predicted_probs)
   }
 
   # PREDICT Mode
   if mode == tf.estimator.ModeKeys.PREDICT:
-    return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
+    return tf.estimator.EstimatorSpec(
+      mode=mode,
+      predictions=predictions,
+      export_outputs=export_outputs
+    )
 
   # Calculate loss for both TRAIN and EVAL modes
   loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
@@ -176,7 +184,7 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
       train_op=train_op,
       training_hooks=[logging_hook],
       predictions={'loss': loss},
-      export_outputs={'output': tf.estimator.export.ExportOutput()}
+      export_outputs=export_outputs
     )
 
   # EVAL Mode
@@ -199,8 +207,9 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
   return tf.estimator.EstimatorSpec(
     mode=mode,
     loss=loss,
+    predictions=predictions,
     eval_metric_ops=eval_metric_ops,
-    export_outputs={'output': tf.estimator.export.ExportOutput()}
+    export_outputs=export_outputs
   )
 
 def bag_of_words_model(features, labels, mode):
@@ -242,7 +251,7 @@ def main():
       shutil.rmtree(FLAGS.model_dir)
 
     # Load and split data
-    tf.logging.debug('Loading data from {0}'.format(FLAGS.train_data))
+    tf.logging.info('Loading data from {0}'.format(FLAGS.train_data))
     data = WikiData(
       FLAGS.train_data, FLAGS.y_class, seed=DATA_SEED, train_percent=TRAIN_PERCENT)
 
@@ -317,19 +326,16 @@ def main():
     for key in sorted(tf_scores):
       tf.logging.info("%s: %s" % (key, tf_scores[key]))
 
-    tf.logging.info('')
-
     # Export the model
-    # feature_spec = {
-    #   WORDS_FEATURE: tf.placeholder(
-    #     dtype=tf.int32, shape=[1, MAX_DOCUMENT_LENGTH], name=WORDS_FEATURE)
-    # }
+    feature_spec = {
+      WORDS_FEATURE: tf.FixedLenFeature(
+        dtype=tf.int64, shape=[1, MAX_DOCUMENT_LENGTH])
+    }
+    serving_input_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(feature_spec)
+    dir_path = 'saved_model'
 
-    # import pdb; pdb.set_trace()
-    # serving_input_receiver_fn = tf.estimator.export.build_raw_serving_input_receiver_fn(feature_spec)
-    # classifier.export_savedmodel("/my_model",  serving_input_receiver_fn)
+    classifier.export_savedmodel(dir_path, serving_input_fn)
 
-    # import pdb; pdb.set_trace()
 
 if __name__ == '__main__':
 
