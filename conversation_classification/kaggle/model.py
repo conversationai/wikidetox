@@ -5,8 +5,6 @@ challenge, https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challeng
 To Run:
 
 python model.py --train_data=train.csv --predict_data=test.csv --y_class=toxic
-
-
 """
 
 import argparse
@@ -36,7 +34,6 @@ MODEL_LIST = ['bag_of_words']
 
 # Training Params
 TRAIN_SEED = 9812 # Random seed used to initialize training
-TRAIN_STEPS = 100 # Number of steps to take while training
 LEARNING_RATE = 0.01
 BATCH_SIZE = 120
 
@@ -288,7 +285,7 @@ def main():
                        # keeps returning data until the required number of train
                        # steps is reached.
       shuffle=True)
-    classifier.train(input_fn=train_input_fn, steps=TRAIN_STEPS)
+    classifier.train(input_fn=train_input_fn, steps=FLAGS.train_steps)
 
     # Predict on held-out test data
     test_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -352,6 +349,8 @@ if __name__ == '__main__':
   parser.add_argument(
       "--model", type=str, default="bag_of_words",
     help="The model to train, one of {}".format(MODEL_LIST))
+  parser.add_argument(
+    "--train_steps", type=int, default=100, help="The number of steps to train the model")
 
   FLAGS, unparsed = parser.parse_known_args()
 
