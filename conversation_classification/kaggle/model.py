@@ -36,7 +36,7 @@ MODEL_LIST = ['bag_of_words']
 
 # Training Params
 TRAIN_SEED = 9812 # Random seed used to initialize training
-TRAIN_STEPS = 10 # Number of steps to take while training
+TRAIN_STEPS = 100 # Number of steps to take while training
 LEARNING_RATE = 0.01
 BATCH_SIZE = 120
 

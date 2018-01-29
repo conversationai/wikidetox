@@ -1,10 +1,27 @@
+# -*- coding: utf-8 -*-
+"""
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-------------------------------------------------------------------------------
+"""
+
 from __future__ import absolute_import, division, print_function
 from builtins import *
 from future.builtins.disabled import *
 
 import copy
 import json
-from .utils.tokenizers import text_split
 from collections import defaultdict
 from noaho import NoAho
 import re
@@ -12,46 +29,40 @@ import sys
 import traceback
 import atexit
 import os
-from .utils.rev_clean import clean
-from .utils.diff import diff
+from .utils.third_party.deltas.tokenizers import text_split
+from .utils.third_party.rev_clean import clean
+from .utils.diff import diff_tuning
+from .utils.third_party.deltas.algorithms import sequence_matcher
 from .utils.insert_utils import *
 from .utils.actions import *
 
 def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
     
-    # devide ins and dels
-    # ideas:
-        # types of dels: 1) remove a previous action 2) remove in the middle of an action
-        # types of ins : 1) add after an action 2) add inside a comment
-        # for each action, find the ins and dels corresponding to the action
-            # types: 1) full removal
-            #        2) add after the action 
-            #            a) started a newline -- addition
-            #            b) if not -- modification
-            #        3) modification
-            #        4) ins and dels matching(later)
-    
+   
     comment_removals = []
     comment_additions = []
     removed_actions = {}
     old_actions = sorted(page['actions'].keys())
     modification_actions = defaultdict(int)
-    rev_text = text_split.tokenize('\n' + rev['text'])
+    rev_text = text_split.tokenize(rev['text'])
     for op in rev['diff']:
         if DEBUGGING_MODE : 
            print(op['name'], op['a1'], op['a2'], op['b1'], op['b2'])
            if 'tokens' in op: print(''.join(op['tokens']))
+           if op['b2'] < len(rev_text): print(rev_text[op['b2']].type) 
         if op['name'] == 'equal':
             continue
         
         if op['name'] == 'insert':
             if op['a1'] in old_actions and (op['tokens'][0].type == 'break' \
-                or op['a1'] == 0 or rev_text[op['b1'] - 1].type == 'break') and \
+                or op['b1'] == 0 or (op['b1'] > 0 and rev_text[op['b1'] - 1].type == 'break')) and \
                 (op['b2'] == len(rev_text) or op['tokens'][-1].type == 'break' or \
                 rev_text[op['b2']].type == 'break'):
                     content = "".join(op['tokens'])
                     for c in divide_into_section_headings_and_contents(op, content):
                         comment_additions.append(c)
+                        if DEBUGGING_MODE:
+                           print('COMMENT ADDITIONS:', c['a1'], c['a2'], c['b1'], c['b2'], ''.join(c['tokens']), len(c['tokens']))
             else:
                 old_action_start = get_action_start(old_actions, op['a1'])
                 modification_actions[old_action_start] = True
@@ -165,12 +176,9 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
                 last_op['b1'] = last_tok + insert_op['b1']
                 last_op['b2'] = k1_tok + insert_op['b1']
                 updated_additions.append(last_op)
-        #   print(k1_tok + insert_op['b1'], k2_tok + insert_op['b1'], text[k1:k2], len(text_split.tokenize(text[k1:k2])))
             updated_actions.append(comment_restoration(val[0], tokens[k1_tok:k2_tok], k1_tok + insert_op['b1'], rev, insert_op['a1']))
             updated_page['actions'][k1_tok + insert_op['b1']] = val
             end_tokens.append((k1_tok + insert_op['b1'], k2_tok + insert_op['b1']))
-   #         if DEBUGGING_MODE:
-   #            print(k1_tok + insert_op['b1'], k2_tok + insert_op['b1'])
             last_tok = k2_tok
             last_pos = k2
         last_op = {}
@@ -211,102 +219,73 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
        print(eof)
     assert updated_page['actions'][eof] == (-1, -1)
     
-    
     return updated_actions, updated_page
 
 
 class Conversation_Constructor:
-    def __init__(self, COMMENT_TRACKING_FILE = None):
-        self.pages = {}
-        self.THERESHOLD = 3
-        self.previous_comments = {}
-        self.latest_content = defaultdict(str)
-        if not(COMMENT_TRACKING_FILE == None):
-            self.tracking_file = open(COMMENT_TRACKING_FILE, "w")
-        else:
-            self.tracking_file = None
-        
-    def save(self, FILENAME):
-        BASE_DIR = 'json_dumps'
-        with open(os.path.join(BASE_DIR, FILENAME), "w") as w:
-            json.dump([self.pages, self.THERESHOLD, self.latest_content], w)
-            
-    def load(self, FILENAME, COMMENT_TRACKING_FILE = None):
-        BASE_DIR = 'json_dumps'
-        with open(os.path.join(BASE_DIR, FILENAME)) as f:
-            self.pages, self.THERESHOLD, self.latest_content = json.load(f)
-        self.previous_comments = {}
-        for pid in self.pages.keys():
-            print(type(pid))
-            self.previous_comments[pid] = NoAho()
-            updated_actions = {}
-            for act, val in self.pages[pid]['actions'].items():
-                updated_actions[int(act)] = tuple(val)
-            self.pages[pid]['actions'] = updated_actions
-            print(updated_actions)
-        if not(COMMENT_TRACKING_FILE == None):
-            with open(COMMENT_TRACKING_FILE, "r") as f:
-                for line in f:
-                    pid, key, val = json.loads(line)
-                self.previous_comments[pid].add(key, val)
-            self.trakcing_file = open(COMMENT_TRACKING_FILE, "a")
-        else:
-            self.tracking_file = None
-            
+    def __init__(self):
+        self.page = {}
+        self.THERESHOLD = 3 # A comment with at least THERESHOLD number of tokens will be recorded 
+        self.latest_content = ""
+        self.NOT_EXISTED = True
+           
     def page_creation(self, rev):
-        op = rev['diff'][0]
         page = {}
         page['page_id'] = rev['page_id']
         page['actions'] = {}
         page['page_title'] = rev['page_title']
-        page['actions'][0] = (-1, -1) # boundary of the page
-    
+        page['actions'][0] = (-1, -1) 
+        self.NOT_EXISTED = False 
         return page        
-            
+
+    def convert_diff_format(self, x, a, b):
+        ret = {}
+        ret['name'] = x.name
+        ret['a1'] = x.a1
+        ret['a2'] = x.a2
+        ret['b1'] = x.b1
+        ret['b2'] = x.b2
+        if x.name == 'insert':
+           ret['tokens'] = b[x.b1:x.b2]
+        if x.name == 'delete':
+           ret['tokens'] = a[x.a1:x.a2]
+        return ret
         
     def process(self, rev, DEBUGGING_MODE = False):
         rev['text'] = clean(rev['text'])
-        #print(rev['text'])
-        pid = rev['page_id']
-        rev['diff'] = list(diff(self.latest_content[pid], rev['text'])) 
-        if pid not in self.pages:
-            self.previous_comments[pid] = NoAho()
-            self.latest_content[pid] = ""
-            updated_page = self.page_creation(rev)
-            old_page = updated_page
+        a = text_split.tokenize(self.latest_content)
+        b = text_split.tokenize(rev['text']) 
+        rev['diff'] = sorted([self.convert_diff_format(x, a, b) for x in list(sequence_matcher.diff(a, b))], key=lambda k: k['a1'])
+        rev['diff'] = diff_tuning(rev['diff'], a, b)
+        rev['diff'] = sorted(rev['diff'], key=lambda k: k['a1'])
+        if self.NOT_EXISTED:
+            self.previous_comments = NoAho()
+            old_page = self.page_creation(rev)
         else:    
-            old_page = self.pages[rev['page_id']]
-    
-        
-        self.latest_content[pid] = rev['text']
+            old_page = self.page
+        self.latest_content = rev['text']
     
         try:
-            actions, updated_page = insert(rev, old_page, self.previous_comments[pid], DEBUGGING_MODE)
+            actions, updated_page = insert(rev, old_page, self.previous_comments, DEBUGGING_MODE)
         except:
             e_type, e_val, tb = sys.exc_info()
             traceback.print_tb(tb) 
             traceback.print_exception(e_type, e_val, tb)
             tb_info = traceback.extract_tb(tb)
             filename, line, func, text = tb_info[-1]
-            self.save('%s_error_stopped.json'%(rev['rev_id']))
             print('An error occurred on line {} in statement {} when parsing revision {}'.format(line, text, rev['rev_id']))
-            print('Intermediate file has been saved in %s_error_stopped.json, load from it to continue when ready.'%(rev['rev_id']))
-            if not(self.tracking_file == None):
-                self.tracking_file.close()
             return
 
-        self.pages[pid] = updated_page
+        self.page = updated_page
         for action in actions:
-            action['page_id'] = pid
+            action['page_id'] = rev['page_id']
             action['page_title'] = rev['page_title'] 
-#            if (action['type'] == 'COMMENT_ADDING' or action['type'] == 'COMMENT_MODIFICATION' or action['type'] == 'SECTION_CREATION') and len(action['content']) > self.THERESHOLD:
             if action['type'] == 'COMMENT_REMOVAL' and len(action['content']) > self.THERESHOLD:
-                self.previous_comments[pid].add(''.join(action['content']), (action['parent_id'], action['indentation']))
-                if not(self.tracking_file == None):
-                    self.tracking_file.write(json.dumps([pid, ''.join(action['content']), (action['parent_id'], action['indentation'])]) + '\n')
+                self.previous_comments.add(''.join(action['content']), (action['parent_id'], action['indentation']))
         return actions
-    
-    def cleanup(self):
-        if not(self.tracking_file == None):
-            self.tracking_file.close()
 
+    def reinsert_deleted_comments(deleted_comments):  
+       self.previous_comments = NoAho()
+       for action in deleted_comments:
+           if action['type'] == 'COMMENT_REMOVAL' and len(action['content']) > self.THERESHOLD:
+              self.previous_comments.add(''.join(action['content']), (action['parent_id'], action['indentation']))
