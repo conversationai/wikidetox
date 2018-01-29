@@ -42,10 +42,6 @@ TRAIN_STEPS = 1000 # Number of steps to take while training
 LEARNING_RATE = 0.01
 BATCH_SIZE = 120
 
-# Output Params
-TEST_OUT_PATH = 'test_out.csv' # Where to write results on heldout data
-PREDICT_OUT_PATH = 'predict_out.csv' # Where to write results on unlabled data
-
 class WikiData:
 
   def __init__(self, data_path, y_class, vocab_processor_path=None,
