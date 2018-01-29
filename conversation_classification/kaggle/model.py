@@ -38,7 +38,7 @@ MODEL_LIST = ['bag_of_words']
 
 # Training Params
 TRAIN_SEED = 9812 # Random seed used to initialize training
-TRAIN_STEPS = 100 # Number of steps to take while training
+TRAIN_STEPS = 1000 # Number of steps to take while training
 LEARNING_RATE = 0.01
 BATCH_SIZE = 120
 
@@ -185,7 +185,19 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
 
   # EVAL Mode
   eval_metric_ops = {
-    'accuracy': tf.metrics.accuracy(labels=labels, predictions=predicted_classes)
+    'accuracy': tf.metrics.accuracy(
+      labels=labels, predictions=predicted_classes),
+    'auc': tf.metrics.auc(labels=labels, predictions=predicted_classes),
+    'mean_per_class_accuracy': tf.metrics.mean_per_class_accuracy(
+      labels=labels, predictions=predicted_classes, num_classes=MAX_LABEL),
+    'true_negatives': tf.metrics.true_negatives(
+      labels=labels, predictions=predicted_classes),
+    'false_negatives': tf.metrics.false_negatives(
+      labels=labels, predictions=predicted_classes),
+    'true_positives': tf.metrics.true_positives(
+      labels=labels, predictions=predicted_classes),
+    'false_positives': tf.metrics.false_positives(
+      labels=labels, predictions=predicted_classes),
   }
 
   return tf.estimator.EstimatorSpec(
@@ -292,6 +304,7 @@ def main():
     # Score with sklearn and TensorFlow
     sklearn_score = metrics.accuracy_score(data.y_test, test_out['y_predicted'])
     tf_scores = classifier.evaluate(input_fn=test_input_fn)
+
     train_size = len(data.x_train)
     test_size = len(data.x_test)
 
@@ -304,20 +317,23 @@ def main():
     tf.logging.info('Train Size: {0} Test Size: {1}'.format(train_size, test_size))
     tf.logging.info('Baseline (class distribution): {0:f}'.format(baseline))
     tf.logging.info('Accuracy (sklearn): {0:f}'.format(sklearn_score))
-    tf.logging.info('Accuracy (tensorflow): {0:f}'.format(tf_scores['accuracy']))
+
+    for key in sorted(tf_scores):
+      tf.logging.info("%s: %s" % (key, tf_scores[key]))
+
     tf.logging.info('')
 
     # Export the model
-    feature_spec = {
-      WORDS_FEATURE: tf.placeholder(
-        dtype=tf.int32, shape=[1, MAX_DOCUMENT_LENGTH], name=WORDS_FEATURE)
-    }
+    # feature_spec = {
+    #   WORDS_FEATURE: tf.placeholder(
+    #     dtype=tf.int32, shape=[1, MAX_DOCUMENT_LENGTH], name=WORDS_FEATURE)
+    # }
 
-    import pdb; pdb.set_trace()
-    serving_input_receiver_fn = tf.estimator.export.build_raw_serving_input_receiver_fn(feature_spec)
-    classifier.export_savedmodel("/my_model",  serving_input_receiver_fn)
+    # import pdb; pdb.set_trace()
+    # serving_input_receiver_fn = tf.estimator.export.build_raw_serving_input_receiver_fn(feature_spec)
+    # classifier.export_savedmodel("/my_model",  serving_input_receiver_fn)
 
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
 
 if __name__ == '__main__':
 
