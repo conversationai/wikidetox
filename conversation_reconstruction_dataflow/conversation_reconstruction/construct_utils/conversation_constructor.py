@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Copyright 2017 Google Inc.
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +15,9 @@ limitations under the License.
 -------------------------------------------------------------------------------
 """
 
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
+from __future__ import unicode_literals
 from builtins import *
 from future.builtins.disabled import *
 
@@ -48,8 +49,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
     for op in rev['diff']:
         if DEBUGGING_MODE : 
            print(op['name'], op['a1'], op['a2'], op['b1'], op['b2'])
-           if 'tokens' in op: print(''.join(op['tokens']))
-           if op['b2'] < len(rev_text): print(rev_text[op['b2']].type) 
+           if 'tokens' in op: print((''.join(op['tokens'])).encode('utf-8'))
         if op['name'] == 'equal':
             continue
         
@@ -62,7 +62,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
                     for c in divide_into_section_headings_and_contents(op, content):
                         comment_additions.append(c)
                         if DEBUGGING_MODE:
-                           print('COMMENT ADDITIONS:', c['a1'], c['a2'], c['b1'], c['b2'], ''.join(c['tokens']), len(c['tokens']))
+                           print('COMMENT ADDITIONS:', c['a1'], c['a2'], c['b1'], c['b2'], (''.join(c['tokens'])).encode("utf-8"), len(c['tokens']))
             else:
                 old_action_start = get_action_start(old_actions, op['a1'])
                 modification_actions[old_action_start] = True
@@ -167,7 +167,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
         for k1, k2, val in previous_comments.findall_long(text):
             k1_tok = len(text_split.tokenize(text[last_pos:k1])) + last_tok
             last_pos = k2
-            k2_tok = len(text_split.tokenize(text[k1:k2])) + k1_tok
+            k2_tok = min(len(tokens), len(text_split.tokenize(text[k1:k2])) + k1_tok)
             last_op = {}
             last_op['tokens'] = tokens[last_tok:k1_tok]
             if not(last_op['tokens'] == []):
@@ -181,6 +181,9 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
             end_tokens.append((k1_tok + insert_op['b1'], k2_tok + insert_op['b1']))
             last_tok = k2_tok
             last_pos = k2
+            if DEBUGGING_MODE:
+               print('restoration:', tokens[k1_tok:k2_tok], k1_tok + insert_op['b1'], k2_tok + insert_op['b1'])
+
         last_op = {}
         last_op['a1'] = insert_op['a1']
         last_op['a2'] = insert_op['a2']
@@ -217,6 +220,9 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
     eof = max(list(updated_page['actions'].keys()))
     if DEBUGGING_MODE:
        print(eof)
+    for action, val in updated_page['actions'].items():
+        if not(action == eof):
+           assert not(val == (-1, -1)) 
     assert updated_page['actions'][eof] == (-1, -1)
     
     return updated_actions, updated_page
@@ -225,7 +231,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
 class Conversation_Constructor:
     def __init__(self):
         self.page = {}
-        self.THERESHOLD = 3 # A comment with at least THERESHOLD number of tokens will be recorded 
+        self.THERESHOLD = 10 # A comment with at least THERESHOLD number of tokens will be recorded 
         self.latest_content = ""
         self.NOT_EXISTED = True
            
@@ -252,6 +258,8 @@ class Conversation_Constructor:
         return ret
         
     def process(self, rev, DEBUGGING_MODE = False):
+        if DEBUGGING_MODE:
+           print('REVISION %s'%rev['rev_id'])
         rev['text'] = clean(rev['text'])
         a = text_split.tokenize(self.latest_content)
         b = text_split.tokenize(rev['text']) 
@@ -269,8 +277,8 @@ class Conversation_Constructor:
             actions, updated_page = insert(rev, old_page, self.previous_comments, DEBUGGING_MODE)
         except:
             e_type, e_val, tb = sys.exc_info()
-     #       traceback.print_tb(tb) 
-     #       traceback.print_exception(e_type, e_val, tb)
+            traceback.print_tb(tb) 
+            traceback.print_exception(e_type, e_val, tb)
             tb_info = traceback.extract_tb(tb)
             filename, line, func, text = tb_info[-1]
             print('An error occurred on line {} in statement {} when parsing revision {}'.format(line, text, rev['rev_id']))
