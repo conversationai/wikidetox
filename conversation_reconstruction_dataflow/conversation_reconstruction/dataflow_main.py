@@ -71,16 +71,18 @@ class ReconstructConversation(beam.DoFn):
     logging.info('Read page_id: %s'%page_id)
 
     client = bigquery_op.Client(project='wikidetox-viz')
-    query = ("SELECT rev_id FROM %s WHERE page_id = \"%s\" ORDER BY timestamp"%(input_table, page_id))
+    query_content = "SELECT week, year FROM (SELECT WEEK(timestamp) as week, YEAR(timestamp) as year FROM %s WHERE page_id = \"%s\" ORDER BY timestamp) GROUP BY week, year"%(input_table, page_id)
+    query = query_content 
     query_job = client.run_sync_query(query)
     query_job.run()
     rev_ids = []
+    weeks = []
 
     for row in query_job.rows:
-        rev_ids.append(row[0])
-    logging.info('Retrieved revision list: %d revisions'%len(rev_ids))
+        weeks.append({'week': row[0], 'year': row[1]})
+    logging.info('Processing %d weeks of revisions from page %s'%(len(weeks), page_id))
 
-    construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_table, '--revisions', json.dumps(rev_ids)]
+    construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_table, '--weeks', json.dumps(weeks)]
     construct_proc = subprocess.Popen(construction_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 4096)
     last_revision = 'None'
    
@@ -118,7 +120,7 @@ if __name__ == '__main__':
   input_schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
   parser.add_argument('--input_table',
                       dest='input_table',
-                      default='wikidetox-viz:wikidetox_conversations.test_page_2_issue24',
+                      default='wikidetox-viz:wikidetox_conversations.test_page_4_issue66',
                       help='Input table for reconstruction.')
   parser.add_argument('--input_schema',
                       dest='input_schema',
@@ -128,7 +130,7 @@ if __name__ == '__main__':
   output_schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
   parser.add_argument('--output_table',
                       dest='output_table',
-                      default='wikidetox-viz:wikidetox_conversations.reconstructed_test_page_2',
+                      default='wikidetox-viz:wikidetox_conversations.reconstructed_test_page_4',
                       help='Output table for reconstruction.')
   output_schema = 'user_id:STRING,user_text:STRING, timestamp:STRING, content:STRING, parent_id:STRING, replyTo_id:STRING, indentation:INTEGER,page_id:STRING,page_title:STRING,type:STRING, id:STRING,rev_id:STRING'  
   parser.add_argument('--output_schema',
