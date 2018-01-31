@@ -26,6 +26,7 @@ Find testdata in construct_utils/testdata
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import unittest
 import json
@@ -46,10 +47,10 @@ class TestWikiConstructor(unittest.TestCase):
     input_file = path.join('construct_utils', 'testdata', 'test_revisions_list.json')
     with open(input_file) as f:
          input_data = json.load(f)
-    point = 0
-    input_data['revisions'] = input_data['revisions'][:point+1]
-    construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_data['table'], '--revisions', json.dumps(input_data['revisions'])]
-    construct_proc = subprocess.Popen(construction_cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 4096)
+    input_data['weeks'] = input_data['weeks']
+    construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_data['table'], '--weeks', json.dumps(input_data['weeks'])]
+    construct_proc = subprocess.Popen(construction_cmd)#, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 4096)
+"""
     for i, line in enumerate(construct_proc.stdout):
         print(line)
         try:
@@ -59,7 +60,7 @@ class TestWikiConstructor(unittest.TestCase):
            print(line)
     for i, line in enumerate(construct_proc.stderr):
         print(line)
-
+"""
 
 if __name__ == '__main__':
   unittest.main()
