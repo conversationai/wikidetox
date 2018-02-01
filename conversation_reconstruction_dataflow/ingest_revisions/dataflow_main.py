@@ -49,7 +49,7 @@ from apache_beam.pipeline import AppliedPTransform
 from apache_beam.io.gcp import bigquery #WriteToBigQuery
 
 THERESHOLD = 10385760 
-LOGGING_THERESHOLD = 50
+LOGGING_THERESHOLD = 5000
 my_timeout = 15 * 60 * 60 # 15 hours timeout
 
 def run(known_args, pipeline_args):
@@ -61,7 +61,7 @@ def run(known_args, pipeline_args):
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
     '--job_name=ingest-job-truncated-content-run-in-batch',
-    '--num_workers=90',
+    '--num_workers=50',
   ])
 
   pipeline_options = PipelineOptions(pipeline_args)
