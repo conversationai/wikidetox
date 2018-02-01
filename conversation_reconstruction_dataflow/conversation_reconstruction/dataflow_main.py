@@ -48,7 +48,7 @@ def run(known_args, pipeline_args):
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
     '--job_name=reconstruction-test',
-    '--num_workers=30',
+    '--num_workers=5',
     '--extra_package=third_party/mwparserfromhell.tar.gz'
   ])
 
@@ -118,11 +118,11 @@ if __name__ == '__main__':
   # Input BigQuery Table
   parser.add_argument('--upper',
                       dest='page_id_upper_bound',
-                      default='1000000',
+                      default='40932797',
                       help='upper bound of the page id you want to process')
   parser.add_argument('--lower',
                       dest='page_id_lower_bound',
-                      default='0',
+                      default='40932796',
                       help='lower bound of the page id you want to process')
   # Ouput BigQuery Table
   output_schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
@@ -139,6 +139,7 @@ if __name__ == '__main__':
   known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_%sto%s'%(known_args.page_id_lower_bound, known_args.page_id_upper_bound)
 
   run(known_args, pipeline_args)
+
 
 
 
