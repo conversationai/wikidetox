@@ -2,6 +2,7 @@ README.rst
 setup.py
 construct_utils/__init__.py
 construct_utils/conversation_constructor.py
+construct_utils/conversation_display.py
 construct_utils/run_constructor.py
 construct_utils.egg-info/PKG-INFO
 construct_utils.egg-info/SOURCES.txt

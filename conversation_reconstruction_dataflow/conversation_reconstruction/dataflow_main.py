@@ -58,17 +58,16 @@ def run(known_args, pipeline_args):
   with beam.Pipeline(options=pipeline_options) as p:
 
     # Read the text file[pattern] into a PCollection.
-    filenames = (p | beam.io.Read(beam.io.BigQuerySource(query='SELECT UNIQUE(page_id) as page_id FROM [%s]'%known_args.input_table, validate=True)) 
+    filenames = (p | beam.io.Read(beam.io.BigQuerySource(query='SELECT page_id as page_id FROM [wikidetox-viz:wikidetox_conversations.page_id_list] WHERE page_id < \"%s\" and page_id >= \"%s\" '%(known_args.page_id_upper_bound, known_args.page_id_lower_bound), validate=True)) 
                    | beam.ParDo(ReconstructConversation())
                    | beam.io.Write(bigquery_io.BigQuerySink(known_args.output_table, schema=known_args.output_schema, validate=True)))
 
 class ReconstructConversation(beam.DoFn):
   def process(self, row):
 
-    input_table = known_args.input_table[14:] 
-    logging.info('USERLOG: Work start')
+    input_table = 'wikidetox_conversations.ingested' 
     page_id = row['page_id']
-    logging.info('Read page_id: %s'%page_id)
+    logging.info('USERLOG: Work start on page: %s'%page_id)
 
     client = bigquery_op.Client(project='wikidetox-viz')
     query_content = "SELECT week, year FROM (SELECT WEEK(timestamp) as week, YEAR(timestamp) as year FROM %s WHERE page_id = \"%s\" ORDER BY timestamp) GROUP BY week, year"%(input_table, page_id)
@@ -117,28 +116,27 @@ if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
   parser = argparse.ArgumentParser()
   # Input BigQuery Table
-  input_schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
-  parser.add_argument('--input_table',
-                      dest='input_table',
-                      default='wikidetox-viz:wikidetox_conversations.test_page_4_issue66',
-                      help='Input table for reconstruction.')
-  parser.add_argument('--input_schema',
-                      dest='input_schema',
-                      default=input_schema,
-                      help='Input table schema.')
+  parser.add_argument('--upper',
+                      dest='page_id_upper_bound',
+                      default='1000000',
+                      help='upper bound of the page id you want to process')
+  parser.add_argument('--lower',
+                      dest='page_id_lower_bound',
+                      default='0',
+                      help='lower bound of the page id you want to process')
   # Ouput BigQuery Table
   output_schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
   parser.add_argument('--output_table',
                       dest='output_table',
-                      default='wikidetox-viz:wikidetox_conversations.reconstructed_test_page_4',
+                      default='wikidetox-viz:wikidetox_conversations.reconstructed',
                       help='Output table for reconstruction.')
-  output_schema = 'user_id:STRING,user_text:STRING, timestamp:STRING, content:STRING, parent_id:STRING, replyTo_id:STRING, indentation:INTEGER,page_id:STRING,page_title:STRING,type:STRING, id:STRING,rev_id:STRING'  
+  output_schema = 'user_id:STRING,user_text:STRING, timestamp:STRING, content:STRING, parent_id:STRING, replyTo_id:STRING, indentation:INTEGER,page_id:STRING,page_title:STRING,type:STRING, id:STRING,rev_id:STRING,conversation_id:STRING, authors:STRING'  
   parser.add_argument('--output_schema',
                       dest='output_schema',
                       default=output_schema,
                       help='Output table schema.')
-  global known_args
   known_args, pipeline_args = parser.parse_known_args()
+  known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_%sto%s'%(known_args.page_id_lower_bound, known_args.page_id_upper_bound)
 
   run(known_args, pipeline_args)
 

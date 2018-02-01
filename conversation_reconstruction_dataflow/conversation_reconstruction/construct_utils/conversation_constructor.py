@@ -225,6 +225,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
            assert not(val == (-1, -1)) 
     assert updated_page['actions'][eof] == (-1, -1)
     
+    updated_actions = sorted(updated_actions, key = lambda k: int(k['id'].split('.')[1]))
     return updated_actions, updated_page
 
 
@@ -232,6 +233,8 @@ class Conversation_Constructor:
     def __init__(self):
         self.page = {}
         self.THERESHOLD = 10 # A comment with at least THERESHOLD number of tokens will be recorded 
+        self.conversation_ids = {}
+        self.authorship = {}
         self.latest_content = ""
         self.NOT_EXISTED = True
            
@@ -286,6 +289,22 @@ class Conversation_Constructor:
 
         self.page = updated_page
         for action in actions:
+            if action['type'] == 'COMMENT_MODIFICATION':
+               self.authorship[action['id']] = self.authorship[action['parent_id']].add(action['user_text'])
+            else:
+               self.authorship[action['id']] = set([action['user_text']])
+            if action['type'] == 'COMMENT_ADDING' or action['type'] == 'COMMENT_MODIFICATION' \
+               or action['type'] == 'SECTION_CREATION':
+               if action['replyTo_id'] == None:
+                  self.conversation_ids[action['id']] = action['id']
+               else:
+                  self.conversation_ids[action['id']] = self.conversation_ids[action['replyTo_id']]
+            if action['type'] == 'COMMENT_REMOVAL':
+               self.conversation_ids[action['id']] = self.conversation_ids[action['parent_id']]
+            if action['type'] == 'COMMENT_RESTORATION':
+               self.conversation_ids[action['id']] = self.conversation_ids[action['parent_id']]
+            action['conversation_id'] = self.conversation_ids[action['id']]
+            action['authors'] = json.dumps(self.authorship[action['id']])
             action['page_id'] = rev['page_id']
             action['page_title'] = rev['page_title'] 
             if action['type'] == 'COMMENT_REMOVAL' and len(action['content']) > self.THERESHOLD:
