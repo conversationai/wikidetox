@@ -28,7 +28,13 @@ TRAIN_PERCENT = .8 # Percent of data to allocate to training
 MAX_DOCUMENT_LENGTH = 500 # Max length of each comment in words
 
 # Model Params
-EMBEDDING_SIZE = 50 # Size of learned  word embedding
+EMBEDDING_SIZE = 20 # Size of learned word embedding
+N_FILTERS = 10
+WINDOW_SIZE = 20
+FILTER_SHAPE1 = [WINDOW_SIZE, EMBEDDING_SIZE]
+FILTER_SHAPE2 = [WINDOW_SIZE, N_FILTERS]
+POOLING_WINDOW = 4
+POOLING_STRIDE = 2
 WORDS_FEATURE = 'words' # Name of the input words feature.
 MODEL_LIST = ['bag_of_words']
 
@@ -112,9 +118,9 @@ class WikiData:
       * seed (integer): a seed to use to split the data in a reproducible way
 
     Returns:
-      x_train (dataframe): the features for the training data
+      x_train (dataframe): a pandas series with the text from each train example
       y_train (dataframe): the 0 or 1 labels for the training data
-      x_test (dataframe):  the features for the test data
+      x_test (dataframe):  a pandas series with the text from each test example
       y_test (dataframe):  the 0 or 1 labels for the test data
     """
 
@@ -208,6 +214,59 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
     export_outputs=export_outputs
   )
 
+def cnn_model(features, labels, mode):
+  """
+  A 2 layer ConvNet to predict from sequence of words to a class.
+
+  Largely stolen from:
+  https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/learn/text_classification_cnn.py
+
+  Returns a tf.estimator.EstimatorSpec.
+  """
+  # Convert indexes of words into embeddings.
+  # This creates embeddings matrix of [n_words, EMBEDDING_SIZE] and then
+  # maps word indexes of the sequence into [batch_size, sequence_length,
+  # EMBEDDING_SIZE].
+  word_vectors = tf.contrib.layers.embed_sequence(
+      features[WORDS_FEATURE], vocab_size=n_words, embed_dim=EMBEDDING_SIZE)
+
+  # Inserts a dimension of 1 into a tensor's shape.
+  word_vectors = tf.expand_dims(word_vectors, 3)
+
+  with tf.variable_scope('CNN_Layer1'):
+    # Apply Convolution filtering on input sequence.
+    conv1 = tf.layers.conv2d(
+        word_vectors,
+        filters=N_FILTERS,
+        kernel_size=FILTER_SHAPE1,
+        padding='VALID',
+        # Add a ReLU for non linearity.
+        activation=tf.nn.relu)
+    # Max pooling across output of Convolution+Relu.
+    pool1 = tf.layers.max_pooling2d(
+        conv1,
+        pool_size=POOLING_WINDOW,
+        strides=POOLING_STRIDE,
+        padding='SAME')
+    # Transpose matrix so that n_filters from convolution becomes width.
+    pool1 = tf.transpose(pool1, [0, 1, 3, 2])
+  with tf.variable_scope('CNN_Layer2'):
+    # Second level of convolution filtering.
+    conv2 = tf.layers.conv2d(
+        pool1,
+        filters=N_FILTERS,
+        kernel_size=FILTER_SHAPE2,
+        padding='VALID')
+    # Max across each filter to get useful features for classification.
+    pool2 = tf.squeeze(tf.reduce_max(conv2, 1), squeeze_dims=[1])
+
+  # Apply regular WX + B and classification.
+  logits = tf.layers.dense(pool2, MAX_LABEL, activation=None)
+  predicted_classes = tf.argmax(logits, 1)
+
+  return estimator_spec_for_softmax_classification(
+    logits=logits, labels=labels, mode=mode)
+
 def bag_of_words_model(features, labels, mode):
   """
   A bag-of-words model using a learned word embedding. Note it disregards the
@@ -263,6 +322,8 @@ def main():
       # assumes 0-based count and uses -1 for missing word.
       data.x_train = data.x_train - 1
       data.x_test = data.x_test - 1
+    elif FLAGS.model == 'cnn':
+      model_fn = cnn_model
     else:
       tf.logging.error("Unknown specified model '{}', must be one of {}"
                        .format(FLAGS.model, MODEL_LIST))
