@@ -52,15 +52,20 @@ def run(weeks, table):
   client = bigquery_op.Client(project='wikidetox-viz')
   processor = Conversation_Constructor()
   for ind, week in enumerate(weeks):
-      query = ("select * from %s where WEEK(timestamp)=%d and YEAR(timestamp)=%s order by timestamp"%(table, int(week['week']), int(week['year'])))
+      query = ("select * from %s where WEEK(timestamp)=%d and YEAR(timestamp)=%s order by timestamp, record_index"%(table, int(week['week']), int(week['year'])))
       ret = client.run_sync_query(query)
       ret.run()
       revision = {}
       for row in ret.rows:
-          revision = QueryResult2json(row)
-          actions = processor.process(revision, DEBUGGING_MODE = False)
-          for action in actions:
-              print(json.dumps(action))
+          cur_revision = QueryResult2json(row)
+          if cur_revision['record_index'] == 1: 
+             revision = cur_revision
+          else:
+             revision['text'] += cur_revision['text']
+          if cur_revision['record_index'] == cur_revision['record_count']:
+             actions = processor.process(revision, DEBUGGING_MODE = False)
+             for action in actions:
+                 print(json.dumps(action))
   return processor.page
 
 if __name__ == '__main__':
