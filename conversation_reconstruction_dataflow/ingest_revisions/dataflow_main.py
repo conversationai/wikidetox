@@ -48,7 +48,8 @@ from apache_beam.io import WriteToText
 from apache_beam.pipeline import AppliedPTransform
 from apache_beam.io.gcp import bigquery #WriteToBigQuery
 
-THERESHOLD = 10485760 
+THERESHOLD = 10385760 
+LOGGING_THERESHOLD = 50
 my_timeout = 15 * 60 * 60 # 15 hours timeout
 
 def run(known_args, pipeline_args):
@@ -145,6 +146,8 @@ class WriteDecompressedFile(beam.DoFn):
       ret = truncate_content(line)
       for r in ret:
           yield r
+      if i % LOGGING_THERESHOLD == 0:
+         logging.info('USERLOG: %d revisions ingested.'%i) 
       if len(ret) > 1:
          logging.info('USERLOG: File %s contains large row, rowsize %d, being truncated to %d pieces' % (chunk_name, sys.getsizeof(line), len(ret)))
       maxsize = max(maxsize, sys.getsizeof(line))
