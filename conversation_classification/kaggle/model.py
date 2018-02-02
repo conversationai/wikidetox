@@ -297,8 +297,6 @@ def main():
       [(p['classes'], p['probs'][1]) for p in predicted_test],
       columns=['y_predicted', 'prob']
     )
-    test_out['comment_text'] = data.x_train_text
-    test_out['y_true'] = data.y_test
 
     # Score with sklearn and TensorFlow
     sklearn_score = metrics.accuracy_score(data.y_test, test_out['y_predicted'])
