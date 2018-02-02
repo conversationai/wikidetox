@@ -37,7 +37,7 @@ from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.io.gcp import bigquery as bigquery_io 
 
-LOG_INTERVAL = 5
+LOG_INTERVAL = 1000
 
 def run(known_args, pipeline_args):
   """Main entry point; defines and runs the reconstruction pipeline."""
@@ -58,7 +58,7 @@ def run(known_args, pipeline_args):
   with beam.Pipeline(options=pipeline_options) as p:
 
     # Read the text file[pattern] into a PCollection.
-    filenames = (p | beam.io.Read(beam.io.BigQuerySource(query='SELECT page_id as page_id FROM [wikidetox-viz:wikidetox_conversations.page_id_list] WHERE page_id < \"%s\" and page_id >= \"%s\" '%(known_args.page_id_upper_bound, known_args.page_id_lower_bound), validate=True)) 
+    filenames = (p | beam.io.Read(beam.io.BigQuerySource(query='SELECT page_id as page_id FROM [wikidetox-viz:wikidetox_conversations.sampled_pages] WHERE page_id < \"%s\" and page_id >= \"%s\" '%(known_args.page_id_upper_bound, known_args.page_id_lower_bound), validate=True)) 
                    | beam.ParDo(ReconstructConversation())
                    | beam.io.Write(bigquery_io.BigQuerySink(known_args.output_table, schema=known_args.output_schema, validate=True)))
 
@@ -70,7 +70,7 @@ class ReconstructConversation(beam.DoFn):
     logging.info('USERLOG: Work start on page: %s'%page_id)
 
     client = bigquery_op.Client(project='wikidetox-viz')
-    query_content = "SELECT week, year FROM (SELECT WEEK(timestamp) as week, YEAR(timestamp) as year FROM %s WHERE page_id = \"%s\" ORDER BY timestamp) GROUP BY week, year"%(input_table, page_id)
+    query_content = "SELECT week, year FROM %s WHERE page_id = \"%s\" GROUP BY week, year ORDER BY year, week"%(input_table, page_id)
     query = query_content 
     query_job = client.run_sync_query(query)
     query_job.run()
@@ -81,7 +81,7 @@ class ReconstructConversation(beam.DoFn):
         weeks.append({'week': row[0], 'year': row[1]})
     logging.info('Processing %d weeks of revisions from page %s'%(len(weeks), page_id))
 
-    construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_table, '--weeks', json.dumps(weeks)]
+    construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_table, '--weeks', json.dumps(weeks), '--page_id', page_id]
     construct_proc = subprocess.Popen(construction_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 4096)
     last_revision = 'None'
    
@@ -96,11 +96,14 @@ class ReconstructConversation(beam.DoFn):
            error_log += line + '\n'
            error_encountered = True
            continue
-        last_revision = output['rev_id']
-        if cnt % LOG_INTERVAL == 0:
-           logging.info('DEBUGGING INFO: %d revision(reivision id %s) on page %s output: %s'%(cnt, last_revision, page_id, line))
-        yield output
-        cnt += 1
+        if 'status check' in output:
+           logging.info('Processing revisions on page %s in week %s, year %s, number of revisions: %d'%(page_id, output['week'], output['year'], output['no_revisions']))
+        else:
+           last_revision = output['rev_id']
+           if cnt % LOG_INTERVAL == 0:
+              logging.info('DEBUGGING INFO: %d revision(reivision id %s) on page %s output: %s'%(cnt, last_revision, page_id, line))
+           yield output
+           cnt += 1
     if error_encountered:
        logging.info('USERLOG: Error while running the reconstruction process on page %s' % (page_id))
        logging.info('USERLOG: reconstruction process on page %s stopped at revision %s' % (page_id, last_revision))
@@ -118,11 +121,11 @@ if __name__ == '__main__':
   # Input BigQuery Table
   parser.add_argument('--upper',
                       dest='page_id_upper_bound',
-                      default='40932797',
+                      default='9999990',
                       help='upper bound of the page id you want to process')
   parser.add_argument('--lower',
                       dest='page_id_lower_bound',
-                      default='40932796',
+                      default='100',
                       help='lower bound of the page id you want to process')
   # Ouput BigQuery Table
   output_schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
