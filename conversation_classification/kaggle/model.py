@@ -188,8 +188,6 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
     'accuracy': tf.metrics.accuracy(
       labels=labels, predictions=predicted_classes),
     'auc': tf.metrics.auc(labels=labels, predictions=predicted_classes),
-    'mean_per_class_accuracy': tf.metrics.mean_per_class_accuracy(
-      labels=labels, predictions=predicted_classes, num_classes=MAX_LABEL),
     'true_negatives': tf.metrics.true_negatives(
       labels=labels, predictions=predicted_classes),
     'false_negatives': tf.metrics.false_negatives(
