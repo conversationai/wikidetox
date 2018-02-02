@@ -36,7 +36,7 @@ FILTER_SHAPE2 = [WINDOW_SIZE, N_FILTERS]
 POOLING_WINDOW = 4
 POOLING_STRIDE = 2
 WORDS_FEATURE = 'words' # Name of the input words feature.
-MODEL_LIST = ['bag_of_words']
+MODEL_LIST = ['bag_of_words', 'cnn'] # Possible models
 
 # Training Params
 TRAIN_SEED = 9812 # Random seed used to initialize training
