@@ -304,7 +304,7 @@ class Conversation_Constructor:
             if action['type'] == 'COMMENT_RESTORATION':
                self.conversation_ids[action['id']] = self.conversation_ids[action['parent_id']]
             action['conversation_id'] = self.conversation_ids[action['id']]
-            action['authors'] = json.dumps(self.authorship[action['id']])
+            action['authors'] = json.dumps(list(self.authorship[action['id']]))
             action['page_id'] = rev['page_id']
             action['page_title'] = rev['page_title'] 
             if action['type'] == 'COMMENT_REMOVAL' and len(action['content']) > self.THERESHOLD:
