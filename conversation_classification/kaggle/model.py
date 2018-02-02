@@ -384,7 +384,7 @@ def main():
     # Export the model
     feature_spec = {
       WORDS_FEATURE: tf.FixedLenFeature(
-        dtype=tf.int64, shape=[1, MAX_DOCUMENT_LENGTH])
+        dtype=tf.int64, shape=MAX_DOCUMENT_LENGTH)
     }
     serving_input_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(feature_spec)
     dir_path = 'saved_model'
