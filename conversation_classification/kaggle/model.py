@@ -63,7 +63,6 @@ class WikiData:
     # If test_mode is True, then put all the data in x_test and y_test
     if test_mode:
       train_percent = 0
-      seed = None
 
     # Split the data into test / train sets
     self.x_train_text, self.x_test_text, self.y_train, self.y_test \
