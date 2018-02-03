@@ -235,7 +235,10 @@ class Conversation_Constructor:
         self.THERESHOLD = 10 # A comment with at least THERESHOLD number of tokens will be recorded 
         self.conversation_ids = {}
         self.authorship = {}
+        self.deleted_comments = []
+        self.deleted_records = {}
         self.latest_content = ""
+        self.revids = []
         self.NOT_EXISTED = True
            
     def page_creation(self, rev):
@@ -258,11 +261,24 @@ class Conversation_Constructor:
            ret['tokens'] = b[x.b1:x.b2]
         if x.name == 'delete':
            ret['tokens'] = a[x.a1:x.a2]
+        return ret 
+   
+    def clean_dict(self, the_dict):
+        keylist = the_dict.keys()
+        ret = the_dict
+        alive_actions = set([action[0] for action in self.page['actions'].values()])
+        for action in keylist:
+            if not(action in alive_actions or action in self.deleted_records):
+               del ret[action]
         return ret
         
     def process(self, rev, DEBUGGING_MODE = False):
         if DEBUGGING_MODE:
            print('REVISION %s'%rev['rev_id'])
+        if not(self.revids == []):
+           print(rev['rev_id'])
+           assert(int(rev['rev_id']) > max(self.revids))
+        self.revids.append(int(rev['rev_id'])) 
         rev['text'] = clean(rev['text'])
         a = text_split.tokenize(self.latest_content)
         b = text_split.tokenize(rev['text']) 
@@ -276,29 +292,22 @@ class Conversation_Constructor:
             old_page = self.page
         self.latest_content = rev['text']
     
-        try:
-            actions, updated_page = insert(rev, old_page, self.previous_comments, DEBUGGING_MODE)
-        except:
-            e_type, e_val, tb = sys.exc_info()
-            traceback.print_tb(tb) 
-            traceback.print_exception(e_type, e_val, tb)
-            tb_info = traceback.extract_tb(tb)
-            filename, line, func, text = tb_info[-1]
-            print('An error occurred on line {} in statement {} when parsing revision {}'.format(line, text, rev['rev_id']))
-            return
-
+        actions, updated_page = insert(rev, old_page, self.previous_comments, DEBUGGING_MODE)
         self.page = updated_page
         for action in actions:
-            if action['type'] == 'COMMENT_MODIFICATION':
-               self.authorship[action['id']] = self.authorship[action['parent_id']].add(action['user_text'])
-            else:
-               self.authorship[action['id']] = set([action['user_text']])
             if action['type'] == 'COMMENT_ADDING' or action['type'] == 'COMMENT_MODIFICATION' \
                or action['type'] == 'SECTION_CREATION':
                if action['replyTo_id'] == None:
                   self.conversation_ids[action['id']] = action['id']
                else:
                   self.conversation_ids[action['id']] = self.conversation_ids[action['replyTo_id']]
+               if action['type'] == 'COMMENT_MODIFICATION':
+                  self.authorship[action['id']] = set(self.authorship[action['parent_id']])
+                  self.authorship[action['id']].add((action['user_id'], action['user_text']))
+               else:
+                  self.authorship[action['id']] = set([(action['user_id'], action['user_text'])])
+            else:
+               self.authorship[action['id']] = set(self.authorship[action['parent_id']])  
             if action['type'] == 'COMMENT_REMOVAL':
                self.conversation_ids[action['id']] = self.conversation_ids[action['parent_id']]
             if action['type'] == 'COMMENT_RESTORATION':
@@ -308,8 +317,18 @@ class Conversation_Constructor:
             action['page_id'] = rev['page_id']
             action['page_title'] = rev['page_title'] 
             if action['type'] == 'COMMENT_REMOVAL' and len(action['content']) > self.THERESHOLD:
+                self.deleted_comments.append((''.join(action['content']), action['parent_id'], action['indentation']))
+                self.deleted_records[action['parent_id']] = True
                 self.previous_comments.add(''.join(action['content']), (action['parent_id'], action['indentation']))
-        return actions
+        self.conversation_ids = self.clean_dict(self.conversation_ids)
+        self.authorship = self.clean_dict(self.authorship)
+        page_state = {'rev_id': int(rev['rev_id']), \
+                      'page_id': rev['page_id'], \
+                      'page_state': json.dumps(self.page), \
+                      'deleted_comments': json.dumps(self.deleted_comments), \
+                      'conversation_id': json.dumps(self.conversation_ids), \
+                      'authors': json.dumps({action_id: list(authors) for action_id, authors in self.authorship.items()})}
+        return page_state, actions
 
     def reinsert_deleted_comments(deleted_comments):  
        self.previous_comments = NoAho()

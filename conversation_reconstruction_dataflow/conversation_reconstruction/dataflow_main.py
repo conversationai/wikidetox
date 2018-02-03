@@ -36,6 +36,8 @@ import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.io.gcp import bigquery as bigquery_io 
+from construct_utils.conversation_constructor import Conversation_Constructor
+
 
 LOG_INTERVAL = 1000
 
@@ -43,7 +45,7 @@ def run(known_args, pipeline_args):
   """Main entry point; defines and runs the reconstruction pipeline."""
 
   pipeline_args.extend([
-    '--runner=DataflowRunner',
+    '--runner=DirectRunner',
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
@@ -55,62 +57,58 @@ def run(known_args, pipeline_args):
 
   pipeline_options = PipelineOptions(pipeline_args)
   pipeline_options.view_as(SetupOptions).save_main_session = True
+  
+  read_query = "SELECT *, INTEGER(rev_id) as rev_id_in_int FROM %s as ingested LEFT JOIN (SELECT ps_tmp.* FROM %s as ps_tmp INNER JOIN (SELECT MAX(rev_id) as max_rid, page_id FROM %s GROUP BY page_id) as tmp ON tmp.page_id == ps_tmp.page_id and ps_tmp.rev_id == tmp.max_rid) as page_state ON ingested.page_id == page_state.ps_tmp.page_id WHERE week==%d and year==%d ORDER BY rev_id_in_int"%(known_args.input_table, known_args.input_page_state_table,known_args.input_page_state_table,known_args.week, known_args.year)
+  logging.info(read_query)
   with beam.Pipeline(options=pipeline_options) as p:
 
     # Read the text file[pattern] into a PCollection.
-    filenames = (p | beam.io.Read(beam.io.BigQuerySource(query='SELECT page_id as page_id FROM [wikidetox-viz:wikidetox_conversations.sampled_pages] WHERE page_id < \"%s\" and page_id >= \"%s\" '%(known_args.page_id_upper_bound, known_args.page_id_lower_bound), validate=True)) 
-                   | beam.ParDo(ReconstructConversation())
-                   | beam.io.Write(bigquery_io.BigQuerySink(known_args.output_table, schema=known_args.output_schema, validate=True)))
+    reconstruction_results, page_states = (p | beam.io.Read(beam.io.BigQuerySource(query=read_query, validate=True)) 
+                   | beam.Map(lambda x: (x['page_id'], x))
+                   | beam.GroupByKey()
+                   | beam.ParDo(ReconstructConversation()).with_outputs('page_states', main = 'reconstruction_results'))
+    print(known_args.page_states_output_schema)
+    page_states | "WritePageStates" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.page_states_output_table, schema=known_args.page_states_output_schema, validate=True))
+    reconstruction_results | "WriteReconstructedResults" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.output_table, schema=known_args.output_schema, validate=True))
+
 
 class ReconstructConversation(beam.DoFn):
-  def process(self, row):
+  def QueryResult2json(self, query_res):
+      ret = {} 
+      for key, val in query_res.items():
+          if 'ingested_' in key:
+             ret[key[9:]] = val
+          if 'page_state_ps_tmp_' in key:
+             ret[key[18:]] = val
+      return ret
 
-    input_table = 'wikidetox_conversations.ingested' 
-    page_id = row['page_id']
-    logging.info('USERLOG: Work start on page: %s'%page_id)
-
-    client = bigquery_op.Client(project='wikidetox-viz')
-    query_content = "SELECT week, year FROM %s WHERE page_id = \"%s\" GROUP BY week, year ORDER BY year, week"%(input_table, page_id)
-    query = query_content 
-    query_job = client.run_sync_query(query)
-    query_job.run()
-    rev_ids = []
-    weeks = []
-
-    for row in query_job.rows:
-        weeks.append({'week': row[0], 'year': row[1]})
-    logging.info('Processing %d weeks of revisions from page %s'%(len(weeks), page_id))
-
-    construction_cmd = ['python2', '-m', 'construct_utils.run_constructor', '--table', input_table, '--weeks', json.dumps(weeks), '--page_id', page_id]
-    construct_proc = subprocess.Popen(construction_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 4096)
+  def process(self, pairs):
+    rows = pairs[1] 
+    page_id = pairs[0]
+    logging.info('USERLOG: Reconstruction work start on page: %s'%page_id)
+    revision = {}
+    processor = Conversation_Constructor()
     last_revision = 'None'
-   
-    cnt = 0 
-
     error_encountered = False
-    error_log = ""
-    for i, line in enumerate(construct_proc.stdout): 
-        try:
-           output = json.loads(line)
-        except:
-           error_log += line + '\n'
-           error_encountered = True
-           continue
-        if 'status check' in output:
-           logging.info('Processing revisions on page %s in week %s, year %s, number of revisions: %d'%(page_id, output['week'], output['year'], output['no_revisions']))
+    cnt = 0
+    last_page_state = None
+    for cur_revision in rows:
+        cur_revision = self.QueryResult2json(row)
+        if cur_revision['record_index'] == 0: 
+           revision = cur_revision
         else:
-           last_revision = output['rev_id']
-           if cnt % LOG_INTERVAL == 0:
-              logging.info('DEBUGGING INFO: %d revision(reivision id %s) on page %s output: %s'%(cnt, last_revision, page_id, line))
-           yield output
+           revision['text'] += cur_revision['text']
+        if cur_revision['record_index'] == cur_revision['records_count'] - 1:
            cnt += 1
-    if error_encountered:
-       logging.info('USERLOG: Error while running the reconstruction process on page %s' % (page_id))
-       logging.info('USERLOG: reconstruction process on page %s stopped at revision %s' % (page_id, last_revision))
-       logging.info('ERROR ENCOUNTERED: %s' %(error_log))
-       for i, line in enumerate(construct_proc.stderr):
-           logging.info('ERRORLOG: %s' % (line))
- 
+           page_state, actions = processor.process(revision, DEBUGGING_MODE = False)
+           last_revision = cur_revision['rev_id']
+           last_page_state = page_state 
+           for action in actions:
+               yield action
+           if cnt % LOG_INTERVAL == 0:
+              yield beam.pvalue.TaggedOutput('page_states', page_state)
+    if last_page_state:
+       yield beam.pvalue.TaggedOutput('page_states', last_page_state)
     if not(error_encountered):
        logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' %(page_id, last_revision))
 
@@ -119,30 +117,45 @@ if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
   parser = argparse.ArgumentParser()
   # Input BigQuery Table
-  parser.add_argument('--upper',
-                      dest='page_id_upper_bound',
-                      default='9999990',
-                      help='upper bound of the page id you want to process')
-  parser.add_argument('--lower',
-                      dest='page_id_lower_bound',
-                      default='100',
-                      help='lower bound of the page id you want to process')
+  parser.add_argument('--input_table',
+                      dest='input_table',
+                      default='wikidetox_conversations.sample_pages',
+                      help='Input table with ingested revisions.')
+  parser.add_argument('--input_page_states_table',
+                      dest='input_page_states_table',
+                      default='wikidetox_conversations.page_states',
+                      help='Input page states table from previous reconstruction process.')
+
+  parser.add_argument('--week',
+                      dest='week',
+                      default=6,
+                      help='The week of data you want to process')
+  parser.add_argument('--year',
+                      dest='year',
+                      default=2001,
+                      help='The year that the week is in')
   # Ouput BigQuery Table
-  output_schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
+  page_states_output_schema = 'rev_id:INTEGER, page_id:STRING, page_state:STRING, deleted_comments:STRING, conversation_id:STRING, authors:STRING'  
+  parser.add_argument('--page_states_output_table',
+                      dest='page_states_output_table',
+                      default='wikidetox-viz:wikidetox_conversations.new_page_states',
+                      help='Output page state table for reconstruction.')
+  parser.add_argument('--page_states_output_schema',
+                      dest='page_states_output_schema',
+                      default=page_states_output_schema,
+                      help='Page states output table schema.')
+
+  output_schema = 'user_id:STRING,user_text:STRING, timestamp:STRING, content:STRING, parent_id:STRING, replyTo_id:STRING, indentation:INTEGER,page_id:STRING,page_title:STRING,type:STRING, id:STRING,rev_id:STRING,conversation_id:STRING, authors:STRING'  
   parser.add_argument('--output_table',
                       dest='output_table',
                       default='wikidetox-viz:wikidetox_conversations.reconstructed',
-                      help='Output table for reconstruction.')
-  output_schema = 'user_id:STRING,user_text:STRING, timestamp:STRING, content:STRING, parent_id:STRING, replyTo_id:STRING, indentation:INTEGER,page_id:STRING,page_title:STRING,type:STRING, id:STRING,rev_id:STRING,conversation_id:STRING, authors:STRING'  
+                      help='Output result table for reconstruction.')
   parser.add_argument('--output_schema',
                       dest='output_schema',
                       default=output_schema,
                       help='Output table schema.')
   known_args, pipeline_args = parser.parse_known_args()
-  known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_%sto%s'%(known_args.page_id_lower_bound, known_args.page_id_upper_bound)
+  known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_at_week%d_year%d'%(known_args.week, known_args.year)
 
   run(known_args, pipeline_args)
-
-
-
 
