@@ -17,6 +17,7 @@ import tensorflow as tf
 import numpy as np
 from sklearn import metrics
 from sklearn.model_selection import train_test_split
+from collections import namedtuple
 
 FLAGS = None
 
@@ -27,14 +28,19 @@ DATA_SEED = 48173 # Random seed used for splitting the data into train/test
 TRAIN_PERCENT = .8 # Percent of data to allocate to training
 MAX_DOCUMENT_LENGTH = 500 # Max length of each comment in words
 
-# Model Params
-EMBEDDING_SIZE = 20 # Size of learned word embedding
-N_FILTERS = 10
-WINDOW_SIZE = 20
-FILTER_SHAPE1 = [WINDOW_SIZE, EMBEDDING_SIZE]
-FILTER_SHAPE2 = [WINDOW_SIZE, N_FILTERS]
-POOLING_WINDOW = 4
-POOLING_STRIDE = 2
+CNNParams = namedtuple(
+  'CNNParams', ['WINDOW_SIZE', 'EMBEDDING_SIZE','POOLING_WINDOW', 'POOLING_STRIDE',
+                'N_FILTERS', 'FILTER_SHAPE1', 'FILTER_SHAPE2'])
+cnn_values = {'WINDOW_SIZE':20, 'EMBEDDING_SIZE':20, 'POOLING_WINDOW':4,
+              'POOLING_STRIDE':2, 'N_FILTERS':10}
+cnn_values['FILTER_SHAPE1'] = [cnn_values['WINDOW_SIZE'], cnn_values['EMBEDDING_SIZE']]
+cnn_values['FILTER_SHAPE2'] = [cnn_values['WINDOW_SIZE'], cnn_values['N_FILTERS']]
+CNN_PARAMS = CNNParams(**cnn_values)
+
+BOWParams = namedtuple('BOWParams', ['EMBEDDING_SIZE'])
+BOW_PARAMS = BOWParams(EMBEDDING_SIZE = 20)
+
+
 WORDS_FEATURE = 'words' # Name of the input words feature.
 MODEL_LIST = ['bag_of_words', 'cnn'] # Possible models
 
@@ -228,7 +234,8 @@ def cnn_model(features, labels, mode):
   # maps word indexes of the sequence into [batch_size, sequence_length,
   # EMBEDDING_SIZE].
   word_vectors = tf.contrib.layers.embed_sequence(
-      features[WORDS_FEATURE], vocab_size=n_words, embed_dim=EMBEDDING_SIZE)
+      features[WORDS_FEATURE], vocab_size=n_words, embed_dim=
+    CNN_PARAMS.EMBEDDING_SIZE)
 
   # Inserts a dimension of 1 into a tensor's shape.
   word_vectors = tf.expand_dims(word_vectors, 3)
@@ -237,16 +244,16 @@ def cnn_model(features, labels, mode):
     # Apply Convolution filtering on input sequence.
     conv1 = tf.layers.conv2d(
         word_vectors,
-        filters=N_FILTERS,
-        kernel_size=FILTER_SHAPE1,
+        filters=CNN_PARAMS.N_FILTERS,
+        kernel_size=CNN_PARAMS.FILTER_SHAPE1,
         padding='VALID',
         # Add a ReLU for non linearity.
         activation=tf.nn.relu)
     # Max pooling across output of Convolution+Relu.
     pool1 = tf.layers.max_pooling2d(
         conv1,
-        pool_size=POOLING_WINDOW,
-        strides=POOLING_STRIDE,
+        pool_size=CNN_PARAMS.POOLING_WINDOW,
+        strides=CNN_PARAMS.POOLING_STRIDE,
         padding='SAME')
     # Transpose matrix so that n_filters from convolution becomes width.
     pool1 = tf.transpose(pool1, [0, 1, 3, 2])
@@ -254,8 +261,8 @@ def cnn_model(features, labels, mode):
     # Second level of convolution filtering.
     conv2 = tf.layers.conv2d(
         pool1,
-        filters=N_FILTERS,
-        kernel_size=FILTER_SHAPE2,
+        filters=CNN_PARAMS.N_FILTERS,
+        kernel_size=CNN_PARAMS.FILTER_SHAPE2,
         padding='VALID')
     # Max across each filter to get useful features for classification.
     pool2 = tf.squeeze(tf.reduce_max(conv2, 1), squeeze_dims=[1])
@@ -281,7 +288,7 @@ def bag_of_words_model(features, labels, mode):
   # The embedding values are initialized randomly, and are trained along with
   # all other model parameters to minimize the training loss.
   bow_embedding_column = tf.feature_column.embedding_column(
-      bow_column, dimension=EMBEDDING_SIZE)
+      bow_column, dimension=BOW_PARAMS.EMBEDDING_SIZE)
 
   bow = tf.feature_column.input_layer(
       features,
