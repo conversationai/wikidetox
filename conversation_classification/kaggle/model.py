@@ -47,10 +47,12 @@ class WikiData:
       * y_class (string): the class we're training or testing on
       * vocab_processor_path (string): if provided, the comment_text data will be
           processed with the vocab processor at that location. If not, a new
-          vocab_processor will be created using the training data.
+          vocab_processor will be created from the data.
       * test_mode (boolean): true if loading data just to test on, not training a model
       * seed (integer): a random seed to use for data splitting
       * train_percent (fload): the percent of data we should use for training data
+
+    Note: the vocab_processor_path should only be provided if test_mode is true.
     """
     data = self._load_data(data_path)
 
