@@ -387,7 +387,7 @@ def main():
         dtype=tf.int64, shape=MAX_DOCUMENT_LENGTH)
     }
     serving_input_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(feature_spec)
-    dir_path = 'saved_model'
+    dir_path = 'saved_models'
 
     classifier.export_savedmodel(dir_path, serving_input_fn)
 
