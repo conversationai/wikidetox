@@ -1,6 +1,6 @@
 """
-A basic Bag of Words classifier for the Toxic Comment Classification Kaggle
-challenge, https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge
+Classifiers for the Toxic Comment Classification Kaggle challenge,
+https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge
 
 To Run:
 
