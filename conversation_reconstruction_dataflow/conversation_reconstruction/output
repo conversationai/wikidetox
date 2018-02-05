@@ -1,0 +1,71 @@
+running sdist
+running egg_info
+writing requirements to construct_utils.egg-info/requires.txt
+writing construct_utils.egg-info/PKG-INFO
+writing top-level names to construct_utils.egg-info/top_level.txt
+writing dependency_links to construct_utils.egg-info/dependency_links.txt
+reading manifest file 'construct_utils.egg-info/SOURCES.txt'
+writing manifest file 'construct_utils.egg-info/SOURCES.txt'
+running check
+creating construct_utils-0.0.1
+creating construct_utils-0.0.1/construct_utils
+creating construct_utils-0.0.1/construct_utils.egg-info
+creating construct_utils-0.0.1/construct_utils/utils
+creating construct_utils-0.0.1/construct_utils/utils/third_party
+creating construct_utils-0.0.1/construct_utils/utils/third_party/deltas
+creating construct_utils-0.0.1/construct_utils/utils/third_party/deltas/algorithms
+creating construct_utils-0.0.1/construct_utils/utils/third_party/deltas/algorithms/tests
+creating construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tests
+creating construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tokenizers
+creating construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tokenizers/tests
+copying files to construct_utils-0.0.1...
+copying README.rst -> construct_utils-0.0.1
+copying setup.py -> construct_utils-0.0.1
+copying construct_utils/__init__.py -> construct_utils-0.0.1/construct_utils
+copying construct_utils/conversation_constructor.py -> construct_utils-0.0.1/construct_utils
+copying construct_utils/conversation_display.py -> construct_utils-0.0.1/construct_utils
+copying construct_utils/run_constructor.py -> construct_utils-0.0.1/construct_utils
+copying construct_utils.egg-info/PKG-INFO -> construct_utils-0.0.1/construct_utils.egg-info
+copying construct_utils.egg-info/SOURCES.txt -> construct_utils-0.0.1/construct_utils.egg-info
+copying construct_utils.egg-info/dependency_links.txt -> construct_utils-0.0.1/construct_utils.egg-info
+copying construct_utils.egg-info/requires.txt -> construct_utils-0.0.1/construct_utils.egg-info
+copying construct_utils.egg-info/top_level.txt -> construct_utils-0.0.1/construct_utils.egg-info
+copying construct_utils/utils/__init__.py -> construct_utils-0.0.1/construct_utils/utils
+copying construct_utils/utils/actions.py -> construct_utils-0.0.1/construct_utils/utils
+copying construct_utils/utils/diff.py -> construct_utils-0.0.1/construct_utils/utils
+copying construct_utils/utils/insert_utils.py -> construct_utils-0.0.1/construct_utils/utils
+copying construct_utils/utils/test.py -> construct_utils-0.0.1/construct_utils/utils
+copying construct_utils/utils/third_party/__init__.py -> construct_utils-0.0.1/construct_utils/utils/third_party
+copying construct_utils/utils/third_party/rev_clean.py -> construct_utils-0.0.1/construct_utils/utils/third_party
+copying construct_utils/utils/third_party/deltas/__init__.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas
+copying construct_utils/utils/third_party/deltas/about.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas
+copying construct_utils/utils/third_party/deltas/apply.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas
+copying construct_utils/utils/third_party/deltas/operations.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas
+copying construct_utils/utils/third_party/deltas/util.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas
+copying construct_utils/utils/third_party/deltas/algorithms/__init__.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/algorithms
+copying construct_utils/utils/third_party/deltas/algorithms/diff_engine.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/algorithms
+copying construct_utils/utils/third_party/deltas/algorithms/sequence_matcher.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/algorithms
+copying construct_utils/utils/third_party/deltas/algorithms/tests/__init__.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/algorithms/tests
+copying construct_utils/utils/third_party/deltas/algorithms/tests/test_from_config.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/algorithms/tests
+copying construct_utils/utils/third_party/deltas/algorithms/tests/test_segment_matcher.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/algorithms/tests
+copying construct_utils/utils/third_party/deltas/algorithms/tests/test_sequence_matcher.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/algorithms/tests
+copying construct_utils/utils/third_party/deltas/tests/__init__.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tests
+copying construct_utils/utils/third_party/deltas/tests/diff_and_replay.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tests
+copying construct_utils/utils/third_party/deltas/tests/diff_sequence.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tests
+copying construct_utils/utils/third_party/deltas/tests/test_apply.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tests
+copying construct_utils/utils/third_party/deltas/tests/test_util.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tests
+copying construct_utils/utils/third_party/deltas/tokenizers/__init__.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tokenizers
+copying construct_utils/utils/third_party/deltas/tokenizers/text_split.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tokenizers
+copying construct_utils/utils/third_party/deltas/tokenizers/token.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tokenizers
+copying construct_utils/utils/third_party/deltas/tokenizers/tokenizer.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tokenizers
+copying construct_utils/utils/third_party/deltas/tokenizers/wikitext_split.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tokenizers
+copying construct_utils/utils/third_party/deltas/tokenizers/tests/__init__.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tokenizers/tests
+copying construct_utils/utils/third_party/deltas/tokenizers/tests/test_text_split.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tokenizers/tests
+copying construct_utils/utils/third_party/deltas/tokenizers/tests/test_wikitext_split.py -> construct_utils-0.0.1/construct_utils/utils/third_party/deltas/tokenizers/tests
+Writing construct_utils-0.0.1/setup.cfg
+Creating tar archive
+removing 'construct_utils-0.0.1' (and everything under it)
+Collecting google-cloud-dataflow==2.1.0
+  Using cached google-cloud-dataflow-2.1.0.tar.gz
+  Saved /tmp/tmpDMoNH8/google-cloud-dataflow-2.1.0.tar.gz
+Successfully downloaded google-cloud-dataflow
