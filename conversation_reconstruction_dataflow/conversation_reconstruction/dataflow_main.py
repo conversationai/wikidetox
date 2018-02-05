@@ -53,8 +53,6 @@ def run(known_args, pipeline_args):
     '--num_workers=5',
     '--extra_package=third_party/mwparserfromhell.tar.gz'
   ])
-
-
   pipeline_options = PipelineOptions(pipeline_args)
   pipeline_options.view_as(SetupOptions).save_main_session = True
   renaming = "latest.rev_id_in_int as rev_id_in_int, latest.week as week, latest.year as year, latest.sha1 as sha1, latest.user_id as user_id, latest.format as format, latest.user_text as user_text, latest.timestamp as timestamp, latest.text as text, latest.page_title as page_title, latest.model as model, latest.page_namespace as page_namespace, latest.page_id as page_id, latest.rev_id as rev_id, latest.comment as comment, latest.user_ip as user_ip, latest.truncated as truncated, latest.records_count as records_count, latest.record_index as record_index"
@@ -67,7 +65,7 @@ def run(known_args, pipeline_args):
 
     # Read the text file[pattern] into a PCollection.
     reconstruction_results, page_states = (p | beam.io.Read(beam.io.BigQuerySource(query=read_query, validate=True)) 
-                   | beam.Map(lambda x: (x['ingested_page_id'], x))
+                   | beam.Map(lambda x: (x['page_id'], x))#(x['ingested_page_id'], x))
                    | beam.GroupByKey()
                    | beam.ParDo(ReconstructConversation()).with_outputs('page_states', main = 'reconstruction_results'))
     page_states | "WritePageStates" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.page_states_output_table, schema=known_args.page_states_output_schema, write_disposition='WRITE_APPEND', validate=True))
@@ -80,8 +78,10 @@ class ReconstructConversation(beam.DoFn):
       for key, val in query_res.items():
           if 'ingested_' in key:
              ret[key[9:]] = val
-          if 'page_state_ps_tmp_' in key:
+          elif 'page_state_ps_tmp_' in key:
              ret[key[18:]] = val
+          else:
+             ret[key] = val
       return ret
 
   def process(self, pairs):
@@ -106,8 +106,9 @@ class ReconstructConversation(beam.DoFn):
            if first_time:
               first_time = False
               if cur_revision['page_state']:
+                 logging.info('Page %s existed: loading page state, last revision: %s'%(cur_revision['page_id'], cur_revision['rev_id'])) 
                  processor.load(cur_revision['page_state'], cur_revision['deleted_comments'], cur_revision['conversation_id'], cur_revision['authors'], cur_revision['text'])
-              continue
+                 continue
            cnt += 1
            page_state, actions = processor.process(revision, DEBUGGING_MODE = False)
            last_revision = cur_revision['rev_id']
@@ -128,7 +129,7 @@ if __name__ == '__main__':
   # Input BigQuery Table
   parser.add_argument('--input_table',
                       dest='input_table',
-                      default='wikidetox_conversations.sample_page',
+                      default='wikidetox_conversations.ingested_all',
                       help='Input table with ingested revisions.')
   parser.add_argument('--input_page_state_table',
                       dest='input_page_state_table',
@@ -137,7 +138,7 @@ if __name__ == '__main__':
 
   parser.add_argument('--week',
                       dest='week',
-                      default=6,
+                      default=5,
                       help='The week of data you want to process')
   parser.add_argument('--year',
                       dest='year',
@@ -164,6 +165,10 @@ if __name__ == '__main__':
                       default=output_schema,
                       help='Output table schema.')
   known_args, pipeline_args = parser.parse_known_args()
+  known_args.week = int(known_args.week)
+  known_args.year = int(known_args.year)
+
+
   known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_at_week%d_year%d'%(known_args.week, known_args.year)
 
   run(known_args, pipeline_args)

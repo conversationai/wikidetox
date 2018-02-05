@@ -1,4 +1,4 @@
-README.rst
+README.md
 setup.py
 construct_utils/__init__.py
 construct_utils/conversation_constructor.py
