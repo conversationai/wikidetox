@@ -39,6 +39,7 @@ import xml.sax
 from ingest_utils import wikipedia_revisions_ingester as wiki_ingester
 import math
 import os
+import time
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
@@ -137,6 +138,7 @@ class WriteDecompressedFile(beam.DoFn):
     cnt = 0
     maxsize = 0
     last_revision = 'None'
+    last_completed = time.time()
     for i, line in enumerate(ingest_proc.stdout):
       try:
          content = json.loads(line) 
@@ -147,7 +149,8 @@ class WriteDecompressedFile(beam.DoFn):
       for r in ret:
           yield r
       if i % LOGGING_THERESHOLD == 0:
-         logging.info('USERLOG: %d revisions ingested.'%i) 
+         logging.info('USERLOG: %d revisions on %s ingested, %d seconds on ingestion.'%(i, chunk_name, time.time() - last_completed)) 
+         last_completed = time.time()
       if len(ret) > 1:
          logging.info('USERLOG: File %s contains large row, rowsize %d, being truncated to %d pieces' % (chunk_name, sys.getsizeof(line), len(ret)))
       maxsize = max(maxsize, sys.getsizeof(line))
