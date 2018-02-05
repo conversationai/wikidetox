@@ -65,7 +65,7 @@ def run(known_args, pipeline_args):
 
     # Read the text file[pattern] into a PCollection.
     reconstruction_results, page_states = (p | beam.io.Read(beam.io.BigQuerySource(query=read_query, validate=True)) 
-                   | beam.Map(lambda x: (x['page_id'], x))#(x['ingested_page_id'], x))
+                   | beam.Map(lambda x: (x['ingested_page_id'], x))
                    | beam.GroupByKey()
                    | beam.ParDo(ReconstructConversation()).with_outputs('page_states', main = 'reconstruction_results'))
     page_states | "WritePageStates" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.page_states_output_table, schema=known_args.page_states_output_schema, write_disposition='WRITE_APPEND', validate=True))
