@@ -11,3 +11,7 @@ The code will read from a join of the following two tables:
 The workflow can be seen in the following picture:
 
 ![conversation_construction_workflow](docs/workflow.png)
+
+# Output Sample
+- [Reconstructed result](https://bigquery.cloud.google.com/table/wikidetox-viz:wikidetox_conversations.reconstructed_at_week5_year2001?pli=1&tab=preview)
+- [Existed Page States](https://bigquery.cloud.google.com/table/wikidetox-viz:wikidetox_conversations.page_states?pli=1)
