@@ -253,16 +253,16 @@ class Conversation_Constructor:
     def load(self, page_state, deleted_comments, conversation_ids, authorship, latest_content):
         self.page = json.loads(page_state)
         self.conversation_ids = json.loads(conversation_ids) 
-        self.authorship = {action: set(x) for action, x in json.loads(authorship).items()}
+        self.authorship = {action: set([tuple(p) for p in x]) for action, x in json.loads(authorship).items()}
         self.deleted_comments = []
         self.deleted_records = {}
         self.latest_content = latest_content
         self.previous_comments = NoAho()
-        for pair in deleted_comments:
-            self.previous_comments.add(pair[0], pair[1])
-            self.deleted_records[pair[1][0]] = True
+        for pair in json.loads(deleted_comments):
+            self.previous_comments.add(pair[0], (pair[1], pair[2]))
+            self.deleted_records[pair[1]] = True
         self.NOT_EXISTED = False 
-        return page        
+        return 
 
 
 
