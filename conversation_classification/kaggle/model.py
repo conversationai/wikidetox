@@ -5,19 +5,17 @@ challenge, https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challeng
 To Run:
 
 python model.py --train_data=train.csv --predict_data=test.csv --y_class=toxic
-
-Output:
-  * writes predictions on heldout test data to TEST_OUT_PATH
-  * writes predictions on unlabled predict data to PREDICT_OUT_PATH
 """
 
 import argparse
+import os
 import sys
+import shutil
 
 import pandas as pd
 import tensorflow as tf
 import numpy as np
-import sklearn as sk
+from sklearn import metrics
 from sklearn.model_selection import train_test_split
 
 FLAGS = None
@@ -36,38 +34,87 @@ MODEL_LIST = ['bag_of_words']
 
 # Training Params
 TRAIN_SEED = 9812 # Random seed used to initialize training
-TRAIN_STEPS = 1000 # Number of steps to take while training
 LEARNING_RATE = 0.01
 BATCH_SIZE = 120
 
-# Output Params
-TEST_OUT_PATH = 'test_out.csv' # Where to write results on heldout data
-PREDICT_OUT_PATH = 'predict_out.csv' # Where to write results on unlabled data
-
 class WikiData:
 
-  def __init__(self, path):
-    self.data = self._load_data(path)
-    self.data['comment_text'] = self.data['comment_text'].astype(str)
+  def __init__(self, data_path, y_class, vocab_processor_path=None,
+               test_mode=False, seed=None, train_percent=None):
+    """
+    Args:
+      * data_path (string): path to file containing train or test data
+      * y_class (string): the class we're training or testing on
+      * vocab_processor_path (string): if provided, the comment_text data will be
+          processed with the vocab processor at that location. If not, a new
+          vocab_processor will be created from the data.
+      * test_mode (boolean): true if loading data just to test on, not training a model
+      * seed (integer): a random seed to use for data splitting
+      * train_percent (fload): the percent of data we should use for training data
+
+    Note: the vocab_processor_path should only be provided if test_mode is true.
+    """
+    data = self._load_data(data_path)
+
+    self.x_train, self.x_train_text = None, None
+    self.x_test, self.x_test_text = None, None
+    self.y_train = None
+    self.y_test = None
+    self.vocab_processor = None
+
+    # If test_mode is True, then put all the data in x_test and y_test
+    if test_mode:
+      train_percent = 0
+
+    # Split the data into test / train sets
+    self.x_train_text, self.x_test_text, self.y_train, self.y_test \
+      = self._split(data, train_percent, 'comment_text', y_class, seed)
+
+    # Either load a VocabularyProcessor or compute one from the training data
+    if test_mode:
+
+      # If test_mode is True and no vocab_processor_path is specified, then
+      # return an error. We shouldn't train a VocabProcessor at test time.
+      if vocab_processor_path is None:
+        tf.logging.error("Loading data in test_mode with no vocab_processor_path")
+        raise ValueError
+
+      self.vocab_processor = self.load_vocab_processor(vocab_processor_path)
+
+    else:
+      self.vocab_processor = tf.contrib.learn.preprocessing.VocabularyProcessor(
+        MAX_DOCUMENT_LENGTH)
+      self.x_train = np.array(list(self.vocab_processor.fit_transform(
+        self.x_train_text)))
+
+    # Apply the VocabularyProcessor to the test data
+    self.x_test = np.array(list(self.vocab_processor.transform(
+      self.x_test_text)))
+
+  def _load_vocab_processor(self, path):
+    """Load a VocabularyProcessor from the provided path"""
+    return tf.contrib.learn.preprocessing.VocabularyProcessor.restore(path)
 
   def _load_data(self, path):
       df =  pd.read_csv(path)
-
       return df
 
-  def split(self, train_percent, y_class, seed):
+  def _split(self, data, train_percent, x_field, y_class, seed=None):
     """
     Split divides the Wikipedia data into test and train subsets.
 
     Args:
+      * data (dataframe): a dataframe with data for 'comment_text' and y_class
       * train_percent (float): the fraction of data to use for training
-      * y_class (string): the attribute of the wiki data to predict, e.g. 'toxic'
+      * x_field (string): attribute of the wiki data to use to train, e.g.
+                          'comment_text'
+      * y_class (string): attribute of the wiki data to predict, e.g. 'toxic'
       * seed (integer): a seed to use to split the data in a reproducible way
 
     Returns:
-      x_train (dataframe): the comment_text for the training data
+      x_train (dataframe): the features for the training data
       y_train (dataframe): the 0 or 1 labels for the training data
-      x_test (dataframe):  the comment_text for the test data
+      x_test (dataframe):  the features for the test data
       y_test (dataframe):  the 0 or 1 labels for the test data
     """
 
@@ -76,20 +123,17 @@ class WikiData:
             .format(y_class, Y_CLASSES))
       raise ValueError
 
-    if train_percent >= 1 or train_percent <= 0:
+    if train_percent > 1 or train_percent < 0:
       tf.logging.error('Specified train_percent {0} is not between 0 and 1'\
             .format(train_percent))
       raise ValueError
 
-    tf.logging.info("Training on class: '{}'".format(y_class))
-    tf.logging.info("Training data split: {}".format(train_percent))
-
-    X = self.data['comment_text']
-    y = self.data[y_class]
+    X = data[x_field]
+    y = data[y_class]
     x_train, x_test, y_train, y_test = train_test_split(
       X, y, test_size=1-train_percent, random_state=seed)
 
-    return x_train, x_test, y_train, y_test
+    return x_train, x_test, np.array(y_train), np.array(y_test)
 
 def estimator_spec_for_softmax_classification(logits, labels, mode):
   """
@@ -102,16 +146,26 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
   Returns EstimatorSpec instance for softmax classification.
   """
   predicted_classes = tf.argmax(logits, axis=1)
+  predicted_probs = tf.nn.softmax(logits, name='softmax_tensor')
   predictions = {
     'classes': predicted_classes,
 
     # Add softmax_tensor to the graph. It is used for PREDICT.
-    'probs': tf.nn.softmax(logits, name='softmax_tensor')
+    'probs': predicted_probs
+  }
+
+  # Represents an output of a model that can be served.
+  export_outputs = {
+    'output': tf.estimator.export.ClassificationOutput(scores=predicted_probs)
   }
 
   # PREDICT Mode
   if mode == tf.estimator.ModeKeys.PREDICT:
-    return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
+    return tf.estimator.EstimatorSpec(
+      mode=mode,
+      predictions=predictions,
+      export_outputs=export_outputs
+    )
 
   # Calculate loss for both TRAIN and EVAL modes
   loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
@@ -127,15 +181,32 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
       loss=loss,
       train_op=train_op,
       training_hooks=[logging_hook],
-      predictions={'loss': loss}
+      predictions={'loss': loss},
+      export_outputs=export_outputs
     )
 
   # EVAL Mode
   eval_metric_ops = {
-    'accuracy': tf.metrics.accuracy(labels=labels, predictions=predicted_classes)
+    'accuracy': tf.metrics.accuracy(
+      labels=labels, predictions=predicted_classes),
+    'auc': tf.metrics.auc(labels=labels, predictions=predicted_classes),
+    'true_negatives': tf.metrics.true_negatives(
+      labels=labels, predictions=predicted_classes),
+    'false_negatives': tf.metrics.false_negatives(
+      labels=labels, predictions=predicted_classes),
+    'true_positives': tf.metrics.true_positives(
+      labels=labels, predictions=predicted_classes),
+    'false_positives': tf.metrics.false_positives(
+      labels=labels, predictions=predicted_classes),
   }
+
   return tf.estimator.EstimatorSpec(
-    mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
+    mode=mode,
+    loss=loss,
+    predictions=predictions,
+    eval_metric_ops=eval_metric_ops,
+    export_outputs=export_outputs
+  )
 
 def bag_of_words_model(features, labels, mode):
   """
@@ -171,23 +242,16 @@ def main():
       tf.logging.info('Running in verbose mode')
       tf.logging.set_verbosity(tf.logging.DEBUG)
 
+    if os.path.isdir(FLAGS.model_dir):
+      tf.logging.info("Removing model data from '/{0}'".format(FLAGS.model_dir))
+      shutil.rmtree(FLAGS.model_dir)
+
     # Load and split data
-    tf.logging.debug('Loading data {}'.format(FLAGS.train_data))
-    data = WikiData(FLAGS.train_data)
+    tf.logging.info('Loading data from {0}'.format(FLAGS.train_data))
+    data = WikiData(
+      FLAGS.train_data, FLAGS.y_class, seed=DATA_SEED, train_percent=TRAIN_PERCENT)
 
-    x_train_text, x_test_text, y_train, y_test \
-      = data.split(TRAIN_PERCENT, FLAGS.y_class, DATA_SEED)
-
-    # Process data
-    vocab_processor = tf.contrib.learn.preprocessing.VocabularyProcessor(
-      MAX_DOCUMENT_LENGTH)
-
-    x_train = np.array(list(vocab_processor.fit_transform(x_train_text)))
-    x_test = np.array(list(vocab_processor.transform(x_test_text)))
-    y_train = np.array(y_train)
-    y_test = np.array(y_test)
-
-    n_words = len(vocab_processor.vocabulary_)
+    n_words = len(data.vocab_processor.vocabulary_)
     tf.logging.info('Total words: %d' % n_words)
 
     # Build model
@@ -197,8 +261,8 @@ def main():
       # Subtract 1 because VocabularyProcessor outputs a word-id matrix where word
       # ids start from 1 and 0 means 'no word'. But categorical_column_with_identity
       # assumes 0-based count and uses -1 for missing word.
-      x_train -= 1
-      x_test -= 1
+      data.x_train = data.x_train - 1
+      data.x_test = data.x_test - 1
     else:
       tf.logging.error("Unknown specified model '{}', must be one of {}"
                        .format(FLAGS.model, MODEL_LIST))
@@ -209,78 +273,63 @@ def main():
       config=tf.contrib.learn.RunConfig(
         tf_random_seed=TRAIN_SEED,
       ),
-      model_dir=None)
+      model_dir=FLAGS.model_dir)
 
     # Train model
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
-      x={WORDS_FEATURE: x_train},
-      y=y_train,
+      x={WORDS_FEATURE: data.x_train},
+      y=data.y_train,
       batch_size=BATCH_SIZE,
       num_epochs=None, # Note: For training, set this to None, so the input_fn
                        # keeps returning data until the required number of train
                        # steps is reached.
       shuffle=True)
-
-    classifier.train(input_fn=train_input_fn, steps=TRAIN_STEPS)
+    classifier.train(input_fn=train_input_fn, steps=FLAGS.train_steps)
 
     # Predict on held-out test data
     test_input_fn = tf.estimator.inputs.numpy_input_fn(
-      x={WORDS_FEATURE: x_test},
-      y=y_test,
+      x={WORDS_FEATURE: data.x_test},
+      y=data.y_test,
       num_epochs=1,     # Note: For evaluation and prediction set this to 1,
                         # so the input_fn will iterate over the data once and
                         # then raise OutOfRangeError
       shuffle=False)
-
     predicted_test = classifier.predict(input_fn=test_input_fn)
     test_out = pd.DataFrame(
       [(p['classes'], p['probs'][1]) for p in predicted_test],
       columns=['y_predicted', 'prob']
     )
-    test_out['comment_text'] = x_train_text
-    test_out['y_true'] = y_test
 
-    # Write out predictions and probabilities for test data
-    tf.logging.info("Writing test predictions to {}".format(TEST_OUT_PATH))
-    test_out.to_csv(TEST_OUT_PATH)
-
-    # Score with sklearn and TensorFlow (hopefully they're the same!)
-    sklearn_score = sk.metrics.accuracy_score(y_test, test_out['y_predicted'])
+    # Score with sklearn and TensorFlow
+    sklearn_score = metrics.accuracy_score(data.y_test, test_out['y_predicted'])
     tf_scores = classifier.evaluate(input_fn=test_input_fn)
+
+    train_size = len(data.x_train)
+    test_size = len(data.x_test)
+
+    baseline = len(data.y_train[data.y_train==0]) / len(data.y_train)
+    if baseline < .5:
+      baseline = 1 - baseline
 
     tf.logging.info('')
     tf.logging.info('----------Evaluation on Held-Out Data---------')
-    tf.logging.info('Accuracy (sklearn)\t: {0:f}'.format(sklearn_score))
-    tf.logging.info('Accuracy (tensorflow)\t: {0:f}'.format(tf_scores['accuracy']))
-    tf.logging.info('')
+    tf.logging.info('Train Size: {0} Test Size: {1}'.format(train_size, test_size))
+    tf.logging.info('Baseline (class distribution): {0:f}'.format(baseline))
+    tf.logging.info('Accuracy (sklearn): {0:f}'.format(sklearn_score))
 
-    # If specified, predict on unlabeled data
-    if FLAGS.predict_data is None:
-      return
+    for key in sorted(tf_scores):
+      tf.logging.info("%s: %s" % (key, tf_scores[key]))
 
-    data_unlabeled = WikiData(FLAGS.predict_data).data
+    # Export the model
+    feature_spec = {
+      WORDS_FEATURE: tf.FixedLenFeature(
+        dtype=tf.int64, shape=[1, MAX_DOCUMENT_LENGTH])
+    }
+    serving_input_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(feature_spec)
+    dir_path = 'saved_model'
 
-    tf.logging.info('Generating predictions for {0} unlabeled examples in {1}'
-                    .format(len(data_unlabeled), FLAGS.predict_data))
+    classifier.export_savedmodel(dir_path, serving_input_fn)
 
-    x_unlabeled = np.array(list(
-      vocab_processor.transform(data_unlabeled['comment_text'])))
-
-    unlabled_input_fn = tf.estimator.inputs.numpy_input_fn(
-      x={WORDS_FEATURE: x_unlabeled},
-      num_epochs=1,
-      shuffle=False)
-
-    predicted_unlabeled = classifier.predict(input_fn=unlabled_input_fn)
-    unlabeled_out = pd.DataFrame(
-      [(p['classes'], p['probs'][1]) for p in predicted_unlabeled],
-      columns=['y_pred', 'prob']
-    )
-    unlabeled_out['comment_text'] = data_unlabeled['comment_text']
-
-    # Write out predictions and probabilities for unlabled "predict" data
-    tf.logging.info("Writing predictions to {}".format(PREDICT_OUT_PATH))
-    unlabeled_out.to_csv(PREDICT_OUT_PATH)
 
 if __name__ == '__main__':
 
@@ -288,15 +337,17 @@ if __name__ == '__main__':
   parser.add_argument(
       '--verbose', help='Run in verbose mode.', action='store_true')
   parser.add_argument(
-      "--train_data", type=str, default="", help="Path to the training data.")
+    "--train_data", type=str, default="", help="Path to the training data.")
   parser.add_argument(
-      "--predict_data", type=str, default="", help="Path to the prediction data.")
+      "--model_dir", type=str, default="model", help="Place to save model files")
   parser.add_argument(
       "--y_class", type=str, default="toxic",
     help="Class to train model against, one of {}".format(Y_CLASSES))
   parser.add_argument(
       "--model", type=str, default="bag_of_words",
     help="The model to train, one of {}".format(MODEL_LIST))
+  parser.add_argument(
+    "--train_steps", type=int, default=100, help="The number of steps to train the model")
 
   FLAGS, unparsed = parser.parse_known_args()
 
