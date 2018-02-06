@@ -28,59 +28,59 @@ Usage:
   node build/server/setup/upload_dataset.js \
     --file="./tmp/real_job/toanswer_mini_x10.json" \
     --question_group="wp_x10k_test"
+
+  ts-node src/setup/upload_dataset.ts \
+    --file="tmp/foo.json" \
+    --question_group="erica-demo-requests"
 */
 
-import * as yargs from 'yargs';
-import * as fs from 'fs';
 import * as spanner from '@google-cloud/spanner';
+import * as fs from 'fs';
+import * as yargs from 'yargs';
 
-import * as db_types from '../db_types';
 import * as crowdsourcedb from '../cs_db';
+import * as db_types from '../db_types';
+
 import {batchList} from './util'
 
-interface Params {
-  file:string,
-  question_type:string,
-  question_group:string,
-  gcloud_project_id:string,
-  spanner_instance:string,
-  spanner_db:string,
-  update_only: boolean,
-};
+    interface Params {file: string, question_type: string, question_group: string, gcloud_project_id: string, spanner_instance: string, spanner_db: string, update_only: boolean,};
 
 // type DataShape = wpconvlib.Conversation;
 interface DataShape {
-  revision_id : string,
-  revision_text : string,
-};
+  revision_id: string, revision_text: string,
+}
+;
 
-async function main(args : Params) {
+async function main(args: Params) {
   console.log(args.file);
   if (!fs.existsSync(args.file)) {
     console.error('--file argument does not exist: ' + args.file);
     return;
   }
-  if(!db_types.valid_question_type_regexp.test(args.question_type)) {
-    console.error('--question_type must be a valid question type (training|test|toanswer), not: '
-        + args.question_type);
+  if (!db_types.valid_question_type_regexp.test(args.question_type)) {
+    console.error(
+        '--question_type must be a valid question type (training|test|toanswer), not: ' +
+        args.question_type);
     return;
   }
-  if(!db_types.valid_id_regexp.test(args.question_group)) {
-    console.error('--question_type must be a valid question type (training|test|toanswer), not: '
-        + args.question_type);
+  if (!db_types.valid_id_regexp.test(args.question_group)) {
+    console.error(
+        '--question_type must be a valid question type (training|test|toanswer), not: ' +
+        args.question_type);
     return;
   }
 
-  let spannerClient = spanner({ projectId: args.gcloud_project_id });
+  let spannerClient = spanner({projectId: args.gcloud_project_id});
   let spannerInstance = spannerClient.instance(args.spanner_instance);
-  let spannerDatabase = spannerInstance.database(args.spanner_db, { keepAlive: 5 });
+  let spannerDatabase =
+      spannerInstance.database(args.spanner_db, {keepAlive: 5});
   let db = new crowdsourcedb.CrowdsourceDB(spannerDatabase);
 
   let fileAsString = fs.readFileSync(args.file, 'utf8');
-  let data : DataShape[] = JSON.parse(fileAsString);
-  let questions : db_types.QuestionRow[] = [];
+  let data: DataShape[] = JSON.parse(fileAsString);
+  let questions: db_types.QuestionRow[] = [];
   for (let i = 0; i < data.length; i++) {
-    let question : db_types.Question = data[i] as any;
+    let question: db_types.Question = data[i] as any;
     // let structured_conv = wpconvlib.structureConversaton(data[i]);
     // if(!structured_conv) {
     //   console.error('bad conversaion with no root: ' + question);
@@ -106,7 +106,7 @@ async function main(args : Params) {
   let batchedQuestions = batchList(10, questions);
 
   let total_added = 0;
-  for(let batch of batchedQuestions) {
+  for (let batch of batchedQuestions) {
     if (args.update_only) {
       await db.updateQuestions(batch);
     } else {
@@ -118,47 +118,45 @@ async function main(args : Params) {
   }
 }
 
-let args = yargs
-    .option('file', {
-        alias: 'f',
-        describe: 'Path to JSON file of questions to upload'
-    })
-    .option('question_type', {
-        alias: 't',
-        describe: 'Question type, one of: training | test | toanswer'
-    })
-    .option('question_group', {
-      alias: 'g',
-      describe: 'Question type, one of: training | test | toanswer'
-    })
-    .option('gcloud_project_id', {
-      alias: 'gcp',
-      describe: 'Google Cloud Project Id'
-    })
-    .option('spanner_instance', {
-      alias: 'i',
-      describe: 'Spanner instance name'
-    })
-    .option('spanner_db', {
-      alias: 's',
-      describe: 'Spanner database name'
-    })
-    .option('update_only', {
-      alias: 'u',
-      describe: 'If true, then do an update instead of an insert of the questons.'
-    })
-    .default('update_only', false)
-    .default('gcloud_project_id', 'wikidetox')
-    .default('spanner_instance', 'crowdsource')
-    .default('spanner_db', 'testdb')
-    .default('question_type', 'toanswer')
-    .demandOption(['file', 'question_group'], 'Please provide at least --file and --question_group.')
-    .help()
-    .argv;
+let args =
+    yargs
+        .option(
+            'file',
+            {alias: 'f', describe: 'Path to JSON file of questions to upload'})
+        .option('question_type', {
+          alias: 't',
+          describe: 'Question type, one of: training | test | toanswer'
+        })
+        .option('question_group', {
+          alias: 'g',
+          describe: 'Question type, one of: training | test | toanswer'
+        })
+        .option(
+            'gcloud_project_id',
+            {alias: 'gcp', describe: 'Google Cloud Project Id'})
+        .option(
+            'spanner_instance', {alias: 'i', describe: 'Spanner instance name'})
+        .option('spanner_db', {alias: 's', describe: 'Spanner database name'})
+        .option('update_only', {
+          alias: 'u',
+          describe:
+              'If true, then do an update instead of an insert of the questons.'
+        })
+        .default('update_only', false)
+        .default('gcloud_project_id', 'wikidetox')
+        .default('spanner_instance', 'crowdsource')
+        .default('spanner_db', 'testdb')
+        .default('question_type', 'toanswer')
+        .demandOption(
+            ['file', 'question_group'],
+            'Please provide at least --file and --question_group.')
+        .help()
+        .argv;
 
 main(args as any as Params)
-  .then(() => {
-    console.log('Success!');
-  }).catch(e => {
-    console.error('Failed: ', e);
-  });
+    .then(() => {
+      console.log('Success!');
+    })
+    .catch(e => {
+      console.error('Failed: ', e);
+    });
