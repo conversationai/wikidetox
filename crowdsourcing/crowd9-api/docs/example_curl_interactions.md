@@ -6,8 +6,9 @@ The following examples assuming you have the admin auth key from the
 e.g. you have run:
 
 ```
+export GOOGLE_APPLICATION_CREDENTIALS="tmp/path-to-keyfile.json"
 export ADMIN_AUTH_KEY="Your admin key from build/config/server_config.json"
-export SERVER="${SERVER}"
+export SERVER="Location of the API-server, e.g. http://localhost:8080"
 ```
 
 ### [Admin] Setup a small test job.
@@ -29,13 +30,14 @@ curl -H "x-admin-auth-key: ${ADMIN_AUTH_KEY}" \
   "question_group_id":"foo1",
   "status":"setup",
   "answers_per_question":3,
-  "answer_schema": {"comments":{"stringInput":{},"optional":true},
-    "readableAndInEnglish": {"validEnumValues": ["yes","no","Yes","No"],"optional":true},
-    "toxic":{"validEnumValues":["notatall","somewhat","very","NotAtAll","Somewhat","Very"]},
-    "threat":{"validEnumValues":["notatall","somewhat","very","NotAtAll","Somewhat","Very"],"optional":true},
-    "insult":{"validEnumValues":["notatall","somewhat","very","NotAtAll","Somewhat","Very"],"optional":true},
-    "identityHate":{"validEnumValues":["notatall","somewhat","very","NotAtAll","Somewhat","Very"],"optional":true},
-    "obscene":{"validEnumValues":["notatall","somewhat","very","NotAtAll","Somewhat","Very"],"optional":true}},
+  "answer_schema": {
+    "comments":{"stringInput":{},"optional":true},
+    "readableAndInEnglish": {"validEnumValues": ["yes","no"],"optional":true},
+    "toxic":{"validEnumValues":["notatall","somewhat","very"]},
+    "threat":{"validEnumValues":["notatall","somewhat","very"],"optional":true},
+    "insult":{"validEnumValues":["notatall","somewhat","very"],"optional":true},
+    "identityHate":{"validEnumValues":["notatall","somewhat","very"],"optional":true},
+    "obscene":{"validEnumValues":["notatall","somewhat","very"],"optional":true}}
   }' ${SERVER}/active_jobs/job1_for_foo1
 ```
 
@@ -61,14 +63,14 @@ curl -H "x-admin-auth-key: ${ADMIN_AUTH_KEY}" \
     "question_id": "q1",
     "question_group_id":"foo1",
     "question": { "string": "Is q1 a toxic really comment?"},
-    "accepted_answers": { "toxic": { "enumScores": { "notatall": 0, "somewhat": -1, "very": -1 } } },
+    "accepted_answers": { "toxic": { "enum": { "notatall": 0, "somewhat": -1, "very": -1 } } },
     "type": "training"
   },
   {
     "question_id": "q2",
     "question_group_id":"foo1",
     "question": { "string": "Is q2 a toxic really comment?"},
-    "accepted_answers": { "toxic": { "enumScores": { "notatall": -1, "somewhat": 0, "very": 0 } } },
+    "accepted_answers": { "toxic": { "enum": { "notatall": -1, "somewhat": 0, "very": 0 } } },
     "type": "test"
   },
   {
@@ -190,6 +192,7 @@ Submit some answers from crowd-workers:
 
 ```
 # Example answers with answer_id specified.
+
 curl -H "Content-Type: application/json" -X POST -d \
   '{ "answer_id": "1", "answer":{"toxic":"notatall"} }' \
   ${SERVER}/client_jobs/job1_for_foo1/questions/q1/answers/user_fuzbar1
@@ -202,17 +205,17 @@ curl -H "Content-Type: application/json" -X POST -d \
   ${SERVER}/client_jobs/job1_for_foo1/questions/q1/answers/user_fuzbar2
 
 curl -H "Content-Type: application/json" -X POST -d \
-  '{ "answer": { "toxic": { "enumAnswer": "very"} } }' \
+  '{ "answer": { "toxic":"very" } }' \
   ${SERVER}/client_jobs/job1_for_foo1/questions/q2/answers/user_fuzbar1
 curl -H "Content-Type: application/json" -X POST -d \
-  '{ "answer": "{\"toxicity\": { \"enumAnswer\": \"unsure\"} }" }' \
+  '{ "answer": { "toxic":"somewhat"} }' \
   ${SERVER}/client_jobs/job1_for_foo1/questions/q2/answers/user_fuzbar2
 
 curl -H "Content-Type: application/json" -X POST -d \
-  '{ "answer": "{\"toxicity\": { \"enumAnswer\": \"ok\"} }" }' \
+  '{ "answer_id": "1", "answer": { "toxic":"very" } }' \
   ${SERVER}/client_jobs/job1_for_foo1/questions/q3/answers/user_fuzbar1
 curl -H "Content-Type: application/json" -X POST -d \
-  '{ "answer": "{\"toxicity\": { \"enumAnswer\": \"ok\"} }" }' \
+  '{ "answer_id": "2", "answer": { "toxic":"very" } }' \
   ${SERVER}/client_jobs/job1_for_foo1/questions/q3/answers/user_fuzbar2
 ```
 
@@ -271,6 +274,7 @@ curl -H "Content-Type: application/json" -X GET \
   ${SERVER}/client_jobs/job1_for_foo1/questions/q3/answers
 ```
 
+TODO(ldixon): how to delete a answer.
 
 ### More example Admin Actions (after the client ones)
 

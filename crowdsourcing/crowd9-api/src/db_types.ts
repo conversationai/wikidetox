@@ -61,6 +61,8 @@ export interface ClientJobRow {
   title: string;
   answer_schema : questionaire.QuestionSchema;  // JSON schema for kinds of acceptable answers.
   question_group_id: string; // /^\w+$/
+  // Status is not really used right now; currently everything is expected to
+  // be 'setup'
   status: 'setup' | 'inprogress' | 'paused' | 'completed';
 }
 
