@@ -74,8 +74,15 @@ declare module '@google-cloud/spanner' {
     export interface DatabaseOptions {
       keepAlive: number;  // number of minutes between pings to the DB.
     }
+    export interface CreateDatabaseRequest {
+      // List of table schema to be created.
+      schema: string[];
+    }
+    export type CreateDatabaseResponse = [ {id:string}, {promise : () => Promise<void>} ];
     export interface Instance {
       database(databaseName:string, opts ?: DatabaseOptions) : Database;
+      createDatabase(databaseName: string, request:CreateDatabaseRequest)
+        : Promise<CreateDatabaseResponse>;
     }
     export interface Spanner {
       instance(instanceId:string): Instance;
