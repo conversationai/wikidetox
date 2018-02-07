@@ -26,7 +26,7 @@ Assumes basic development tools like git, xcode (if on Mac), etc are installed.
 
 * Install [Google Cloud SDK](https://cloud.google.com/sdk/)
 * Install node (recommended to use the [Node Version Manager (nvm)](https://github.com/creationix/nvm/blob/master/README.md#installation).
-* Install `yarn` by running the command `npm install -g yarn`
+* Install `yarn` (to install dependencies), `mocha` (for testing), and `typescript` and `ts-node` for running TypeScript Scripts, by running the command `npm install -g yarn mocha typescript ts-node`
 
 
 ## Setup the cloud project which is going to be used
