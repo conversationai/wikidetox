@@ -232,7 +232,9 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
 class Conversation_Constructor:
     def __init__(self):
         self.page = {}
-        self.THERESHOLD = 10 # A comment with at least THERESHOLD number of tokens will be recorded 
+        self.THERESHOLD = 10 
+        # Deleted comments with less than this number of tokens will not be recorded 
+        # thus not considered in comment restoration actions to reduce confusion.
         self.conversation_ids = {}
         self.authorship = {}
         self.deleted_comments = []
@@ -252,14 +254,15 @@ class Conversation_Constructor:
 
     def load(self, page_state, deleted_comments, conversation_ids, authorship, latest_content):
         self.page = json.loads(page_state)
+        self.page['actions'] = {int(key): tuple(val) for key, val in self.page['actions'].items()}
         self.conversation_ids = json.loads(conversation_ids) 
         self.authorship = {action: set([tuple(p) for p in x]) for action, x in json.loads(authorship).items()}
         self.deleted_comments = []
         self.deleted_records = {}
-        self.latest_content = latest_content
+        self.latest_content = clean(latest_content)
         self.previous_comments = NoAho()
         for pair in json.loads(deleted_comments):
-            self.previous_comments.add(pair[0], (pair[1], pair[2]))
+            self.previous_comments.add(pair[0], (pair[1], int(pair[2])))
             self.deleted_records[pair[1]] = True
         self.NOT_EXISTED = False 
         return 
@@ -291,9 +294,6 @@ class Conversation_Constructor:
     def process(self, rev, DEBUGGING_MODE = False):
         if DEBUGGING_MODE:
            print('REVISION %s'%rev['rev_id'])
-        if not(self.revids == []):
-           print(rev['rev_id'])
-           assert(int(rev['rev_id']) > max(self.revids))
         self.revids.append(int(rev['rev_id'])) 
         rev['text'] = clean(rev['text'])
         a = text_split.tokenize(self.latest_content)
@@ -324,6 +324,11 @@ class Conversation_Constructor:
                   self.authorship[action['id']] = set([(action['user_id'], action['user_text'])])
             else:
                self.authorship[action['id']] = set(self.authorship[action['parent_id']])  
+            if action['type'] == 'COMMENT_REARRANGEMENT':
+               if action['replyTo_id'] == None:
+                  self.conversation_ids[action['id']] = action['id']
+               else:
+                  self.conversation_ids[action['id']] = self.conversation_ids[action['replyTo_id']]
             if action['type'] == 'COMMENT_REMOVAL':
                self.conversation_ids[action['id']] = self.conversation_ids[action['parent_id']]
             if action['type'] == 'COMMENT_RESTORATION':
@@ -339,6 +344,7 @@ class Conversation_Constructor:
         self.conversation_ids = self.clean_dict(self.conversation_ids)
         self.authorship = self.clean_dict(self.authorship)
         page_state = {'rev_id': int(rev['rev_id']), \
+                      'timestamp': rev['timestamp'], \
                       'page_id': rev['page_id'], \
                       'page_state': json.dumps(self.page), \
                       'deleted_comments': json.dumps(self.deleted_comments), \

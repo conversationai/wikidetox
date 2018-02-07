@@ -118,6 +118,3 @@ setuptools.setup(
 
 )
 
-#import os
-
-#os.system('cd third_pary/mwparserfromhell\npython setup.py install')
