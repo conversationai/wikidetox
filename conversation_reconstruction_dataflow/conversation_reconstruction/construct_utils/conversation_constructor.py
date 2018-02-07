@@ -66,6 +66,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
             else:
                 old_action_start = get_action_start(old_actions, op['a1'])
                 modification_actions[old_action_start] = True
+                
 
         if op['name'] == 'delete':
             delete_start = op['a1']
@@ -151,7 +152,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
     for old_action_start in modification_actions.keys():
         old_action = page['actions'][old_action_start][0]
         old_action_end = get_action_end(old_actions, old_action_start) 
-        new_action_start = locate_new_token_pos(old_action_start, rev['diff'], 'left_bound')
+        new_action_start = locate_new_token_pos(old_action_start, rev['diff'], 'right_bound')
         new_action_end = locate_new_token_pos(old_action_end, rev['diff'], 'right_bound')
         tokens = text_split.tokenize(rev['text'])[new_action_start : new_action_end]
         new_action, new_pos, new_id, new_ind = comment_modification(old_action, tokens, new_action_start, new_action_end, rev, updated_page['actions'], old_action_start)
