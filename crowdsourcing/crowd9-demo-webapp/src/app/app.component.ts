@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import {HttpClient} from '@angular/common/http';
+import {Component, OnInit} from '@angular/core';
 // import * as wpconvlib from '@conversationai/wpconvlib';
 
 // The maximum is exclusive and the minimum is inclusive
@@ -11,14 +11,14 @@ function getRandomInt(min: number, max: number): number {
 
 interface WorkToDo {
   question_id: string;
-  question: WikiCommentQuestion;
+  question: CommentQuestion;
   answers_per_question: number;
   answer_count: number;
 }
 
-interface WikiCommentQuestion {
-  revision_id: string;
-  revision_text: string;
+interface CommentQuestion {
+  id: string;
+  text: string;
 }
 
 interface WorkerQualitySummary {
@@ -38,14 +38,14 @@ interface JobQualitySummary {
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
-  userNonce: string | null;
-  errorMessage: string | null;
+  userNonce: string|null;
+  errorMessage: string|null;
 
   customClientJobKey: string = '';
 
   selectedWork: WorkToDo;
   questionId: string;
-  question: WikiCommentQuestion | null;
+  question: CommentQuestion|null;
 
   readableAndInEnglish: boolean;
   toxicityAnswer: string;
@@ -67,7 +67,7 @@ export class AppComponent implements OnInit {
   // requests from the browser's prespective.
   local_sent_count: number = 0;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
 
   setDocumentHash() {
     if (this.customClientJobKey !== '') {
@@ -75,6 +75,14 @@ export class AppComponent implements OnInit {
     } else {
       document.location.hash = '';
     }
+  }
+
+  chooseRandomWorkToDo(data: WorkToDo[]): void {
+    this.selectedWork = data[getRandomInt(0, data.length - 1)];
+    console.log('Work to do: ', this.selectedWork);
+    this.questionId = this.selectedWork.question_id;
+    this.setDocumentHash();
+    this.question = this.selectedWork.question;
   }
 
   getNextWorkItem() {
@@ -91,48 +99,60 @@ export class AppComponent implements OnInit {
 
     // Make the HTTP request:
     if (document.location.hash.substr(1).split('/').length === 2) {
-      // If hash url specifies job id and question id, get that specific question.
+      // If hash url specifies job id and question id, get that specific
+      // question.
       this.http.get('/api/work/' + document.location.hash.substr(1))
-          .subscribe((data: WorkToDo) => {
-        this.selectedWork = data;
-        console.log(this.selectedWork);
-        this.questionId = this.selectedWork.question_id;
-        this.setDocumentHash();
-        this.question = this.selectedWork.question;
-      }, (e) => { this.errorMessage = e.message; });
+          .subscribe(
+              (workToDo: WorkToDo) => {
+                this.chooseRandomWorkToDo([workToDo]);
+              },
+              (e) => {
+                this.errorMessage = e.message;
+              });
     } else if (document.location.hash !== '') {
       // If hash url specified job, get next questions for that job
       this.http.get('/api/work/' + document.location.hash.substr(1))
-          .subscribe((data: WorkToDo[]) => {
-        this.selectedWork = data[getRandomInt(0, data.length - 1)];
-        console.log(this.selectedWork);
-        this.questionId = this.selectedWork.question_id;
-        this.setDocumentHash();
-        this.question = this.selectedWork.question;
-      }, (e) => { this.errorMessage = e.message; });
+          .subscribe(
+              (data: WorkToDo[]) => {
+                this.chooseRandomWorkToDo(data);
+              },
+              (e) => {
+                this.errorMessage = e.message;
+              });
     } else {
       // Otherwise get questions for this job.
-      this.http.get('/api/work').subscribe((data: WorkToDo[]) => {
-        this.selectedWork = data[getRandomInt(0, data.length - 1)];
-        console.log(this.selectedWork);
-        this.questionId = this.selectedWork.question_id;
-        this.setDocumentHash();
-        this.question = this.selectedWork.question;
-      }, (e) => { this.errorMessage = e.message; });
+      this.http.get('/api/work')
+          .subscribe(
+              (data: WorkToDo[]) => {
+                this.chooseRandomWorkToDo(data);
+              },
+              (e) => {
+                this.errorMessage = e.message;
+              });
     }
 
     // CONSIDER: support custom job keys.
     // Make the HTTP request:
-    this.http.get('/api/job_quality').subscribe((data: JobQualitySummary) => {
-      this.overall_job_answer_count = data.toanswer_count;
-      this.overall_job_mean_score = data.toanswer_mean_score;
-    }, (e) => { this.errorMessage = e.message; });
+    this.http.get('/api/job_quality')
+        .subscribe(
+            (data: JobQualitySummary) => {
+              this.overall_job_answer_count = data.toanswer_count;
+              this.overall_job_mean_score = data.toanswer_mean_score;
+            },
+            (e) => {
+              this.errorMessage = e.message;
+            });
     // Make the HTTP request:
-    this.http.get('/api/quality/' + this.userNonce).subscribe((data: WorkerQualitySummary) => {
-      console.log(data);
-      this.training_answer_count = data.answer_count;
-      this.user_mean_score = data.mean_score;
-    }, (e) => { this.errorMessage = e.message; });
+    this.http.get('/api/quality/' + this.userNonce)
+        .subscribe(
+            (data: WorkerQualitySummary) => {
+              console.log(data);
+              this.training_answer_count = data.answer_count;
+              this.user_mean_score = data.mean_score;
+            },
+            (e) => {
+              this.errorMessage = e.message;
+            });
   }
 
   clearError() {
@@ -149,7 +169,8 @@ export class AppComponent implements OnInit {
       this.local_sent_count = parseInt(maybe_local_sent_count, 10);
     } else {
       this.local_sent_count = 0;
-      localStorage.setItem('local_sent_count', this.local_sent_count.toString());
+      localStorage.setItem(
+          'local_sent_count', this.local_sent_count.toString());
     }
 
     if (!this.userNonce) {
@@ -169,22 +190,30 @@ export class AppComponent implements OnInit {
       answerPath += '/' + this.customClientJobKey;
     }
 
-    this.http.post(answerPath, {
-      questionId: this.questionId,
-      userNonce: this.userNonce,
-      readableAndInEnglish: this.readableAndInEnglish ? 'Yes' : 'No',
-      toxic: this.toxicityAnswer,
-      obscene: this.obsceneAnswer,
-      insult: this.insultAnswer,
-      threat: this.threatAnswer,
-      identityHate: this.hateAnswer,
-      comments: this.comments
-    }).subscribe((data: {}) => {
-      console.log(`sent score; got response:` + JSON.stringify(data, null, 2));
-      this.local_sent_count += 1;
-      localStorage.setItem('local_sent_count', this.local_sent_count.toString());
-      document.location.hash = this.customClientJobKey;
-      this.getNextWorkItem();
-    }, (e) => { this.errorMessage = e.message; });
+    this.http
+        .post(answerPath, {
+          questionId: this.questionId,
+          userNonce: this.userNonce,
+          readableAndInEnglish: this.readableAndInEnglish ? 'Yes' : 'No',
+          toxic: this.toxicityAnswer,
+          obscene: this.obsceneAnswer,
+          insult: this.insultAnswer,
+          threat: this.threatAnswer,
+          identityHate: this.hateAnswer,
+          comments: this.comments
+        })
+        .subscribe(
+            (data: {}) => {
+              console.log(
+                  `sent score; got response:` + JSON.stringify(data, null, 2));
+              this.local_sent_count += 1;
+              localStorage.setItem(
+                  'local_sent_count', this.local_sent_count.toString());
+              document.location.hash = this.customClientJobKey;
+              this.getNextWorkItem();
+            },
+            (e) => {
+              this.errorMessage = e.message;
+            });
   }
 }
