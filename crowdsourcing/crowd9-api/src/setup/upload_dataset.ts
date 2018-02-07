@@ -47,7 +47,7 @@ import {batchList} from './util'
 
 // type DataShape = wpconvlib.Conversation;
 interface DataShape {
-  revision_id: string, revision_text: string,
+  id: string, text: string,
 }
 ;
 
@@ -87,7 +87,7 @@ async function main(args: Params) {
     //   break;
     // }
     // let id = structured_conv.id + ':' + i;
-    let id = data[i].revision_id;
+    let id = data[i].id;
 
     questions.push({
       accepted_answers: null,
