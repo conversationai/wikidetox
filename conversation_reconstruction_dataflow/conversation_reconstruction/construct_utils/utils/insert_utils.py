@@ -154,7 +154,7 @@ def locate_new_token_pos(old_pos, ops, errorchoice='raise_error'):
                         else:
                             new_pos = op['b1']
             if old_pos == op['a2']:
-                if errorchoice == 'left_bound':
+                if errorchoice == 'left_bound' and not(op['tokens'][-1].type == 'break'):
                    new_pos = op['b1']
                 else:
                    new_pos = max(new_pos, op['b2'])
