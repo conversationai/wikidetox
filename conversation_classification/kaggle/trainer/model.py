@@ -1,6 +1,6 @@
 """
-A basic Bag of Words classifier for the Toxic Comment Classification Kaggle
-challenge, https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge
+Classifiers for the Toxic Comment Classification Kaggle challenge,
+https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge
 
 To run locally:
   python model.py --train_data=train.csv --predict_data=test.csv --y_class=toxic
@@ -28,6 +28,7 @@ import pandas as pd
 import tensorflow as tf
 from sklearn import metrics
 from data import wikidata
+from collections import namedtuple
 
 FLAGS = None
 
@@ -37,15 +38,25 @@ DATA_SEED = 48173 # Random seed used for splitting the data into train/test
 MAX_LABEL = 2
 MAX_DOCUMENT_LENGTH = 500 # Max length of each comment in words
 
-# Model Params
-EMBEDDING_SIZE = 50 # Size of learned  word embedding
+CNNParams = namedtuple(
+  'CNNParams', ['WINDOW_SIZE', 'EMBEDDING_SIZE','POOLING_WINDOW', 'POOLING_STRIDE',
+                'N_FILTERS', 'FILTER_SHAPE1', 'FILTER_SHAPE2'])
+cnn_values = {'WINDOW_SIZE':20, 'EMBEDDING_SIZE':20, 'POOLING_WINDOW':4,
+              'POOLING_STRIDE':2, 'N_FILTERS':10}
+cnn_values['FILTER_SHAPE1'] = [cnn_values['WINDOW_SIZE'], cnn_values['EMBEDDING_SIZE']]
+cnn_values['FILTER_SHAPE2'] = [cnn_values['WINDOW_SIZE'], cnn_values['N_FILTERS']]
+CNN_PARAMS = CNNParams(**cnn_values)
+
+BOWParams = namedtuple('BOWParams', ['EMBEDDING_SIZE'])
+BOW_PARAMS = BOWParams(EMBEDDING_SIZE = 20)
+
 WORDS_FEATURE = 'words' # Name of the input words feature.
-MODEL_LIST = ['bag_of_words']
+MODEL_LIST = ['bag_of_words', 'cnn'] # Possible models
 
 # Training Params
 TRAIN_SEED = 9812 # Random seed used to initialize training
 LEARNING_RATE = 0.01
-BATCH_SIZE = 120
+BATCH_SIZE = 20
 
 def estimator_spec_for_softmax_classification(logits, labels, mode):
   """
@@ -135,20 +146,72 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
         export_outputs=export_outputs
       )
 
+def cnn_model(features, labels, mode):
+  """
+  A 2 layer ConvNet to predict from sequence of words to a class.
+  Largely stolen from:
+  https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/learn/text_classification_cnn.py
+  Returns a tf.estimator.EstimatorSpec.
+  """
+  # Convert indexes of words into embeddings.
+  # This creates embeddings matrix of [n_words, EMBEDDING_SIZE] and then
+  # maps word indexes of the sequence into [batch_size, sequence_length,
+  # EMBEDDING_SIZE].
+  word_vectors = tf.contrib.layers.embed_sequence(
+      features[WORDS_FEATURE], vocab_size=n_words, embed_dim=
+    CNN_PARAMS.EMBEDDING_SIZE)
+
+  # Inserts a dimension of 1 into a tensor's shape.
+  word_vectors = tf.expand_dims(word_vectors, 3)
+
+  with tf.variable_scope('CNN_Layer1'):
+    # Apply Convolution filtering on input sequence.
+    conv1 = tf.layers.conv2d(
+        word_vectors,
+        filters=CNN_PARAMS.N_FILTERS,
+        kernel_size=CNN_PARAMS.FILTER_SHAPE1,
+        padding='VALID',
+        # Add a ReLU for non linearity.
+        activation=tf.nn.relu)
+    # Max pooling across output of Convolution+Relu.
+    pool1 = tf.layers.max_pooling2d(
+        conv1,
+        pool_size=CNN_PARAMS.POOLING_WINDOW,
+        strides=CNN_PARAMS.POOLING_STRIDE,
+        padding='SAME')
+    # Transpose matrix so that n_filters from convolution becomes width.
+    pool1 = tf.transpose(pool1, [0, 1, 3, 2])
+  with tf.variable_scope('CNN_Layer2'):
+    # Second level of convolution filtering.
+    conv2 = tf.layers.conv2d(
+        pool1,
+        filters=CNN_PARAMS.N_FILTERS,
+        kernel_size=CNN_PARAMS.FILTER_SHAPE2,
+        padding='VALID')
+    # Max across each filter to get useful features for classification.
+    pool2 = tf.squeeze(tf.reduce_max(conv2, 1), squeeze_dims=[1])
+
+  # Apply regular WX + B and classification.
+  logits = tf.layers.dense(pool2, MAX_LABEL, activation=None)
+  predicted_classes = tf.argmax(logits, 1)
+
+  return estimator_spec_for_softmax_classification(
+    logits=logits, labels=labels, mode=mode)
+
 def bag_of_words_model(features, labels, mode):
   """
   A bag-of-words model using a learned word embedding. Note it disregards the
   word order in the text.
-
   Returns a tf.estimator.EstimatorSpec.
   """
+
   bow_column = tf.feature_column.categorical_column_with_identity(
       WORDS_FEATURE, num_buckets=n_words)
 
   # The embedding values are initialized randomly, and are trained along with
   # all other model parameters to minimize the training loss.
   bow_embedding_column = tf.feature_column.embedding_column(
-      bow_column, dimension=EMBEDDING_SIZE)
+      bow_column, dimension=BOW_PARAMS.EMBEDDING_SIZE)
 
   bow = tf.feature_column.input_layer(
       features,
@@ -191,6 +254,8 @@ def main():
       # assumes 0-based count and uses -1 for missing word.
       data.x_train = data.x_train - 1
       data.x_test = data.x_test - 1
+    elif FLAGS.model == 'cnn':
+      model_fn = cnn_model
     else:
       tf.logging.error("Unknown specified model '{}', must be one of {}"
                        .format(FLAGS.model, MODEL_LIST))
@@ -251,10 +316,10 @@ def main():
     # Export the model
     feature_spec = {
       WORDS_FEATURE: tf.FixedLenFeature(
-        dtype=tf.int64, shape=[1, MAX_DOCUMENT_LENGTH])
+        dtype=tf.int64, shape=MAX_DOCUMENT_LENGTH)
     }
     serving_input_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(feature_spec)
-    dir_path = 'saved_model'
+    dir_path = 'saved_models'
 
     classifier.export_savedmodel(dir_path, serving_input_fn)
 
