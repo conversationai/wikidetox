@@ -15,7 +15,7 @@ Global node dependencies for development: gcloud, node (suggest you use nvm to i
 After you have installed node/npm using nvm, you can install the other global dependencies using:
 
 ```
-npm install -g typescript yarn
+npm install -g typescript yarn ts-node
 ```
 
 Then from this directory, use yarn to install the local package dependencies:
@@ -52,29 +52,39 @@ gcloud config set project ${YOUR_CLOUD_PROJECT_ID}
 Create a spanner instance, e.g. named `crowdsource`:
 
 ```
-gcloud spanner instances create crowdsource --config=regional-us-central1 \
---description="For Crowd9 Hackathon" --nodes=1
+gcloud spanner instances create crowdsource \
+  --config=regional-us-central1 \
+  --description="For Crowd9 Hackathon" \
+  --nodes=1
 ```
 
 Create a GCE instance with spanner scope for the `crowdsource` spanner instance:
 
 ```
- gcloud compute instances create --scopes="https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/compute.readonly" crowdsource
+ gcloud compute instances create \
+   --scopes="https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/compute.readonly" \
+   crowdsource
 ```
 
-Now create a spanner database in the `crowdsource` instance, and the schema for the tables to hold data for this app:
+Now create a spanner database in the `crowdsource` instance, and the schema for
+the tables to hold data for this app:
 
 ```
-node src/setup/create_db.js
+ts-node src/setup/create_db.ts
 ```
 
-Note: at any point you can delete the DB and run this script again.
+To run this script you'll also need to have setup a service account key with
+`Compute Engine default service account` credentials, which you can do from:
+https://pantheon.corp.google.com/apis/credentials/serviceaccountkey
+See the top of the file `src/setup/create_db.ts` for more details.
 
-TODO(ldixon): generalize script above to take use env-vars for instance and dbname.
+Note: at any point you can delete the DB and run this script again (you will
+loose all the records in the database when you do this).
 
 ### Deployment to Google Cloud Project
 
-This project uses appengine flexible environment for deployment, which is configured in the `app.yml` file.
+This project uses appengine flexible environment for deployment, which is
+configured in the `app.yml` file.
 
 To deploy, make sure your cloud project is set appropriately, and run;
 
@@ -120,8 +130,8 @@ Table name: `client_jobs`
 | Field name                    | Description     |
 |-------------------------------|-----------------|
 | client_job_key : string       | Unique ID for a job given to a crowdsourcing API client to be able to send rows. |
-| title : string             | A human readable summary title for the question group |
-| description : string       | A detailed description of the question group |
+| title : string                | A human readable summary title for the question group |
+| description : string          | A detailed description of the question group |
 | answers_per_question : string | The number of crowd-workers who should answer each question. |
 
 #### Answers Table
@@ -172,6 +182,11 @@ Admin question management:
  * DELETE `questions`  [Admin only]. post body is a JSON list of quetion ids, removes all those question ids.
  * DELETE `questions/:question_id`  [Admin only]. Removes the question with id `:question_id`.
 
+
+## TODOs:
+
+* Add checking for question deletion: if it doesn't exist, at least warn.
+* Add checking for accepted_answers field to check the value is interpretable.
 
 
 ## About this code

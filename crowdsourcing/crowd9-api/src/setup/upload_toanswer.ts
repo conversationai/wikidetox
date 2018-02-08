@@ -17,39 +17,35 @@ limitations under the License.
 /*
 Usage:
 
-node build/server/setup/upload_with_answers.js \
-  --file="./tmp/real_job/with_answers_mini_10x.json" \
-  --question_group="wp_x10k_test" \
-  --training_fraction=0.2 \
+node build/server/setup/upload_toanswer.js \
+  --file="./tmp/real_job/toanswer_mini_x10.json" \
+  --question_group="wp_v1_x10k" \
   --action=print
 
-node build/server/setup/upload_with_answers.js \
-  --file="./tmp/real_job/with_answers.json" \
-  --question_group="wp_x10k_test" \
-  --training_fraction=0.2 \
+node build/server/setup/upload_toanswer.js \
+  --file="./tmp/real_job/toanswer.json" \
+  --question_group="wp_v1_x10k" \
   --action=insert
 
-node build/server/setup/upload_with_answers.js \
-  --file="./tmp/real_job/with_answers.json" \
+node build/server/setup/upload_toanswer.js \
+  --file="./tmp/real_job/toanswer.json" \
   --question_group="wp_v1_x10k" \
-  --training_fraction=0.2 \
-  --action=update
-
-node build/server/setup/upload_with_answers.js \
-  --file="./tmp/real_job/with_answers.json" \
-  --question_group="wp_x10k_test" \
-  --training_fraction=0.2 \
   --action=print \
-  --from_line 2
+  --from_line 2600 --to_line=2610
+
+ts-node src/setup/upload_toanswer.ts \
+  --file="./tmp/foo.json" \
+  --spanner_db="ptoxic" \
+  --question_group="erica-demo-requests" \
+  --action=print
 */
 
 import * as spanner from '@google-cloud/spanner';
 import * as fs from 'fs';
-import * as readline from 'readline';
-import * as seedrandom from 'seedrandom';
 import * as yargs from 'yargs';
 
 import * as crowdsourcedb from '../cs_db';
+// import * as readline from 'readline';
 import * as db_types from '../db_types';
 
 import * as util from './util';
@@ -62,31 +58,12 @@ interface Params {
   file: string, question_group: string, gcloud_project_id: string,
       spanner_instance: string, spanner_db: string,
       action: 'print'|'update'|'insert'|'count', random_seed: string;
-  training_fraction: number;  // float.
   from_line: number|null;
   to_line: number|null;
 }
-;
 
-// type DataShape = wpconvlib.Conversation;
 interface DataShape {
-  frac_neg: string
-  obscene: string;
-  threat: string;
-  insult: string;
-  identity_hate: string;
-  rev_id: string;
-  comment_text: string;
-}
-;
-
-//
-function makeScoreEnum(frac: number) {
-  return {
-    notatall: (frac < 0.3) ? 1 : (frac < 0.5 ? 0 : -1),
-        somewhat: (frac < 0.2) ? -0.5 : (frac < 0.8 ? 1 : -0.5),
-        very: (frac < 0.5) ? -1 : (frac < 0.7 ? 0 : 1),
-  }
+  id: string, text: string,
 }
 
 class ArgError extends Error {}
@@ -94,10 +71,6 @@ class ArgError extends Error {}
 function checkArguments(args: Params): void {
   if (!fs.existsSync(args.file)) {
     throw new ArgError('--file argument does not exist: ' + args.file);
-  }
-  if (typeof (args.training_fraction) !== 'number') {
-    throw new ArgError(
-        '--training_fraction must be a float, not: ' + args.training_fraction);
   }
   if (!db_types.valid_id_regexp.test(args.question_group)) {
     throw new ArgError(
@@ -114,51 +87,20 @@ function checkArguments(args: Params): void {
   }
 }
 
-function questionRowFromDatum(
-    datum: DataShape,
-    question_type: 'training'|'test'|'toanswer'): db_types.QuestionRow {
-  let id = hashjs.sha256()
-               .update(datum.rev_id + ':' + datum.comment_text)
-               .digest('hex');
-  let question: db_types.Question = {id: id, text: datum.comment_text} as any;
-
-  let toxicity_scores = {enum: makeScoreEnum(parseFloat(datum.frac_neg))};
-  let readableAndInEnglishScores = {optional: true, enum: {yes: 1, no: -1}};
-  let obscene_scores = {
-    optional: true,
-    enum: makeScoreEnum(parseFloat(datum.obscene))
-  };
-  let hate_scores = {
-    optional: true,
-    enum: makeScoreEnum(parseFloat(datum.obscene))
-  };
-  let threat_scores = {
-    optional: true,
-    enum: makeScoreEnum(parseFloat(datum.obscene))
-  };
-  let insult_scores = {
-    optional: true,
-    enum: makeScoreEnum(parseFloat(datum.obscene))
-  };
+function questionRowFromDatum(datum: DataShape): db_types.QuestionRow {
+  let id = hashjs.sha256().update(datum.id + ':' + datum.text).digest('hex');
+  let question: db_types.Question = {id: id, text: datum.text} as any;
 
   let questionRow: db_types.QuestionRow = {
-    accepted_answers: {
-      readableAndInEnglish: readableAndInEnglishScores,
-      toxic: toxicity_scores,
-      obscene: obscene_scores,
-      identityHate: hate_scores,
-      threat: threat_scores,
-      insult: insult_scores,
-      comments: {optional: true, freeStringConstScore: 0},
-    },
+    accepted_answers: null,
     question: question,
     question_group_id: args.question_group,
     question_id: id,
-    // TODO(ldixon): make nice typescript interence helper function.
-    type: question_type,
+    type: 'toanswer',
   };
   return questionRow;
 }
+
 
 async function main(args: Params) {
   checkArguments(args);
@@ -168,41 +110,31 @@ async function main(args: Params) {
   let spannerDatabase =
       spannerInstance.database(args.spanner_db, {keepAlive: 5});
   let db = new crowdsourcedb.CrowdsourceDB(spannerDatabase);
-  let random = seedrandom(args.random_seed);
-
-  // let fileAsString = fs.readFileSync(args.file, 'utf8');
 
   let total_added = 0;
-  let training_added = 0;
-  let test_added = 0;
   let batcher = new util.Batcher<db_types.QuestionRow>(
       async (batch: db_types.QuestionRow[]) => {
         if (args.action === 'update') {
           await db.updateQuestions(batch);
         } else if (args.action === 'insert') {
-          await db.addQuestions(batch);
+          await db.addQuestions(batch).catch((e) => {
+            console.error('Failed at batch: ' + JSON.stringify(batch, null, 2));
+            throw e;
+          });
         } else if (args.action === 'print') {
-          console.log(JSON.stringify(batch));
+          console.log(JSON.stringify(batch, null, 2));
         } else if (args.action === 'count') {
         } else {
           throw new Error('invalid action: ' + args.action);
         }
-        console.log(`questions in batch: ${batch.length}`);
+        console.log(`looked at question batch size: ${batch.length}`);
         console.log(`total questions is now: ${total_added}`);
         total_added += batch.length;
       },
       10);
 
   await util.applyToLinesOfFile(args.file, async (line: string) => {
-    let question_type: 'test'|'training';
-    if (random() >= args.training_fraction) {
-      question_type = 'test';
-      test_added += 1;
-    } else {
-      question_type = 'training';
-      training_added += 1;
-    }
-    let question = questionRowFromDatum(JSON.parse(line), question_type);
+    let question = questionRowFromDatum(JSON.parse(line));
     return batcher.add(question);
   }, {from_line: args.from_line, to_line: args.to_line});
 
@@ -211,8 +143,6 @@ async function main(args: Params) {
   await db.close();
 
   console.log(`Completed. Added questions: ${total_added}`);
-  console.log(`Training: ${training_added}`);
-  console.log(`Test: ${test_added}`);
 }
 
 let args =
@@ -221,9 +151,6 @@ let args =
           describe:
               'A random seed to be used to select fraction of comments to be used for training'
         })
-        .option(
-            'training_fraction',
-            {describe: 'Fraction of examples given to be for training'})
         .option(
             'question_type',
             {describe: 'Question type, one of: training | test | toanswer'})
@@ -246,10 +173,9 @@ let args =
         .default('action', 'print')
         .default('gcloud_project_id', 'wikidetox')
         .default('spanner_instance', 'crowdsource')
-        .default('spanner_db', 'testdb')
         .demandOption(
-            ['file', 'question_group', 'training_fraction'],
-            'Please provide at least --file and --question_group, and --training_fraction.')
+            ['file', 'question_group', 'spanner_db'],
+            'Please provide at least --file, --question_group, and --spanner_db.')
         .help()
         .argv;
 
