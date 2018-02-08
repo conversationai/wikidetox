@@ -76,3 +76,5 @@ viz/config/
 build/
 
 .ipynb_checkpoints/
+.*.swp
+*.egg-info/
