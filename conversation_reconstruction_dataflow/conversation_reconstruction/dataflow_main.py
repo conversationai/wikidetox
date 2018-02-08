@@ -59,11 +59,11 @@ def run(known_args, pipeline_args):
   within_time_range = '((week >= {lw} and year == {ly}) or year > {ly}) and ((week <= {uw} and year == {uy}) or year < {uy})'.format(lw = known_args.lower_week, ly = known_args.lower_year, uw = known_args.upper_week, uy = known_args.upper_year)
   ingested_data_within_time = "(SELECT * FROM {input_table} WHERE {time_range}), ".format(input_table=known_args.input_table, time_range=within_time_range)
   rev_id_of_latest_processed = "(select rev_id_in_int from (select rev_id_in_int, row_number() over (partition by page_id order by timestamp desc, rev_id_in_int desc) as seqnum from {input_table} WHERE (week < {lw} and year == {ly}) or year < {ly}) where seqnum < 2) as previous_max ".format(input_table=known_args.input_table, lw=known_args.lower_week, ly=known_args.lower_year)
-  on_selected_pages= "INNER JOIN (SELECT page_id FROM {input_table} WHERE week == {w} and year == {y} GROUP BY page_id) as cur ON latest.page_id == cur.page_id) ".format(input_table=known_args.input_table, w=known_args.week, y=known_args.year)
+  on_selected_pages= "INNER JOIN (SELECT page_id FROM {input_table} WHERE {time_range} GROUP BY page_id) as cur ON latest.page_id == cur.page_id) ".format(input_table=known_args.input_table, time_range=within_time_range)
   get_latest_revision = "(SELECT {renamed} FROM (SELECT {renamed} FROM {input_table} as latest INNER JOIN ".format(renamed=renaming, input_table=known_args.input_table) + rev_id_of_latest_processed + "ON previous_max.rev_id_in_int == latest.rev_id_in_int) as latest " + on_selected_pages
   ingested_all = "(SELECT * FROM " + ingested_data_within_time + get_latest_revision + ") as ingested "
   previous_page_states = "(SELECT ps_tmp.* FROM {page_states} as ps_tmp INNER JOIN (SELECT MAX(timestamp) as max_timestamp, page_id FROM {page_states} GROUP BY page_id) as tmp ON tmp.page_id == ps_tmp.page_id and ps_tmp.timestamp== tmp.max_timestamp) as page_state ".format(page_states=known_args.input_page_state_table)
-  read_query = "SELECT * FROM " + ingested_all + "LEFT JOIN " + previous_page_states + "ON ingested.page_id == page_state.ps_tmp.page_id ORDER BY ingested.timestamp, ingested.rev_id_in_int"
+  read_query = "SELECT * FROM " + ingested_all + "LEFT JOIN " + previous_page_states + "ON ingested.page_id == page_state.ps_tmp.page_id ORDER BY ingested.page_id, ingested.timestamp, ingested.rev_id_in_int"
   if known_args.initial_reconstruction:
      read_query = "SELECT * FROM {input_table} WHERE {time_range} ORDER BY timestamp, rev_id_in_int".format(input_table=known_args.input_table, time_range=within_time_range) 
      groupby_mapping = lambda x: (x['page_id'], x)
@@ -116,6 +116,8 @@ class ReconstructConversation(beam.DoFn):
         cur_revision = self.QueryResult2json(cur_revision)
         if not('rev_id' in cur_revision):
            continue
+        if '/Archive ' in cur_revision['page_title']:
+           return
         if cur_revision['record_index'] == 0: 
            revision = cur_revision
         else:
@@ -130,7 +132,7 @@ class ReconstructConversation(beam.DoFn):
            cnt += 1
            last_revision = revision['rev_id']
            try:
-              page_state, actions = processor.process(revision, DEBUGGING_MODE = False)
+              page_state, actions = processor.process(revision, DEBUGGING_MODE = True)
            except: 
               logging.info('ERRORLOG: Reconstruction on page %s failed! last revision: %s' %(page_id, last_revision))
               raise ValueError
