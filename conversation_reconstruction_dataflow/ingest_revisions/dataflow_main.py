@@ -50,8 +50,7 @@ from apache_beam.pipeline import AppliedPTransform
 from apache_beam.io.gcp import bigquery #WriteToBigQuery
 
 THERESHOLD = 10385760 
-LOGGING_THERESHOLD = 5000
-my_timeout = 15 * 60 * 60 # 15 hours timeout
+LOGGING_THERESHOLD = 500
 
 def run(known_args, pipeline_args):
   """Main entry point; defines and runs the ingestion pipeline."""
@@ -132,7 +131,6 @@ class WriteDecompressedFile(beam.DoFn):
 
     logging.info('USERLOG: Running ingestion process on %s' % chunk_name)
     ingestion_cmd = ['python2', '-m', 'ingest_utils.run_ingester', '-i', chunk_name]
-    kill = lambda process, status: process.kill();status='timeout'
     status = 'success'
     ingest_proc = subprocess.Popen(ingestion_cmd, stdout=subprocess.PIPE, bufsize = 4096)
     cnt = 0
@@ -149,7 +147,7 @@ class WriteDecompressedFile(beam.DoFn):
       for r in ret:
           yield r
       if i % LOGGING_THERESHOLD == 0:
-         logging.info('USERLOG: %d revisions on %s ingested, %d seconds on ingestion.'%(i, chunk_name, time.time() - last_completed)) 
+         logging.info('USERLOG: %d revisions on %s ingested, %d seconds on ingestion, last revision: %s.'%(i, chunk_name, time.time() - last_completed), last_revision) 
          last_completed = time.time()
       if len(ret) > 1:
          logging.info('USERLOG: File %s contains large row, rowsize %d, being truncated to %d pieces' % (chunk_name, sys.getsizeof(line), len(ret)))
@@ -167,13 +165,13 @@ if __name__ == '__main__':
                       help='If you want to run the input dumps in batch, pick a batch number to run')
   parser.add_argument('--input',
                       dest='input',
-                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_short_10.txt',
+                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_stuck',
                       help='Input file to process.')
   # Destination BigQuery Table
   schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
   parser.add_argument('--table',
                       dest='table',
-                      default='wikidetox-viz:wikidetox_conversations.ingested_conversations_short_10',
+                      default='wikidetox-viz:wikidetox_conversations.ingested_conversations_stuck',
                       help='Output table to write results to.')
   parser.add_argument('--schema',
                       dest='schema',
