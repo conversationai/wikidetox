@@ -329,11 +329,9 @@ def main():
       # assumes 0-based count and uses -1 for missing word.
       data.x_train = data.x_train - 1
       data.x_test = data.x_test - 1
-<<<<<<< HEAD
+
     elif FLAGS.model == 'cnn':
       model_fn = cnn_model
-=======
->>>>>>> master
     else:
       tf.logging.error("Unknown specified model '{}', must be one of {}"
                        .format(FLAGS.model, MODEL_LIST))
