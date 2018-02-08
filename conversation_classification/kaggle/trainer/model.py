@@ -3,19 +3,15 @@ Classifiers for the Toxic Comment Classification Kaggle challenge,
 https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge
 
 To run locally:
-  python model.py \
-         --train_data=train.csv \
-         --predict_data=test.csv \
-         --y_class=toxic \
-         --train_steps=100
+  python model.py --train_data=train.csv --predict_data=test.csv --y_class=toxic --train_steps=100
 
 To run locally using Cloud ML Engine:
   gcloud ml-engine local train \
         --module-name=trainer.model \
         --package-path=trainer \
         --job-dir=model -- \
-        --train_data=train.csv
-        --predict_data=test.csv
+        --train_data=train.csv \
+        --predict_data=test.csv \
         --y_class=toxic \
         --train_steps=100
 
@@ -32,7 +28,7 @@ import shutil
 import pandas as pd
 import tensorflow as tf
 from sklearn import metrics
-from data import wikidata
+from trainer import wikidata
 from collections import namedtuple
 
 FLAGS = None
