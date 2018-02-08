@@ -1,8 +1,0 @@
-{
-  "port": "8080",
-  "staticPath": "static",
-  "crowd9ApiUrl": "https://crowd9api-dot-wikidetox.appspot.com",
-  "cloudProjectId": "enter your cloud project id here",
-  "clientJobKey": "enter your client Job key here",
-  "isProduction": false
-}
