@@ -96,7 +96,7 @@ def truncate_content(s):
     else:
        l = len(dic['text'])
        contentsize = sys.getsizeof(dic['text'])
-       pieces = math.ceil(filesize / THERESHOLD)
+       pieces = max(math.ceil(float(filesize) / float(THERESHOLD)), 2)
        piece_size = int(l / pieces)
        dic['truncated'] = True
        dics = []
