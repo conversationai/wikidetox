@@ -55,26 +55,28 @@ def run(known_args, pipeline_args):
   ])
   pipeline_options = PipelineOptions(pipeline_args)
   pipeline_options.view_as(SetupOptions).save_main_session = True
-  renaming = "latest.rev_id_in_int as rev_id_in_int, latest.week as week, latest.year as year, latest.sha1 as sha1, latest.user_id as user_id, latest.format as format, latest.user_text as user_text, latest.timestamp as timestamp, latest.text as text, latest.page_title as page_title, latest.model as model, latest.page_namespace as page_namespace, latest.page_id as page_id, latest.rev_id as rev_id, latest.comment as comment, latest.user_ip as user_ip, latest.truncated as truncated, latest.records_count as records_count, latest.record_index as record_index"
-  within_time_range = '((week >= {lw} and year == {ly}) or year > {ly}) and ((week <= {uw} and year == {uy}) or year < {uy})'.format(lw = known_args.lower_week, ly = known_args.lower_year, uw = known_args.upper_week, uy = known_args.upper_year)
-  ingested_data_within_time = "(SELECT * FROM {input_table} WHERE {time_range}), ".format(input_table=known_args.input_table, time_range=within_time_range)
-  rev_id_of_latest_processed = "(select rev_id_in_int from (select rev_id_in_int, row_number() over (partition by page_id order by timestamp desc, rev_id_in_int desc) as seqnum from {input_table} WHERE (week < {lw} and year == {ly}) or year < {ly}) where seqnum < 2) as previous_max ".format(input_table=known_args.input_table, lw=known_args.lower_week, ly=known_args.lower_year)
-  on_selected_pages= "INNER JOIN (SELECT page_id FROM {input_table} WHERE {time_range} GROUP BY page_id) as cur ON latest.page_id == cur.page_id) ".format(input_table=known_args.input_table, time_range=within_time_range)
-  get_latest_revision = "(SELECT {renamed} FROM (SELECT {renamed} FROM {input_table} as latest INNER JOIN ".format(renamed=renaming, input_table=known_args.input_table) + rev_id_of_latest_processed + "ON previous_max.rev_id_in_int == latest.rev_id_in_int) as latest " + on_selected_pages
-  ingested_all = "(SELECT * FROM " + ingested_data_within_time + get_latest_revision + ") as ingested "
-  previous_page_states = "(SELECT ps_tmp.* FROM {page_states} as ps_tmp INNER JOIN (SELECT MAX(timestamp) as max_timestamp, page_id FROM {page_states} GROUP BY page_id) as tmp ON tmp.page_id == ps_tmp.page_id and ps_tmp.timestamp== tmp.max_timestamp) as page_state ".format(page_states=known_args.input_page_state_table)
-  read_query = "SELECT * FROM " + ingested_all + "LEFT JOIN " + previous_page_states + "ON ingested.page_id == page_state.ps_tmp.page_id ORDER BY ingested.page_id, ingested.timestamp, ingested.rev_id_in_int"
-  if known_args.initial_reconstruction:
-     read_query = "SELECT * FROM {input_table} WHERE {time_range} ORDER BY timestamp, rev_id_in_int".format(input_table=known_args.input_table, time_range=within_time_range) 
-     groupby_mapping = lambda x: (x['page_id'], x)
-  else:
-     groupby_mapping = lambda x: (x['ingested_page_id'], x)
+
+  within_time_range = '((week >= {lw} and year = {ly}) or year > {ly}) and ((week <= {uw} and year = {uy}) or year < {uy})'.format(lw = known_args.lower_week, ly = known_args.lower_year, uw = known_args.upper_week, uy = known_args.upper_year)
+  before_time_range = '(week < {lw} and year = {ly}) or year < {ly}'.format(lw=known_args.lower_week, ly=known_args.lower_year) 
+  ingested_revs_for_processing = "WITH revs AS (SELECT * FROM {input_table} WHERE {time_range}) SELECT page_id, ARRAY_AGG(revs ORDER BY timestamp, rev_id_in_int) AS cur_rev FROM revs GROUP BY page_id".format(input_table=known_args.input_table, time_range=within_time_range)
+  last_revision_processed = "WITH revs AS (SELECT * FROM {input_table} WHERE {before_time_range}) SELECT page_id, ARRAY_AGG(revs ORDER BY timestamp DESC, rev_id_in_int DESC LIMIT 1)[OFFSET(0)] AS last_rev FROM revs GROUP BY page_id".format(input_table=known_args.input_table, before_time_range=before_time_range)
+  last_page_state = "WITH page_states AS (SELECT * FROM {page_state_table}) SELECT page_id, ARRAY_AGG(page_states ORDER BY timestamp DESC, rev_id DESC LIMIT 1)[OFFSET(0)] AS last_page_state FROM page_states GROUP BY page_id".format(page_state_table=known_args.input_page_state_table)
+  groupby_mapping = lambda x: (x['page_id'], x)
   with beam.Pipeline(options=pipeline_options) as p:
-    reconstruction_results, page_states = \
-                (p | beam.io.Read(beam.io.BigQuerySource(query=read_query, validate=True)) 
-                   # Read from ingested table joined with previously reconstructed page states
-                   | beam.Map(groupby_mapping) | beam.GroupByKey()
-                   # Groupby by page_id
+    to_be_processed = (p | 'Read_to_be_processed' >> beam.io.Read(beam.io.BigQuerySource(query=ingested_revs_for_processing, validate=True, use_standard_sql=True))
+                         | 'INGESTED_assign_page_id_as_key' >> beam.Map(groupby_mapping))
+    # Read from ingested table to get revisions to process
+    last_revision = (p 
+         | 'Retrieve_last_revision' >> beam.io.Read(beam.io.BigQuerySource(query=last_revision_processed, validate=True, use_standard_sql=True))
+         | 'LASTREV_assign_page_id_as_key' >> beam.Map(groupby_mapping))
+    # Read from ingested table to get last processed revision 
+    page_state = (p | 'Retrieve_page_state' >> beam.io.Read(beam.io.BigQuerySource(query=last_page_state, validate=True, use_standard_sql=True))
+                    | 'PAGESTATE_assign_page_id_as_key' >> beam.Map(groupby_mapping))
+    # Read from page state table to get the page states recorded from previous processing steps
+
+    reconstruction_results, page_states = ({'to_be_processed': to_be_processed, 'last_revision': last_revision, 'page_state': page_state}
+                   | beam.CoGroupByKey()
+                   # Join information based on page_id
                    | beam.ParDo(ReconstructConversation()).with_outputs('page_states', main = 'reconstruction_results'))
                    # Reconstruct the conversations
     page_states | "WritePageStates" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.page_states_output_table, schema=known_args.page_states_output_schema, write_disposition='WRITE_APPEND', validate=True))
@@ -84,55 +86,37 @@ def run(known_args, pipeline_args):
 
 
 class ReconstructConversation(beam.DoFn):
-  def QueryResult2json(self, query_res):
-      """
-         Clear formatting introduced by join.
-         Input: BigQuery result in a dictionary with prefixes added to fields resulted from join. 
-         Output: Clear the prefixes to match with the field notations in the following code.
-      """
-      ret = {} 
-      for key, val in query_res.items():
-          if 'ingested_' in key:
-             ret[key[9:]] = val
-          elif ('page_state_ps_tmp_' in key) and not(key == 'page_state_ps_tmp_timestamp'):
-             ret[key[18:]] = val
-          elif not(key == 'page_state_ps_tmp_timestamp'):
-             ret[key] = val
-      return ret
-
-  def process(self, pairs):
-    rows = pairs[1] 
-    page_id = pairs[0]
+  def process(self, info):
+    (page_id, data) = info
+    rows = data['to_be_processed']
+    last_revision = data['last_revision']
+    page_state = data['page_state'] 
+    if rows == []: return 
+    # Return when no revisions need to be processed for this page
     if page_id == None: return
+    if '/Archive ' in rows[0]['cur_rev'][0]['page_title']: return 
     logging.info('USERLOG: Reconstruction work start on page: %s'%page_id)
-    revision = {}
     processor = Conversation_Constructor()
+    if not(page_state) == []:
+       last_revision = last_revision[0]
+       page_state = page_state[0]
+       logging.info('Page %s existed: loading page state, last revision: %s'%(page_id, last_revision['last_rev']['rev_id'])) 
+       processor.load(page_state['last_page_state']['page_state'], page_state['last_page_state']['deleted_comments'], page_state['last_page_state']['conversation_id'], page_state['last_page_state']['authors'], last_revision['last_rev']['text'])
+    revision = {}
     last_revision = 'None'
     error_encountered = False
     cnt = 0
-    last_page_state = None
-    first_time = True
-    for cur_revision in rows:
-        cur_revision = self.QueryResult2json(cur_revision)
-        if not('rev_id' in cur_revision):
-           continue
-        if '/Archive ' in cur_revision['page_title']:
-           return
+    for cur_revision in rows[0]['cur_rev']:
+        if not('rev_id' in cur_revision): continue
         if cur_revision['record_index'] == 0: 
            revision = cur_revision
         else:
            revision['text'] += cur_revision['text']
         if cur_revision['record_index'] == cur_revision['records_count'] - 1:
-           if first_time and not(known_args.initial_reconstruction):
-              first_time = False
-              if cur_revision['page_state']:
-                 logging.info('Page %s existed: loading page state, last revision: %s'%(revision['page_id'], revision['rev_id'])) 
-                 processor.load(revision['page_state'], revision['deleted_comments'], revision['conversation_id'], revision['authors'], revision['text'])
-                 continue
            cnt += 1
            last_revision = revision['rev_id']
            try:
-              page_state, actions = processor.process(revision, DEBUGGING_MODE = True)
+              page_state, actions = processor.process(revision, DEBUGGING_MODE = False)
            except: 
               logging.info('ERRORLOG: Reconstruction on page %s failed! last revision: %s' %(page_id, last_revision))
               raise ValueError
@@ -190,7 +174,7 @@ if __name__ == '__main__':
   page_states_output_schema = 'rev_id:INTEGER, page_id:STRING, page_state:STRING, deleted_comments:STRING, conversation_id:STRING, authors:STRING, timestamp:STRING'  
   parser.add_argument('--page_states_output_table',
                       dest='page_states_output_table',
-                      default='wikidetox-viz:wikidetox_conversations.page_states',
+                      default='wikidetox-viz:wikidetox_conversations.page_states_test',
                       help='Output page state table for reconstruction.')
   parser.add_argument('--page_states_output_schema',
                       dest='page_states_output_schema',
