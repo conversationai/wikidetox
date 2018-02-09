@@ -174,7 +174,7 @@ if __name__ == '__main__':
   page_states_output_schema = 'rev_id:INTEGER, page_id:STRING, page_state:STRING, deleted_comments:STRING, conversation_id:STRING, authors:STRING, timestamp:STRING'  
   parser.add_argument('--page_states_output_table',
                       dest='page_states_output_table',
-                      default='wikidetox-viz:wikidetox_conversations.page_states_test',
+                      default='wikidetox-viz:wikidetox_conversations.page_states',
                       help='Output page state table for reconstruction.')
   parser.add_argument('--page_states_output_schema',
                       dest='page_states_output_schema',
