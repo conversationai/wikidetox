@@ -60,7 +60,7 @@ def run(known_args, pipeline_args):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=ingest-job-truncated-content-run-in-batch',
+    '--job_name=ingest-job-on-previously-stuck-revisions',
     '--num_workers=50',
   ])
 
@@ -147,7 +147,7 @@ class WriteDecompressedFile(beam.DoFn):
       for r in ret:
           yield r
       if i % LOGGING_THERESHOLD == 0:
-         logging.info('USERLOG: %d revisions on %s ingested, %d seconds on ingestion, last revision: %s.'%(i, chunk_name, time.time() - last_completed), last_revision) 
+         logging.info('USERLOG: %d revisions on %s ingested, %d seconds on ingestion, last revision: %s.'%(i, chunk_name, time.time() - last_completed, last_revision)) 
          last_completed = time.time()
       if len(ret) > 1:
          logging.info('USERLOG: File %s contains large row, rowsize %d, being truncated to %d pieces' % (chunk_name, sys.getsizeof(line), len(ret)))
