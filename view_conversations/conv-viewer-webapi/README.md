@@ -30,7 +30,9 @@ Before you can deploy, you need to:
 1. Copy the `server_config.template.json` file to `build/config/server_config.json`.
 2. In the `build/config/server_config.json` file, set these values:
 
-    * `cloudProjectId` This is the name of your google cloud project.
+    * `bigQueryProjectId` : The Google Cloud Project ID that contains the BigQuery database.
+    * `bigQueryDataSetId` : The name of the dataset in the cloud project.
+    * `bigQueryTable` : The name of the table that contains the conversations.
 
 TODO(ldixon): in future we'll move to using OAuth and project credentials.
 
