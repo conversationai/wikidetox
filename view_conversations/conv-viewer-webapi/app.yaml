@@ -15,7 +15,7 @@
 runtime: nodejs
 env: flex
 threadsafe: true
-service: convViewApi
+service: conv-view
 
 env_variables:
   NODE_ENV: 'production'
