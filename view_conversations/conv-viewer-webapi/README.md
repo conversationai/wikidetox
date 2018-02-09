@@ -51,6 +51,7 @@ This project uses appengine flexible environment for deployment, which is config
 To deploy, make sure your cloud project is set appropriately, and run;
 
 ```
+yarn run build
 gcloud app deploy
 ```
 

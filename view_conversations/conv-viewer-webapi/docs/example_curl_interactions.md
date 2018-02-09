@@ -28,3 +28,8 @@ curl -H "Content-Type: application/json" -X GET \
 curl -H "Content-Type: application/json" -X GET \
   "${SERVER_ADDR}/api/page-title/User%20talk:213.40.118.71"
 ```
+
+```
+curl -H "Content-Type: application/json" -X GET \
+  "${SERVER_ADDR}/api/search/conversation_id/=/159766698.0.0"
+```
