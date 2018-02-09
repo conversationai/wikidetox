@@ -41,6 +41,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
     
    
     comment_removals = []
+    tmp_rmvs = []
     comment_additions = []
     removed_actions = {}
     old_actions = sorted(page['actions'].keys())
@@ -56,8 +57,8 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
         if op['name'] == 'insert':
             if op['a1'] in old_actions and (op['tokens'][0].type == 'break' \
                 or op['b1'] == 0 or (op['b1'] > 0 and rev_text[op['b1'] - 1].type == 'break')) and \
-                (op['b2'] == len(rev_text) or op['tokens'][-1].type == 'break' or \
-                rev_text[op['b2']].type == 'break'):
+                (op['b2'] == len(rev_text) or op['tokens'][-1].type == 'break'): 
+             #   or rev_text[op['b2']].type == 'break'):
                     content = "".join(op['tokens'])
                     for c in divide_into_section_headings_and_contents(op, content):
                         comment_additions.append(c)
@@ -84,12 +85,18 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
                 partial_op['b2'] = op['b2']
                 partial_op['tokens'] = op['tokens'][start_token:partial_op['a2'] - partial_op['a1'] +start_token]
                 start_token += partial_op['a2'] - partial_op['a1']
-                if delete_start > act or act == old_actions[deleted_action_end - 1]:
+                if delete_start > act or act == old_actions[deleted_action_end - 1] or act in modification_actions:
                     modification_actions[act] = True
                 else:
-                    comment_removals.append([page['actions'][act], partial_op])
-                    removed_actions[act] = True
-    
+                    tmp_rmvs.append((act, [page['actions'][act], partial_op]))
+    updated_comment_additions = []    
+    for action in comment_additions:
+        if not(action['a1'] in modification_actions): updated_comment_additions.append(action)
+    comment_additions = updated_comment_additions
+    for action in tmp_rmvs:
+        if not(action[0] in modification_actions):
+           comment_removals.append(action[1])
+           removed_actions[action[0]] = True
     rearrangement = {}
     updated_removals = []
     end_tokens = []      
