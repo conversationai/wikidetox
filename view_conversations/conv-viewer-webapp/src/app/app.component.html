@@ -6,7 +6,7 @@
 </div>
 <div>
 
-<form (ngSubmit)="submitSearch()" #searchForm="ngForm">
+<form [formGroup]="form" (submit)="submitSearch()">
 
 <button mat-button type="button"
   [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Search by
@@ -14,18 +14,19 @@
 <mat-menu #menu="matMenu">
   <mat-radio-group class="searchby-radio-group"
       (change)="updateLocationHash()"
-      [(ngModel)]="searchBy" name="searchBy">
+      formControlName="searchBy">
     <mat-radio-button class="searchby-radio-button" *ngFor="let s of searchBys"
       [value]="s">{{s}}</mat-radio-button>
   </mat-radio-group>
 </mat-menu>
 
 <mat-form-field class="search-text">
-  <input matInput placeholder="{{searchBy}}" [(ngModel)]="searchFor" name="searchFor">
+  <input matInput type="text" placeholder="{{form.value.searchBy}}"
+         formControlName="searchFor">
 </mat-form-field>
 
 <button mat-raised-button
-  [disabled]="!searchForm.form.valid || inFlightRequest !== undefined"
+  [disabled]="!form.valid || inFlightRequest !== undefined"
   type="submit" color="primary">Search</button>
 </form>
 

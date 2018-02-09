@@ -1,18 +1,21 @@
 {
   "name": "@conversationai/conversationai-wikidetox-convapi",
-  "description": "Experimental code to illustrate how we might crowdsource annotations.",
+  "description": "Web server API to support viewing Wikipedia Talk page conversations using BigQuery.",
   "repository": "https://github.com/conversationai/wikidetox",
   "version": "0.0.1",
+  "engines" : { "node" : "9.x" },
   "license": "Apache-2.0",
   "scripts": {
     "setup": "mkdir -p build/server/ && mkdir -p build/config/ && rsync --ignore-existing server_config.template.json build/config/server_config.json",
-    "build": "tsc --outdir build/server/",
+    "cp-static-web-app": "rsync -a ../conv-viewer-webapp/dist/* ./build/static",
+    "build": "yarn run cp-static-web-app && tsc --outdir build/server/",
     "build:watch": "tsc --outdir build/server/ --watch",
     "serve": "node build/server/run_server.js build/config/server_config.json",
     "serve:watch": "yarn run build:watch & NODE_ENV='development' nodemon --inspect build/server/run_server.js build/config/server_config.json",
-    "serve-dev": "NODE_ENV='development' node build/server/run_server.js build/config/server_config.json",
-    "serve-prod": "NODE_ENV='production' node build/server/run_server.js build/config/server_config.json",
-    "test": "mocha build/server/*_test.js build/server/setup/*_test.js"
+    "serve:dev": "NODE_ENV='development' node build/server/run_server.js build/config/server_config.json",
+    "serve:prod": "NODE_ENV='production' node build/server/run_server.js build/config/server_config.json",
+    "test": "mocha build/server/*_test.js build/server/setup/*_test.js",
+    "start": "yarn run serve:prod"
   },
   "dependencies": {
     "@conversationai/wpconvlib": "^0.0.2",
