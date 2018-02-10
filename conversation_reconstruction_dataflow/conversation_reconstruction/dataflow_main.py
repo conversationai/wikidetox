@@ -192,13 +192,17 @@ if __name__ == '__main__':
                       help='Is this the first time reconstruction, meaning no existing page states processed.')
 
   known_args, pipeline_args = parser.parse_known_args()
-  if known_args.week:
-     known_args.lower_week, known_args.upper_week = int(known_args.week), int(known_args.week)
-     known_args.lower_year, known_args.upper_year = int(known_args.year), int(known_args.year)
-  known_args.lower_week = int(known_args.lower_week)
-  known_args.lower_year = int(known_args.lower_year) 
-  known_args.upper_week = int(known_args.upper_week)
-  known_args.upper_year = int(known_args.upper_year)
-  known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_from_week%d_year%dto_week%d_year%d'%(known_args.lower_week, known_args.lower_year, known_args.upper_week, known_args.upper_year)
-  run(known_args, pipeline_args)
+  for year in [2005]:
+      for week in [11, 53]:
+          known_args.week = week
+          known_args.year = year
+          if known_args.week:
+             known_args.lower_week, known_args.upper_week = int(known_args.week), int(known_args.week)
+             known_args.lower_year, known_args.upper_year = int(known_args.year), int(known_args.year)
+          known_args.lower_week = int(known_args.lower_week)
+          known_args.lower_year = int(known_args.lower_year) 
+          known_args.upper_week = int(known_args.upper_week)
+          known_args.upper_year = int(known_args.upper_year)
+          known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_from_week%d_year%dto_week%d_year%d'%(known_args.lower_week, known_args.lower_year, known_args.upper_week, known_args.upper_year)
+          run(known_args, pipeline_args)
 
