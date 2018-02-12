@@ -3,7 +3,7 @@ Classifiers for the Toxic Comment Classification Kaggle challenge,
 https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge
 
 To run locally:
-  python model.py --train_data=train.csv --predict_data=test.csv --y_class=toxic --train_steps=100
+  python trainer/model.py --train_data=train.csv --predict_data=test.csv --y_class=toxic
 
 To run locally using Cloud ML Engine:
   gcloud ml-engine local train \
@@ -105,14 +105,14 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
       labels=labels, predictions=predicted_classes, name='acc_op'),
     'auc': tf.metrics.auc(
       labels=labels, predictions=predicted_classes, name='auc_op'),
-    'true_negatives': tf.metrics.true_negatives(
-      labels=labels, predictions=predicted_classes),
-    'false_negatives': tf.metrics.false_negatives(
-      labels=labels, predictions=predicted_classes),
-    'true_positives': tf.metrics.true_positives(
-      labels=labels, predictions=predicted_classes),
-    'false_positives': tf.metrics.false_positives(
-      labels=labels, predictions=predicted_classes),
+    # 'true_negatives': tf.metrics.true_negatives(
+    #   labels=labels, predictions=predicted_classes),
+    # 'false_negatives': tf.metrics.false_negatives(
+    #   labels=labels, predictions=predicted_classes),
+    # 'true_positives': tf.metrics.true_positives(
+    #   labels=labels, predictions=predicted_classes),
+    # 'false_positives': tf.metrics.false_positives(
+    #   labels=labels, predictions=predicted_classes),
   }
 
   # Add summary ops to the graph. These metrics will be tracked graphed
