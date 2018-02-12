@@ -195,10 +195,14 @@ if __name__ == '__main__':
   if known_args.week:
      known_args.lower_week, known_args.upper_week = int(known_args.week), int(known_args.week)
      known_args.lower_year, known_args.upper_year = int(known_args.year), int(known_args.year)
-  known_args.lower_week = int(known_args.lower_week)
-  known_args.lower_year = int(known_args.lower_year) 
-  known_args.upper_week = int(known_args.upper_week)
-  known_args.upper_year = int(known_args.upper_year)
-  known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_long_pages_from_week%d_year%dto_week%d_year%d'%(known_args.lower_week, known_args.lower_year, known_args.upper_week, known_args.upper_year)
-  run(known_args, pipeline_args)
+  for year in range(2005, 2008):
+      if year > 2005: lower = 1 else: lower = 26
+      for week in range(lower, 54):
+          
+          known_args.lower_week = int(known_args.lower_week)
+          known_args.lower_year = int(known_args.lower_year) 
+          known_args.upper_week = int(known_args.upper_week)
+          known_args.upper_year = int(known_args.upper_year)
+          known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_long_pages_from_week%d_year%dto_week%d_year%d'%(known_args.lower_week, known_args.lower_year, known_args.upper_week, known_args.upper_year)
+          run(known_args, pipeline_args)
 
