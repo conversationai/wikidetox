@@ -11,20 +11,17 @@ import argparse
 import os
 import sys
 import shutil
-
 import pandas as pd
 import tensorflow as tf
-import numpy as np
 from sklearn import metrics
-from sklearn.model_selection import train_test_split
+from data import wikidata
 
 FLAGS = None
 
 # Data Params
-MAX_LABEL = 2
-Y_CLASSES = ['toxic', 'severe_toxic','obscene','threat','insult','identity_hate']
-DATA_SEED = 48173 # Random seed used for splitting the data into train/test
 TRAIN_PERCENT = .8 # Percent of data to allocate to training
+DATA_SEED = 48173 # Random seed used for splitting the data into train/test
+MAX_LABEL = 2
 MAX_DOCUMENT_LENGTH = 500 # Max length of each comment in words
 
 # Model Params
@@ -36,104 +33,6 @@ MODEL_LIST = ['bag_of_words']
 TRAIN_SEED = 9812 # Random seed used to initialize training
 LEARNING_RATE = 0.01
 BATCH_SIZE = 120
-
-class WikiData:
-
-  def __init__(self, data_path, y_class, vocab_processor_path=None,
-               test_mode=False, seed=None, train_percent=None):
-    """
-    Args:
-      * data_path (string): path to file containing train or test data
-      * y_class (string): the class we're training or testing on
-      * vocab_processor_path (string): if provided, the comment_text data will be
-          processed with the vocab processor at that location. If not, a new
-          vocab_processor will be created from the data.
-      * test_mode (boolean): true if loading data just to test on, not training a model
-      * seed (integer): a random seed to use for data splitting
-      * train_percent (fload): the percent of data we should use for training data
-
-    Note: the vocab_processor_path should only be provided if test_mode is true.
-    """
-    data = self._load_data(data_path)
-
-    self.x_train, self.x_train_text = None, None
-    self.x_test, self.x_test_text = None, None
-    self.y_train = None
-    self.y_test = None
-    self.vocab_processor = None
-
-    # If test_mode is True, then put all the data in x_test and y_test
-    if test_mode:
-      train_percent = 0
-
-    # Split the data into test / train sets
-    self.x_train_text, self.x_test_text, self.y_train, self.y_test \
-      = self._split(data, train_percent, 'comment_text', y_class, seed)
-
-    # Either load a VocabularyProcessor or compute one from the training data
-    if test_mode:
-
-      # If test_mode is True and no vocab_processor_path is specified, then
-      # return an error. We shouldn't train a VocabProcessor at test time.
-      if vocab_processor_path is None:
-        tf.logging.error("Loading data in test_mode with no vocab_processor_path")
-        raise ValueError
-
-      self.vocab_processor = self.load_vocab_processor(vocab_processor_path)
-
-    else:
-      self.vocab_processor = tf.contrib.learn.preprocessing.VocabularyProcessor(
-        MAX_DOCUMENT_LENGTH)
-      self.x_train = np.array(list(self.vocab_processor.fit_transform(
-        self.x_train_text)))
-
-    # Apply the VocabularyProcessor to the test data
-    self.x_test = np.array(list(self.vocab_processor.transform(
-      self.x_test_text)))
-
-  def _load_vocab_processor(self, path):
-    """Load a VocabularyProcessor from the provided path"""
-    return tf.contrib.learn.preprocessing.VocabularyProcessor.restore(path)
-
-  def _load_data(self, path):
-      df =  pd.read_csv(path)
-      return df
-
-  def _split(self, data, train_percent, x_field, y_class, seed=None):
-    """
-    Split divides the Wikipedia data into test and train subsets.
-
-    Args:
-      * data (dataframe): a dataframe with data for 'comment_text' and y_class
-      * train_percent (float): the fraction of data to use for training
-      * x_field (string): attribute of the wiki data to use to train, e.g.
-                          'comment_text'
-      * y_class (string): attribute of the wiki data to predict, e.g. 'toxic'
-      * seed (integer): a seed to use to split the data in a reproducible way
-
-    Returns:
-      x_train (dataframe): the features for the training data
-      y_train (dataframe): the 0 or 1 labels for the training data
-      x_test (dataframe):  the features for the test data
-      y_test (dataframe):  the 0 or 1 labels for the test data
-    """
-
-    if y_class not in Y_CLASSES:
-      tf.logging.error('Specified y_class {0} not in list of possible classes {1}'\
-            .format(y_class, Y_CLASSES))
-      raise ValueError
-
-    if train_percent > 1 or train_percent < 0:
-      tf.logging.error('Specified train_percent {0} is not between 0 and 1'\
-            .format(train_percent))
-      raise ValueError
-
-    X = data[x_field]
-    y = data[y_class]
-    x_train, x_test, y_train, y_test = train_test_split(
-      X, y, test_size=1-train_percent, random_state=seed)
-
-    return x_train, x_test, np.array(y_train), np.array(y_test)
 
 def estimator_spec_for_softmax_classification(logits, labels, mode):
   """
@@ -215,7 +114,6 @@ def bag_of_words_model(features, labels, mode):
 
   Returns a tf.estimator.EstimatorSpec.
   """
-
   bow_column = tf.feature_column.categorical_column_with_identity(
       WORDS_FEATURE, num_buckets=n_words)
 
@@ -248,8 +146,10 @@ def main():
 
     # Load and split data
     tf.logging.info('Loading data from {0}'.format(FLAGS.train_data))
-    data = WikiData(
-      FLAGS.train_data, FLAGS.y_class, seed=DATA_SEED, train_percent=TRAIN_PERCENT)
+
+    data = wikidata.WikiData(
+      FLAGS.train_data, FLAGS.y_class, seed=DATA_SEED, train_percent=TRAIN_PERCENT,
+      max_document_length=MAX_DOCUMENT_LENGTH)
 
     n_words = len(data.vocab_processor.vocabulary_)
     tf.logging.info('Total words: %d' % n_words)
@@ -342,7 +242,7 @@ if __name__ == '__main__':
       "--model_dir", type=str, default="model", help="Place to save model files")
   parser.add_argument(
       "--y_class", type=str, default="toxic",
-    help="Class to train model against, one of {}".format(Y_CLASSES))
+    help="Class to train model against, one of cnn, bag_of_words")
   parser.add_argument(
       "--model", type=str, default="bag_of_words",
     help="The model to train, one of {}".format(MODEL_LIST))
