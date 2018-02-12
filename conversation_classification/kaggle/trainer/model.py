@@ -116,7 +116,8 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
   if mode == tf.estimator.ModeKeys.TRAIN:
     optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
     train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
-    logging_hook = tf.train.LoggingTensorHook(tensors={'loss': loss}, every_n_iter=20)
+    logging_hook = tf.train.LoggingTensorHook(
+      tensors={'loss': loss}, every_n_iter=20)
 
     return tf.estimator.EstimatorSpec(
       mode=mode,
@@ -312,9 +313,7 @@ def main():
         dtype=tf.int64, shape=MAX_DOCUMENT_LENGTH)
     }
     serving_input_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(feature_spec)
-    dir_path = 'saved_models'
-
-    classifier.export_savedmodel(dir_path, serving_input_fn)
+    classifier.export_savedmodel(FLAGS.saved_model_dir, serving_input_fn)
 
 
 if __name__ == '__main__':
@@ -325,7 +324,9 @@ if __name__ == '__main__':
   parser.add_argument(
     "--train_data", type=str, default="", help="Path to the training data.")
   parser.add_argument(
-      "--model_dir", type=str, default="model", help="Place to save model files")
+    "--model_dir", type=str, default="model", help="Temp place for model files")
+  parser.add_argument(
+    "--saved_model_dir", type=str, default="saved_models", help="Place to saved model files")
   parser.add_argument(
       "--y_class", type=str, default="toxic",
     help="Class to train model against, one of cnn, bag_of_words")

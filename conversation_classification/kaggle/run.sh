@@ -1,5 +1,6 @@
 #!/bin/bash
 
+BUCKET_NAME=kaggle-model-experiments
 JOB_NAME=test_kaggle_training
 REGION=us-central1
 
@@ -17,8 +18,10 @@ gcloud ml-engine jobs submit training ${JOB_NAME}_${DATE} \
     --region $REGION \
     --verbosity debug \
     -- \
-    --train_data gs://kaggle-model-experiments/train.csv \
+    --train_data gs://${BUCKET_NAME}/train.csv \
     --y_class toxic \
-    ---predict_data gs://kaggle-model-experiments/test.csv \
-    --train-steps 1000 \
+    ---predict_data gs://${BUCKET_NAME}/test.csv \
+    --train-steps 10000 \
+    --saved_model_dir gs://${BUCKET_NAME}/saved_models\
+    --model_dir gs://${BUCKET_NAME}/model \
     --model cnn \

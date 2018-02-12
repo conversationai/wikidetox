@@ -1,13 +1,5 @@
 #!/bin/bash
 
-JOB_NAME=test_kaggle_training
-REGION=us-central1
-
-DATE=`date '+%Y%m%d_%H%M%S'`
-OUTPUT_PATH=gs://kaggle-model-experiments/$JOB_NAME_$DATE
-
-echo $OUTPUT_PATH
-
 gcloud ml-engine local train \
      --module-name=trainer.model \
      --package-path=trainer \
