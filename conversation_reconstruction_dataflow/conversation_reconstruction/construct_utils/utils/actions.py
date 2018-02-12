@@ -34,7 +34,11 @@ def comment_adding(insert_op, rev, page_actions):
     if '[OUTDENT: ' in action['content']:
        cont = action['content'][action['content'].find('[OUTDENT: ') + 10 :]
        cont = cont[:cont.find(']')]
-       indentation += int(cont) 
+       if cont == 0:
+          indentation += locate_last_indentation(page_actions, insert_op['b1']) + 1
+       else:
+          indentation += int(cont) 
+
     action['user_id'] = rev['user_id']
     action['user_text'] = rev['user_text']
     action['timestamp'] = rev['timestamp']

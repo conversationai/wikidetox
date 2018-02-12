@@ -94,9 +94,6 @@ def get_action_start(action_lst, token_position):
 
 def get_action_end(action_lst, token_position):
     ans = find_pos(token_position, action_lst)
-   #if action_lst[ans] == token_position:
-   #     return action_lst[ans]
-   # else:
     return action_lst[ans + 1]
 
 def is_in_boundary(x, start, end):
@@ -104,15 +101,20 @@ def is_in_boundary(x, start, end):
 
 def locate_replyTo_id(actions, action_pos, action_indentation):
     action_lst = sorted(list(actions.keys()))
- #   print(action_lst, action_pos)
     ind = find_pos(action_pos, action_lst)
-  #  print(ind, action_indentation)
     ret = None
     while ind >= 0:
         if actions[action_lst[ind]][1] < action_indentation:
             return actions[action_lst[ind]][0]
         ind -=1
     return ret
+
+def locate_last_indentation(actions, action_pos):
+    action_lst = sorted(list(actions.keys()))
+    ind = find_pos(action_pos, action_lst)
+    ret = None
+    while ind >= 0:
+        return actions[action_lst[ind]][1]
 
 def get_firstline(tokens):
     lines = "".join(tokens).splitlines()
