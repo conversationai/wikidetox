@@ -49,7 +49,7 @@ def run(known_args, pipeline_args):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=reconstruction-short-pages-2006-2010',
+    '--job_name=reconstruction-long-pages-2005-week-13',
     '--num_workers=30',
     '--extra_package=third_party/mwparserfromhell.tar.gz'
   ])
@@ -141,11 +141,11 @@ if __name__ == '__main__':
 
   parser.add_argument('--input_table',
                       dest='input_table',
-                      default='wikidetox_conversations.ingested_all_100rev',
+                      default='wikidetox_conversations.ingested_all_more_then_100rev',
                       help='Input table with ingested revisions.')
   parser.add_argument('--input_page_state_table',
                       dest='input_page_state_table',
-                      default='wikidetox_conversations.page_states_short',
+                      default='wikidetox_conversations.page_states',
                       help='Input page states table from previous reconstruction process.')
 
   parser.add_argument('--week',
@@ -178,7 +178,7 @@ if __name__ == '__main__':
   page_states_output_schema = 'rev_id:INTEGER, page_id:STRING, page_state:STRING, deleted_comments:STRING, conversation_id:STRING, authors:STRING, timestamp:STRING'  
   parser.add_argument('--page_states_output_table',
                       dest='page_states_output_table',
-                      default='wikidetox-viz:wikidetox_conversations.page_states_short',
+                      default='wikidetox-viz:wikidetox_conversations.page_states_long',
                       help='Output page state table for reconstruction.')
   parser.add_argument('--page_states_output_schema',
                       dest='page_states_output_schema',
@@ -190,11 +190,6 @@ if __name__ == '__main__':
                       dest='output_schema',
                       default=output_schema,
                       help='Output table schema.')
-  parser.add_argument('--initial_reconstruction',
-                      dest='initial_reconstruction',
-                      default=False,
-                      help='Is this the first time reconstruction, meaning no existing page states processed.')
-
   known_args, pipeline_args = parser.parse_known_args()
   if known_args.week:
      known_args.lower_week, known_args.upper_week = int(known_args.week), int(known_args.week)
@@ -203,6 +198,6 @@ if __name__ == '__main__':
   known_args.lower_year = int(known_args.lower_year) 
   known_args.upper_week = int(known_args.upper_week)
   known_args.upper_year = int(known_args.upper_year)
-  known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_short_pages_from_week%d_year%dto_week%d_year%d'%(known_args.lower_week, known_args.lower_year, known_args.upper_week, known_args.upper_year)
+  known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_long_pages_from_week%d_year%dto_week%d_year%d'%(known_args.lower_week, known_args.lower_year, known_args.upper_week, known_args.upper_year)
   run(known_args, pipeline_args)
 
