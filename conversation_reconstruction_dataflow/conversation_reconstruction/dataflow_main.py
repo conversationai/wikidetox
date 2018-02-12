@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 """
 Copyright 2017 Google Inc.
@@ -49,15 +48,15 @@ def run(known_args, pipeline_args):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=reconstruction-short-pages-2006-2010',
-    '--num_workers=30',
+    '--job_name=reconstruction-short-pages-week{lw}year{ly}-week{uw}year{uy}'.format(lw=known_args.lower_week, ly=known_args.lower_year, uw=known_args.upper_week, uy=known_args.upper_year),
+    '--num_workers=50',
     '--extra_package=third_party/mwparserfromhell.tar.gz'
   ])
   pipeline_options = PipelineOptions(pipeline_args)
   pipeline_options.view_as(SetupOptions).save_main_session = True
 
-  debug_page ='' #'and page_id = \'10887502\''
-  debug1 ='' # 'where page_id = \'10887502\''
+  debug_page =''#'and page_id = \'14498445\''
+  debug1 =''#'where page_id = \'14498445\''
 
   within_time_range = '((week >= {lw} and year = {ly}) or year > {ly}) and ((week <= {uw} and year = {uy}) or year < {uy})'.format(lw = known_args.lower_week, ly = known_args.lower_year, uw = known_args.upper_week, uy = known_args.upper_year)
   before_time_range = '(week < {lw} and year = {ly}) or year < {ly}'.format(lw=known_args.lower_week, ly=known_args.lower_year) 
