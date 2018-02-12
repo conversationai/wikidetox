@@ -61,7 +61,7 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
     # likely species for this example.
     'classes': predicted_classes,
 
-    # Holds the three probabilities for each prediction
+    # Holds the probabilities for each prediction
     'probs': predicted_probs,
   }
 
