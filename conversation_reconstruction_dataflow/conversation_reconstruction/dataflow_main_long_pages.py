@@ -49,7 +49,7 @@ def run(known_args, pipeline_args):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=reconstruction-long-pages-2005-week-13-14',
+    '--job_name=reconstruction-long-pages-week{lw}year{ly}-week{uw}year{uy}'.format(lw=known_args.lower_week, ly=known_args.lower_year, uw=known_args.upper_week, uy=known_args.upper_year),
     '--num_workers=30',
     '--extra_package=third_party/mwparserfromhell.tar.gz'
   ])
@@ -61,7 +61,7 @@ def run(known_args, pipeline_args):
 
   within_time_range = '((week >= {lw} and year = {ly}) or year > {ly}) and ((week <= {uw} and year = {uy}) or year < {uy})'.format(lw = known_args.lower_week, ly = known_args.lower_year, uw = known_args.upper_week, uy = known_args.upper_year)
   before_time_range = '(week < {lw} and year = {ly}) or year < {ly}'.format(lw=known_args.lower_week, ly=known_args.lower_year) 
-  ingested_revs_for_processing = "WITH revs AS (SELECT * FROM {input_table} WHERE {time_range} {debug}) SELECT page_id, ARRAY_AGG(revs ORDER BY timestamp, rev_id_in_int) AS cur_rev FROM revs GROUP BY page_id".format(input_table=known_args.input_table, time_range=within_time_range, debug=debug_page)
+  ingested_revs_for_processing = "SELECT * FROM {input_table} WHERE {time_range} {debug}".format(input_table=known_args.input_table, time_range=within_time_range, debug=debug_page)
   last_revision_processed = "WITH revs AS (SELECT * FROM {input_table} WHERE {before_time_range} {debug}) SELECT page_id, ARRAY_AGG(revs ORDER BY timestamp DESC, rev_id_in_int DESC LIMIT 1)[OFFSET(0)] AS last_rev FROM revs GROUP BY page_id".format(input_table=known_args.input_table, before_time_range=before_time_range, debug=debug_page)
   last_page_state = "WITH page_states AS (SELECT * FROM {page_state_table} {debug}) SELECT page_id, ARRAY_AGG(page_states ORDER BY timestamp DESC, rev_id DESC LIMIT 1)[OFFSET(0)] AS last_page_state FROM page_states GROUP BY page_id".format(page_state_table=known_args.input_page_state_table, debug=debug1)
   groupby_mapping = lambda x: (x['page_id'], x)
@@ -97,7 +97,7 @@ class ReconstructConversation(beam.DoFn):
     if rows == []: return 
     # Return when no revisions need to be processed for this page
     if page_id == None: return
-    if '/Archive ' in rows[0]['cur_rev'][0]['page_title']: return 
+    if '/Archive ' in rows[0]['page_title']: return 
     logging.info('USERLOG: Reconstruction work start on page: %s'%page_id)
     processor = Conversation_Constructor()
     if not(page_state) == []:
@@ -109,7 +109,8 @@ class ReconstructConversation(beam.DoFn):
     last_revision = 'None'
     error_encountered = False
     cnt = 0
-    for cur_revision in rows[0]['cur_rev']:
+    revision_lst = sorted([r for r in rows], key=lambda k: (k['timestamp'], k['rev_id_in_int']))
+    for cur_revision in revision_lst:
         if not('rev_id' in cur_revision): continue
         if cur_revision['record_index'] == 0: 
            revision = cur_revision
@@ -141,7 +142,7 @@ if __name__ == '__main__':
 
   parser.add_argument('--input_table',
                       dest='input_table',
-                      default='wikidetox_conversations.ingested_all_more_then_100rev',
+                      default='wikidetox_conversations.ingested_long_pages',
                       help='Input table with ingested revisions.')
   parser.add_argument('--input_page_state_table',
                       dest='input_page_state_table',
