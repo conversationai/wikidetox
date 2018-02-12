@@ -105,14 +105,6 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
       labels=labels, predictions=predicted_classes, name='acc_op'),
     'auc': tf.metrics.auc(
       labels=labels, predictions=predicted_classes, name='auc_op'),
-    # 'true_negatives': tf.metrics.true_negatives(
-    #   labels=labels, predictions=predicted_classes),
-    # 'false_negatives': tf.metrics.false_negatives(
-    #   labels=labels, predictions=predicted_classes),
-    # 'true_positives': tf.metrics.true_positives(
-    #   labels=labels, predictions=predicted_classes),
-    # 'false_positives': tf.metrics.false_positives(
-    #   labels=labels, predictions=predicted_classes),
   }
 
   # Add summary ops to the graph. These metrics will be tracked graphed
