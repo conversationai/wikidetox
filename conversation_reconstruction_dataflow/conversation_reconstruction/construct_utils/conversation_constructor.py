@@ -103,6 +103,9 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
     updated_actions = []
     # Finding comment rearrangements
     for removal in comment_removals:
+        # Removals with too few tokens may not be meaningful sentence
+        if len(removal[1]['tokens']) <= 10:
+           continue
         removed = ''.join(removal[1]['tokens'])
         rearranged = False
         updated_additions = []

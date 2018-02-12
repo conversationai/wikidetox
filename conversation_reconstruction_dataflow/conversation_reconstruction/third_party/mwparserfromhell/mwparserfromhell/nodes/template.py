@@ -70,13 +70,15 @@ class Template(Node):
         if self.name.lower() == 'outdent' or self.name.lower() == 'od':
             if not(parts == []):
                x = parts[0]
-               if x[0] == ':': 
+               if len(x) < 1:
+                  param = 0
+               elif x[0] == ':': 
                   param = len(x) 
                else: 
                   param = int(x)
                return "[OUTDENT: " + str(param) + "]"
             else:
-               return "[OUTDENT: " + str(99) + "]"
+               return "[OUTDENT: " + str(0) + "]"
         if kwargs.get("keep_template_params"):
             return " ".join(part for part in parts if part)
         return None
