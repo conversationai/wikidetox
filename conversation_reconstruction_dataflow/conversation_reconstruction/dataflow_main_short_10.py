@@ -49,7 +49,7 @@ def run(known_args, pipeline_args):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=reconstruction-short-10-2001-2002',
+    '--job_name=reconstruction-short-10-2005-until-week-14',
     '--num_workers=30',
     '--extra_package=third_party/mwparserfromhell.tar.gz'
   ])
@@ -145,7 +145,7 @@ if __name__ == '__main__':
                       help='Input table with ingested revisions.')
   parser.add_argument('--input_page_state_table',
                       dest='input_page_state_table',
-                      default='wikidetox_conversations.page_states',
+                      default='wikidetox_conversations.page_states_short_10',
                       help='Input page states table from previous reconstruction process.')
 
   parser.add_argument('--week',
