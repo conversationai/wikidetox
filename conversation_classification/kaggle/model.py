@@ -2,9 +2,15 @@
 A basic Bag of Words classifier for the Toxic Comment Classification Kaggle
 challenge, https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge
 
-To Run:
+To run locally:
 
-python model.py --train_data=train.csv --predict_data=test.csv --y_class=toxic
+  python model.py --train_data=train.csv --predict_data=test.csv --y_class=toxic
+
+To run TensorBoard locally:
+
+  tensorboard --logdir=model/
+
+Then visit http://localhost:6006/ to see the dashboard.
 """
 
 import argparse
@@ -46,11 +52,17 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
   """
   predicted_classes = tf.argmax(logits, axis=1)
   predicted_probs = tf.nn.softmax(logits, name='softmax_tensor')
+
   predictions = {
+    # Holds the raw logit values
+    'logits': logits,
+
+    # Holds the class id (0,1) representing the model's prediction of the most
+    # likely species for this example.
     'classes': predicted_classes,
 
-    # Add softmax_tensor to the graph. It is used for PREDICT.
-    'probs': predicted_probs
+    # Holds the probabilities for each prediction
+    'probs': predicted_probs,
   }
 
   # Represents an output of a model that can be served.
@@ -69,6 +81,26 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
   # Calculate loss for both TRAIN and EVAL modes
   loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
 
+  eval_metric_ops = {
+    'accuracy': tf.metrics.accuracy(
+      labels=labels, predictions=predicted_classes, name='acc_op'),
+    'auc': tf.metrics.auc(
+      labels=labels, predictions=predicted_classes, name='auc_op'),
+    'true_negatives': tf.metrics.true_negatives(
+      labels=labels, predictions=predicted_classes),
+    'false_negatives': tf.metrics.false_negatives(
+      labels=labels, predictions=predicted_classes),
+    'true_positives': tf.metrics.true_positives(
+      labels=labels, predictions=predicted_classes),
+    'false_positives': tf.metrics.false_positives(
+      labels=labels, predictions=predicted_classes),
+  }
+
+  # Add summary ops to the graph. These metrics will be tracked graphed
+  # on each checkpoint by TensorBoard.
+  tf.summary.scalar('accuracy', eval_metric_ops['accuracy'][1])
+  tf.summary.scalar('auc', eval_metric_ops['auc'][1])
+
   # TRAIN Mode
   if mode == tf.estimator.ModeKeys.TRAIN:
     optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
@@ -81,31 +113,20 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
       train_op=train_op,
       training_hooks=[logging_hook],
       predictions={'loss': loss},
-      export_outputs=export_outputs
+      export_outputs=export_outputs,
+      eval_metric_ops=eval_metric_ops
     )
 
   # EVAL Mode
-  eval_metric_ops = {
-    'accuracy': tf.metrics.accuracy(
-      labels=labels, predictions=predicted_classes),
-    'auc': tf.metrics.auc(labels=labels, predictions=predicted_classes),
-    'true_negatives': tf.metrics.true_negatives(
-      labels=labels, predictions=predicted_classes),
-    'false_negatives': tf.metrics.false_negatives(
-      labels=labels, predictions=predicted_classes),
-    'true_positives': tf.metrics.true_positives(
-      labels=labels, predictions=predicted_classes),
-    'false_positives': tf.metrics.false_positives(
-      labels=labels, predictions=predicted_classes),
-  }
+  assert mode == tf.estimator.ModeKeys.EVAL
 
   return tf.estimator.EstimatorSpec(
-    mode=mode,
-    loss=loss,
-    predictions=predictions,
-    eval_metric_ops=eval_metric_ops,
-    export_outputs=export_outputs
-  )
+        mode=mode,
+        loss=loss,
+        predictions=predictions,
+        eval_metric_ops=eval_metric_ops,
+        export_outputs=export_outputs
+      )
 
 def bag_of_words_model(features, labels, mode):
   """
