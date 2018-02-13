@@ -62,8 +62,8 @@ def run(known_args, pipeline_args):
   within_time_range = '((week >= {lw} and year = {ly}) or year > {ly}) and ((week <= {uw} and year = {uy}) or year < {uy})'.format(lw = known_args.lower_week, ly = known_args.lower_year, uw = known_args.upper_week, uy = known_args.upper_year)
   before_time_range = '(week < {lw} and year = {ly}) or year < {ly}'.format(lw=known_args.lower_week, ly=known_args.lower_year) 
   ingested_revs_for_processing = "SELECT * FROM {input_table} WHERE {time_range} {debug} ORDER BY timestamp, rev_id_in_int".format(input_table=known_args.input_table, time_range=within_time_range, debug=debug_page)
-  last_revision_processed = "WITH revs AS (SELECT * FROM {input_table} WHERE {before_time_range} {debug}) SELECT * FROM revs ORDER BY timestamp DESC, rev_id_in_int DESC LIMIT 1".format(input_table=known_args.input_table, before_time_range=before_time_range, debug=debug_page)
-  last_page_state = "WITH page_states AS (SELECT * FROM {page_state_table} {debug}) SELECT * FROM page_states ORDER BY timestamp DESC, rev_id DESC LIMIT 1".format(page_state_table=known_args.input_page_state_table, debug=debug1)
+  last_revision_processed = "SELECT * FROM {input_table} WHERE {before_time_range} {debug} ORDER BY timestamp DESC, rev_id_in_int DESC LIMIT 1".format(input_table=known_args.input_table, before_time_range=before_time_range, debug=debug_page)
+  last_page_state = "SELECT * FROM {page_state_table} {debug} ORDER BY timestamp DESC, rev_id DESC LIMIT 1".format(page_state_table=known_args.input_page_state_table, debug=debug1)
   with beam.Pipeline(options=pipeline_options) as p:
     to_be_processed = (p | 'Read_to_be_processed' >> beam.io.Read(beam.io.BigQuerySource(query=ingested_revs_for_processing, validate=True, use_standard_sql=True)))
     # Read from ingested table to get revisions to process
