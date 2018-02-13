@@ -26,7 +26,7 @@ class WikiData:
       * seed (integer): a random seed to use for data splitting
       * train_percent (fload): the percent of data we should use for training data
     """
-    data = self._load_data(data_path)
+    data = self._load_csv(data_path)
 
     self.x_train, self.x_train_text = None, None
     self.x_test, self.x_test_text = None, None
@@ -67,9 +67,16 @@ class WikiData:
     """Load a VocabularyProcessor from the provided path"""
     return tf.contrib.learn.preprocessing.VocabularyProcessor.restore(path)
 
-  def _load_data(self, path):
-      df =  pd.read_csv(path)
-      return df
+  def _load_csv(self, path):
+    """
+    Reads CSV from specified location and returns the data as a Pandas Dataframe.
+    Will work with a Cloud Storage path, e.g. 'gs://<bucket>/<blob>' or a local
+    path. Assumes data can fit into memory.
+    """
+    with tf.gfile.Open(path, 'r') as fileobj:
+      df =  pd.read_csv(fileobj)
+
+    return df
 
   def _split(self, data, train_percent, x_field, y_class, seed=None):
     """
