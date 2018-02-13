@@ -21,6 +21,9 @@ To run TensorBoard locally:
 Then visit http://localhost:6006/ to see the dashboard.
 """
 
+from __future__ import print_function
+from __future__ import division
+
 import argparse
 import os
 import sys
