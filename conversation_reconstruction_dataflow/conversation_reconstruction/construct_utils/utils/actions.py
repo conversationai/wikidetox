@@ -32,12 +32,7 @@ def comment_adding(insert_op, rev, page_actions):
     action['content'] = ''.join(insert_op['tokens'])
     indentation = action['indentation']
     if '[OUTDENT: ' in action['content']:
-       cont = action['content'][action['content'].find('[OUTDENT: ') + 10 :]
-       cont = cont[:cont.find(']')]
-       if cont == 0:
-          indentation += locate_last_indentation(page_actions, insert_op['b1']) + 1
-       else:
-          indentation += int(cont) 
+       indentation += locate_last_indentation(page_actions, insert_op['b1']) + 1
 
     action['user_id'] = rev['user_id']
     action['user_text'] = rev['user_text']

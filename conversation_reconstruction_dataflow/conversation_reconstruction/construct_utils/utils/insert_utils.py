@@ -115,6 +115,7 @@ def locate_last_indentation(actions, action_pos):
     ret = None
     while ind >= 0:
         return actions[action_lst[ind]][1]
+    return 0
 
 def get_firstline(tokens):
     lines = "".join(tokens).splitlines()
