@@ -25,3 +25,14 @@ The workflow can be seen in the following picture:
 # Output Sample
 - [Reconstructed result](https://bigquery.cloud.google.com/table/wikidetox-viz:wikidetox_conversations.reconstructed_at_week5_year2001?pli=1&tab=preview)
 - The updated page states will be appended to [Reconstructed page states table](https://bigquery.cloud.google.com/table/wikidetox-viz:wikidetox_conversations.page_states?pli=1)
+
+# Efficient Reconstruction Approach
+
+The reconstruction job was parallelized by the pages, and the reconstruction speed on each page largely depends on the number and total size of revisions on a certain page. Since the distribution of number of revisions of each page is not uniform for Wikipedia data, we divided pages into three categories for more efficient reconstruction because of the constraint on memory of dataflow jobs.
+
+- Short pages: Pages with fewer than 100 revisions in total.
+- Long pages: Pages with more than 100 revisions but fewer than 100,000 reivisions in total.
+- Gigantic pages: Pages with more than 100,000 revisions in total, note that there are only two pages of this kind in our dataset.
+
+We run the short pages in year by year(dataflow_main.py), long pages week by week(dataflow_long_pages.py). For gigantic pages we process them individually(dataflow_gigantic.py).
+
