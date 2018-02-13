@@ -117,7 +117,7 @@ def estimator_spec_for_softmax_classification(logits, labels, mode):
     optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
     train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
     logging_hook = tf.train.LoggingTensorHook(
-      tensors={'loss': loss}, every_n_iter=20)
+      tensors={'loss': loss}, every_n_iter=50)
 
     return tf.estimator.EstimatorSpec(
       mode=mode,
