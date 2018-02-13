@@ -30,7 +30,9 @@ Before you can deploy, you need to:
 1. Copy the `server_config.template.json` file to `build/config/server_config.json`.
 2. In the `build/config/server_config.json` file, set these values:
 
-    * `cloudProjectId` This is the name of your google cloud project.
+    * `bigQueryProjectId` : The Google Cloud Project ID that contains the BigQuery database.
+    * `bigQueryDataSetId` : The name of the dataset in the cloud project.
+    * `bigQueryTable` : The name of the table that contains the conversations.
 
 TODO(ldixon): in future we'll move to using OAuth and project credentials.
 
@@ -49,6 +51,7 @@ This project uses appengine flexible environment for deployment, which is config
 To deploy, make sure your cloud project is set appropriately, and run;
 
 ```
+yarn run build
 gcloud app deploy
 ```
 
@@ -63,6 +66,29 @@ yarn run serve:watch
 This will also watch all the files, rebuilding and restarting the server when anything
 changes.
 
+# Usage as an iFrame for CrowdSourcing
+
+
+To get see a comment without context:
+
+```
+${URL_TO_SERVER}/#{"searchBy":"Comment ID","searchFor":"544184471.16379.16379","embed":true,"showPageContext":false}
+```
+
+To get see a comment in conversation with full context:
+
+```
+${URL_TO_SERVER}/#{"searchBy":"Conversation ID","searchFor":"114992878.0.0","embed":false",showPageContext":true}
+```
+
+This assumes that the conversation actions have a field called `comment_to_highlight`, that is set for the action to highlight, and for that action it is set as it's own ID.
+
+You can also specify a highlight ID in the URL, e.g.:
+
+```
+${URL_TO_SERVER}/#{"searchBy":"Conversation ID","searchFor":"543966266.15553.15553","embed":false,"showPageContext":true,"highlightId":"543966266.15553.15553"}
+```
+
 ## About this code
 
-This repository contains example code to help experimentation with the Perspective API; it is not an official Google product.
+This repository contains example code to to support Conversation AI research; it is not an official Google product.

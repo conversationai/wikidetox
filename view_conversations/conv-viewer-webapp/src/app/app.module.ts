@@ -1,7 +1,7 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgModule } from '@angular/core';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
 import {
   MatAutocompleteModule,
   MatButtonModule,
@@ -47,7 +47,6 @@ import { ConversationComponent } from './conversation/conversation.component';
     BrowserAnimationsModule,
     BrowserModule,
     CdkTableModule,
-    FormsModule,
     HttpClientModule,
     MatAutocompleteModule,
     MatButtonModule,
