@@ -55,8 +55,8 @@ def run(known_args, pipeline_args):
   pipeline_options = PipelineOptions(pipeline_args)
   pipeline_options.view_as(SetupOptions).save_main_session = True
 
-  debug_page =''#'and page_id = \'14498445\''
-  debug1 =''#'where page_id = \'14498445\''
+  debug_page =''#'and page_id = \'37130483\''
+  debug1 =''#'where page_id = \'37130483\''
 
   within_time_range = '((week >= {lw} and year = {ly}) or year > {ly}) and ((week <= {uw} and year = {uy}) or year < {uy})'.format(lw = known_args.lower_week, ly = known_args.lower_year, uw = known_args.upper_week, uy = known_args.upper_year)
   before_time_range = '(week < {lw} and year = {ly}) or year < {ly}'.format(lw=known_args.lower_week, ly=known_args.lower_year) 
@@ -96,7 +96,7 @@ class ReconstructConversation(beam.DoFn):
     if rows == []: return 
     # Return when no revisions need to be processed for this page
     if page_id == None: return
-    if '/Archive ' in rows[0]['cur_rev'][0]['page_title']: return 
+    if 'Archive' in rows[0]['cur_rev'][0]['page_title']: return 
     logging.info('USERLOG: Reconstruction work start on page: %s'%page_id)
     processor = Conversation_Constructor()
     if not(page_state) == []:
