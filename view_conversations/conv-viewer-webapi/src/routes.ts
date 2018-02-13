@@ -17,148 +17,239 @@ import * as bigquery from '@google-cloud/bigquery';
 import * as express from 'express';
 
 import * as config from './config';
-import * as runtime_types from './runtime_types';
 import * as httpcodes from './http-status-codes';
+import * as runtime_types from './runtime_types';
 
+// Convert the special 'BigQueryTimestamp' types to their string representation.
 function convertToSimpleTypes(rows: bigquery.QueryResult) {
-  // console.log(JSON.stringify(rows, null, 2));
-  for(let r of rows) {
+  for (let r of rows) {
     for (let key in r) {
       let obj = r[key];
-      if (obj === null || typeof(obj) === 'string' || typeof(obj) === 'number' ) {
+      if (obj === null || typeof (obj) === 'string' ||
+          typeof (obj) === 'number') {
         continue;
       }
-      // if(obj) {
-      //   console.log(`key: ${key} type: ${typeof(r[key])} constructor: ${obj.constructor.name}`);
-      // } else {
-      //   console.log(`skipping key: ${key} type: ${typeof(r[key])}.`);
-      // }
-      if (obj && obj.constructor.name === "BigQueryTimestamp" && 'value' in obj) {
+      if (obj && obj.constructor.name === 'BigQueryTimestamp' &&
+          'value' in obj) {
         r[key] = obj.value;
       }
     }
   }
 }
 
+//
+const SEARCH_BY_TYPE = new runtime_types.RuntimeStringType<string>(
+    'SearchBy', /^(conversation_id|rev_id|page_id|page_title|id)$/);
+
+const SEARCH_OP_TYPE =
+    new runtime_types.RuntimeStringType<string>('SearchBy', /^(=|LIKE)$/);
+
+// TODO(ldixon): in time we can maybe make this a bit smarter and support
+// escaped quotes.
+const BQ_SQL_SAFE_STRING =
+    new runtime_types.RuntimeStringType<string>('SearchBy', /^[^"]+$/);
+
 // TODO(ldixon): consider using passport auth
 // for google cloud project.
-export function setup(app : express.Express, conf : config.Config, bqClient : bigquery.BigQueryClient ) {
+export function setup(
+    app: express.Express, conf: config.Config,
+    bqClient: bigquery.BigQueryClient) {
+  let table = `\`${conf.bigQueryProjectId}.${conf.bigQueryDataSetId}.${
+      conf.bigQueryTable}\``;
 
   app.get('/api/conversation-id/:conv_id', async (req, res) => {
-
-    let conv_id : runtime_types.ConversationId =
-      runtime_types.ConversationId.assert(req.params.conv_id);
-
     try {
+      let conv_id: runtime_types.ConversationId =
+          runtime_types.ConversationId.assert(req.params.conv_id);
+
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
-      FROM \`${conf.bigQueryProjectId}.${conf.bigQueryDataSetId}.${conf.bigQueryTable}\`
+      FROM ${table}
       WHERE conversation_id="${conv_id}"
       LIMIT 100`;
-      // Query options list: https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
+      // Query options list:
+      // https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
       const options = {
         query: sqlQuery,
-        useLegacySql: false, // Use standard SQL syntax for queries.
+        useLegacySql: false,  // Use standard SQL syntax for queries.
       };
 
-      await bqClient
-        .query(options)
-        .then(results => {
-          const rows = results[0];
-          convertToSimpleTypes(rows);
-          res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
-        });
-    } catch(e) {
+      await bqClient.query(options).then(results => {
+        const rows = results[0];
+        convertToSimpleTypes(rows);
+        res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
+      });
+    } catch (e) {
       console.error(`*** Failed: `, e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({
+        error: e.message
+      }));
+    }
+  });
+
+  app.get('/api/comment-id/:comment_id', async (req, res) => {
+    try {
+      let comment_id: runtime_types.CommentId =
+          runtime_types.CommentId.assert(req.params.comment_id);
+
+      // TODO remove outer try wrapper unless it get used.
+      const sqlQuery = `SELECT *
+      FROM ${table}
+      WHERE id="${comment_id}"
+      LIMIT 100`;
+      // Query options list:
+      // https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
+      const options = {
+        query: sqlQuery,
+        useLegacySql: false,  // Use standard SQL syntax for queries.
+      };
+
+      await bqClient.query(options).then(results => {
+        const rows = results[0];
+        convertToSimpleTypes(rows);
+        res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
+      });
+    } catch (e) {
+      console.error(`*** Failed: `, e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({
+        error: e.message
+      }));
     }
   });
 
   app.get('/api/revision-id/:rev_id', async (req, res) => {
-    let rev_id : runtime_types.RevisionId =
-      runtime_types.RevisionId.assert(req.params.rev_id);
-
     try {
+      let rev_id: runtime_types.RevisionId =
+          runtime_types.RevisionId.assert(req.params.rev_id);
+
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
-      FROM \`${conf.bigQueryProjectId}.${conf.bigQueryDataSetId}.${conf.bigQueryTable}\`
+      FROM ${table}
       WHERE rev_id=${rev_id}
       LIMIT 100`;
-      // Query options list: https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
+      // Query options list:
+      // https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
       const options = {
         query: sqlQuery,
-        useLegacySql: false, // Use standard SQL syntax for queries.
+        useLegacySql: false,  // Use standard SQL syntax for queries.
       };
 
-      await bqClient
-        .query(options)
-        .then(results => {
-          const rows = results[0];
-          convertToSimpleTypes(rows);
-          res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
-        });
-    } catch(e) {
+      await bqClient.query(options).then(results => {
+        const rows = results[0];
+        convertToSimpleTypes(rows);
+        res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
+      });
+    } catch (e) {
       console.error(`*** Failed: `, e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({
+        error: e.message
+      }));
     }
   });
 
   app.get('/api/page-id/:page_id', async (req, res) => {
-    let page_id : runtime_types.PageId =
-      runtime_types.PageId.assert(req.params.page_id);
-
     try {
+      let page_id: runtime_types.PageId =
+          runtime_types.PageId.assert(req.params.page_id);
+
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
-      FROM \`${conf.bigQueryProjectId}.${conf.bigQueryDataSetId}.${conf.bigQueryTable}\`
+      FROM ${table}
       WHERE page_id=${page_id}
       LIMIT 100`;
-      // Query options list: https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
+      // Query options list:
+      // https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
       const options = {
         query: sqlQuery,
-        useLegacySql: false, // Use standard SQL syntax for queries.
+        useLegacySql: false,  // Use standard SQL syntax for queries.
       };
 
-      await bqClient
-        .query(options)
-        .then(results => {
-          const rows = results[0];
-          convertToSimpleTypes(rows);
-          res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
-        });
-    } catch(e) {
+      await bqClient.query(options).then(results => {
+        const rows = results[0];
+        convertToSimpleTypes(rows);
+        res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
+      });
+    } catch (e) {
       console.error(`*** Failed: `, e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({
+        error: e.message
+      }));
     }
   });
 
   app.get('/api/page-title/:page_title', async (req, res) => {
-    let page_title : runtime_types.PageTitleSearch =
-      runtime_types.PageTitleSearch.assert(req.params.page_title);
-
     try {
+      let page_title: runtime_types.PageTitleSearch =
+          runtime_types.PageTitleSearch.assert(req.params.page_title);
+
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
-      FROM \`${conf.bigQueryProjectId}.${conf.bigQueryDataSetId}.${conf.bigQueryTable}\`
+      FROM ${table}
       WHERE page_title LIKE "${page_title}"
       LIMIT 100`;
-      // Query options list: https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
+      // Query options list:
+      // https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
       const options = {
         query: sqlQuery,
-        useLegacySql: false, // Use standard SQL syntax for queries.
+        useLegacySql: false,  // Use standard SQL syntax for queries.
       };
       console.log(sqlQuery);
 
-      await bqClient
-        .query(options)
-        .then(results => {
-          const rows = results[0];
-          convertToSimpleTypes(rows);
-          res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
-        });
-    } catch(e) {
+      await bqClient.query(options).then(results => {
+        const rows = results[0];
+        convertToSimpleTypes(rows);
+        res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
+      });
+    } catch (e) {
       console.error(`*** Failed: `, e);
-      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({ error: e.message }));
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({
+        error: e.message
+      }));
+    }
+  });
+
+  app.get('/api/search/:search_by/:search_op/:search_for', async (req, res) => {
+    if (!SEARCH_BY_TYPE.isValid(req.params.search_by)) {
+      let errorMsg = `Error: Invalid searchBy string: ${req.params.search_by}`
+      console.error(errorMsg);
+      res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({error: errorMsg}));
+      return;
+    }
+    if (!SEARCH_OP_TYPE.isValid(req.params.search_op)) {
+      let errorMsg = `Error: Invalid searchOp string: ${req.params.search_op}`
+      console.error(errorMsg);
+      res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({error: errorMsg}));
+      return;
+    }
+    if (!BQ_SQL_SAFE_STRING.isValid(req.params.search_for)) {
+      let errorMsg = `Error: Invalid searchFor string: ${req.params.search_for}`
+      console.error(errorMsg);
+      res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({error: errorMsg}));
+      return;
+    }
+    try {
+      // TODO remove outer try wrapper unless it get used.
+      const sqlQuery = `SELECT *
+      FROM ${table}
+      WHERE ${req.params.search_by} ${req.params.search_op} "${
+          req.params.search_for}"
+      LIMIT 100`;
+      // Query options list:
+      // https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
+      const options = {
+        query: sqlQuery,
+        useLegacySql: false,  // Use standard SQL syntax for queries.
+      };
+      await bqClient.query(options).then(results => {
+        const rows = results[0];
+        convertToSimpleTypes(rows);
+        res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
+      });
+    } catch (e) {
+      console.error(`*** Failed: `, e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({
+        error: e.message
+      }));
     }
   });
 }
