@@ -192,13 +192,15 @@ if __name__ == '__main__':
                       default=output_schema,
                       help='Output table schema.')
   known_args, pipeline_args = parser.parse_known_args()
-  if known_args.week:
-     known_args.lower_week, known_args.upper_week = int(known_args.week), int(known_args.week)
-     known_args.lower_year, known_args.upper_year = int(known_args.year), int(known_args.year)
-  for year in range(2005, 2008):
-      if year > 2005: lower = 1 else: lower = 26
+  for year in range(2005, 2009):
+      lower = 37
+      if year > 2005: lower = 1
       for week in range(lower, 54):
-          
+          known_args.week = week
+          known_args.year = year
+          if known_args.week:
+            known_args.lower_week, known_args.upper_week = int(known_args.week), int(known_args.week)
+            known_args.lower_year, known_args.upper_year = int(known_args.year), int(known_args.year)
           known_args.lower_week = int(known_args.lower_week)
           known_args.lower_year = int(known_args.lower_year) 
           known_args.upper_week = int(known_args.upper_week)
