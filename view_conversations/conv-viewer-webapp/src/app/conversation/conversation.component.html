@@ -1,5 +1,5 @@
 <div class="action">
-  <table class="action">
+  <table class="action" [ngClass]="{ 'finalcomment': isHighlighted}">
     <tr>
       <td class="whenandwho">
         <div class="author">{{rootComment.user_text}}</div>
