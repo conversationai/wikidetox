@@ -141,7 +141,9 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
                 end_tok = start_tok + len(removal[1]['tokens'])
                 end_tokens.append((start_tok + insert['b1'], end_tok + insert['b1']))
                 rearrangement[removal[1]['a1']] = start_tok + insert['b1']
-                updated_actions.append(comment_rearrangement(removal[0][0], removal[1]['tokens'], start_tok, rev, insert['a1']))
+                if DEBUGGING_MODE: 
+                   print('REARRANGEMENT: ', removal[1]['a1'], start_tok + insert['b1'])
+                updated_actions.append(comment_rearrangement(removal[0][0], removal[1]['tokens'], insert['b1'] + start_tok, rev, removal[1]['a1']))
                 tmp_ins = []
                 # Divide the comment addition
                 if not(start_tok == 0):
@@ -182,13 +184,15 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
         if not(act in modification_actions or act in removed_actions):
             # If an action is modified, we locate it later
             # If an action is removed, we ignore it in the updated page state
-            if act in rearrangement:
+            new_pos = locate_new_token_pos(act, rev['diff'])
+            # Otherwise we try to locate its updated offset position in the current revision 
+            if DEBUGGING_MODE and page['actions'][act] == (-1, -1): print(act, new_pos)
+            updated_page['actions'][new_pos] = page['actions'][act]
+        # If an action is in rearrangement(it will also be in the removed action set) 
+        # The updated action should be registered into its newly rearranged location
+        if act in rearrangement:
                updated_page['actions'][rearrangement[act]] = page['actions'][act]
-            else:
-               new_pos = locate_new_token_pos(act, rev['diff'])
-               # Otherwise we try to locate its updated offset position in the current revision 
-               if DEBUGGING_MODE and page['actions'][act] == (-1, -1): print(act, new_pos)
-               updated_page['actions'][new_pos] = page['actions'][act]
+
     
     # Locate the updated offset of existed actions that were modified in the current revision
     for old_action_start in modification_actions.keys():
