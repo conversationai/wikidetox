@@ -45,7 +45,7 @@ def run(known_args, pipeline_args):
   """Main entry point; defines and runs the reconstruction pipeline."""
 
   pipeline_args.extend([
-    '--runner=DirectRunner',
+    '--runner=DataflowRunner',
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
@@ -56,8 +56,8 @@ def run(known_args, pipeline_args):
   pipeline_options = PipelineOptions(pipeline_args)
   pipeline_options.view_as(SetupOptions).save_main_session = True
 
-  debug_page ='and page_id = \'154226\''
-  debug1 = 'where page_id = \'154226\''
+  debug_page =''#'and page_id = \'154226\''
+  debug1 = ''#'where page_id = \'154226\''
 
   within_time_range = '((week >= {lw} and year = {ly}) or year > {ly}) and ((week <= {uw} and year = {uy}) or year < {uy})'.format(lw = known_args.lower_week, ly = known_args.lower_year, uw = known_args.upper_week, uy = known_args.upper_year)
   before_time_range = '(week < {lw} and year = {ly}) or year < {ly}'.format(lw=known_args.lower_week, ly=known_args.lower_year) 
@@ -119,11 +119,11 @@ class ReconstructConversation(beam.DoFn):
         if cur_revision['record_index'] == cur_revision['records_count'] - 1:
            cnt += 1
            last_revision = revision['rev_id']
-#           try:
-           page_state, actions = processor.process(revision, DEBUGGING_MODE = True)
-#           except: 
-#              logging.error('ERRORLOG: Reconstruction on page %s failed! last revision: %s' %(page_id, last_revision))
-#              raise ValueError
+           try:
+              page_state, actions = processor.process(revision, DEBUGGING_MODE = False)
+           except: 
+              logging.error('ERRORLOG: Reconstruction on page %s failed! last revision: %s' %(page_id, last_revision))
+              raise ValueError
            last_page_state = page_state 
            for action in actions:
                yield action
@@ -179,7 +179,7 @@ if __name__ == '__main__':
   page_states_output_schema = 'rev_id:INTEGER, page_id:STRING, page_state:STRING, deleted_comments:STRING, conversation_id:STRING, authors:STRING, timestamp:STRING'  
   parser.add_argument('--page_states_output_table',
                       dest='page_states_output_table',
-                      default='wikidetox-viz:wikidetox_conversations.page_states_long_test',
+                      default='wikidetox-viz:wikidetox_conversations.page_states_long',
                       help='Output page state table for reconstruction.')
   parser.add_argument('--page_states_output_schema',
                       dest='page_states_output_schema',
@@ -195,7 +195,7 @@ if __name__ == '__main__':
   for year in range(2006, 2007):
       lower = 12
       if year > 2006: lower = 1
-      for week in range(lower, 13):
+      for week in range(lower, 14):
           known_args.week = week
           known_args.year = year
           if known_args.week:
@@ -205,6 +205,6 @@ if __name__ == '__main__':
           known_args.lower_year = int(known_args.lower_year) 
           known_args.upper_week = int(known_args.upper_week)
           known_args.upper_year = int(known_args.upper_year)
-          known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_long_pages_from_week%d_year%dto_week%d_year%d_test'%(known_args.lower_week, known_args.lower_year, known_args.upper_week, known_args.upper_year)
+          known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_long_pages_from_week%d_year%dto_week%d_year%d'%(known_args.lower_week, known_args.lower_year, known_args.upper_week, known_args.upper_year)
           run(known_args, pipeline_args)
 
