@@ -15,29 +15,34 @@ limitations under the License.
 */
 export interface Comment {
   id: string;
-  comment_type : 'COMMENT_MODIFICATION' | 'COMMENT_ADDING' | 'SECTION_CREATION';
+  comment_type: 'COMMENT_MODIFICATION'|'COMMENT_ADDING'|'SECTION_CREATION';
   content: string;
   parent_id: string|null;
-  indent ?: number;
+  indent?: number;
   user_text: string;
-  timestamp : string;
-  page_title : string;
+  timestamp: string;
+  page_title: string;
+  // If == id then this comment should be highlighted.
+  comment_to_highlight?: string;
   // Added based on conversation structure.
-  children ?: Comment[];
-  isRoot ?: boolean; // true iff this is starting comment of a conversation.
-  isLatest ?: boolean; // true iff this is the latest comment in the conversation.
-  isFinal ?: boolean; // true iff this is the final (by DFS) comment in the conversation.
-  dfs_index ?: number // index according to Depth First Search of conv.
+  children?: Comment[];
+  isRoot?: boolean;  // true iff this is starting comment of a conversation.
+  isLatest?:
+      boolean;  // true iff this is the latest comment in the conversation.
+  isFinal?: boolean;  // true iff this is the final (by DFS) comment in the
+                      // conversation.
+  dfs_index?: number  // index according to Depth First Search of conv.
 }
 
-export interface Conversation { [id:string]: Comment };
+export interface Conversation { [id: string]: Comment }
+;
 
 //
-export function interpretId(id:string)
-    : {revision : number; token: number; action:number} | null {
+export function interpretId(id: string):
+    {revision: number; token: number; action: number}|null {
   let myRegexp = /(\d+)\.(\d+)\.(\d+)/g;
   let match = myRegexp.exec(id);
-  if(!match || match.length < 4) {
+  if (!match || match.length < 4) {
     return null
   }
 
@@ -48,7 +53,7 @@ export function interpretId(id:string)
   };
 }
 
-export function compareDateFn(da: Date, db: Date) : number {
+export function compareDateFn(da: Date, db: Date): number {
   if (db < da) {
     return 1;
   } else if (da < db) {
@@ -58,14 +63,14 @@ export function compareDateFn(da: Date, db: Date) : number {
   }
 }
 
-export function compareByDateFn(a: Comment, b: Comment) : number {
+export function compareByDateFn(a: Comment, b: Comment): number {
   let db = Date.parse(b.timestamp);
   let da = Date.parse(a.timestamp);
   return db - da;
 }
 
 //
-export function compareCommentOrder(comment1:Comment, comment2:Comment){
+export function compareCommentOrder(comment1: Comment, comment2: Comment) {
   let dateCmp = compareByDateFn(comment2, comment1)
   if (dateCmp !== 0) {
     return dateCmp;
@@ -74,46 +79,49 @@ export function compareCommentOrder(comment1:Comment, comment2:Comment){
   let id1 = interpretId(comment1.id);
   let id2 = interpretId(comment2.id);
 
-  if(id1 === null || id2 === null) {
-    console.warn('Using string comparison for comment order:' +
-      ' comment has uninterpretable id: ', comment1);
-    return comment1.id === comment2.id ? 0
-           : (comment1.id > comment2.id ? 1 : -1);
+  if (id1 === null || id2 === null) {
+    console.warn(
+        'Using string comparison for comment order:' +
+            ' comment has uninterpretable id: ',
+        comment1);
+    return comment1.id === comment2.id ? 0 :
+                                         (comment1.id > comment2.id ? 1 : -1);
   }
 
   let revisionDiff = id1.revision - id2.revision;
   let tokenDiff = id1.token - id2.token;
   let actionDiff = id1.action - id2.action;
-  return revisionDiff !== 0 ? revisionDiff
-         : (tokenDiff !== 0 ? tokenDiff
-            : (actionDiff !== 0 ? actionDiff : 0));
+  return revisionDiff !== 0 ?
+      revisionDiff :
+      (tokenDiff !== 0 ? tokenDiff : (actionDiff !== 0 ? actionDiff : 0));
 }
 
 export function compareCommentOrderSmallestFirst(
-  comment1:Comment, comment2:Comment){
+    comment1: Comment, comment2: Comment) {
   return compareCommentOrder(comment2, comment1);
 }
 
-export function indentOfComment(comment: Comment, conversation: Conversation)
-   : number {
-  if(comment.parent_id === '' || comment.parent_id === null) {
+export function indentOfComment(
+    comment: Comment, conversation: Conversation): number {
+  if (comment.parent_id === '' || comment.parent_id === null) {
     return 0;
   }
   let parent = conversation[comment.parent_id];
-  if(!parent) {
-    console.error('Comment lacks parent in conversation: ', conversation, comment);
+  if (!parent) {
+    console.error(
+        'Comment lacks parent in conversation: ', conversation, comment);
     return 0;
   }
   return 1 + indentOfComment(parent, conversation);
 }
 
-export function htmlForComment(comment: Comment, conversation: Conversation)
-    : string {
+export function htmlForComment(
+    comment: Comment, conversation: Conversation): string {
   let indent = indentOfComment(comment, conversation);
 
-  let convId : string = '';
-  let section_heading : string = '';
-  let comment_class_name : string;
+  let convId: string = '';
+  let section_heading: string = '';
+  let comment_class_name: string;
   if (comment.isRoot) {
     comment_class_name = 'comment';
     section_heading = `<div>In page: <b>${comment.page_title}</b></div>`;
@@ -121,7 +129,7 @@ export function htmlForComment(comment: Comment, conversation: Conversation)
       <span class="convid-text">(conversation id: ${comment.id}) </span>
       <span class="convid-comment-index-header">Comment Number</span>
       </div>`;
-  } else if(comment.isLatest) {
+  } else if (comment.isLatest) {
     comment_class_name = 'comment finalcomment';
   } else {
     comment_class_name = 'comment';
@@ -147,13 +155,12 @@ export function htmlForComment(comment: Comment, conversation: Conversation)
 
 // Walk down a comment and its children depth first.
 export function walkDfsComments(
-    rootComment : Comment,
-    f : (c:Comment) => void) : void {
+    rootComment: Comment, f: (c: Comment) => void): void {
   let commentsHtml = [];
-  let agenda : Comment[] = [];
-  let next_comment : Comment|undefined = rootComment;
+  let agenda: Comment[] = [];
+  let next_comment: Comment|undefined = rootComment;
   while (next_comment) {
-    if(next_comment.children) {
+    if (next_comment.children) {
       agenda = agenda.concat(next_comment.children);
     }
     f(next_comment);
@@ -162,14 +169,16 @@ export function walkDfsComments(
 }
 
 // Get the last comment in the thread.
-export function lastDecendentComment(rootComment : Comment) : Comment {
-  let finalComment : Comment = rootComment;
-  walkDfsComments(rootComment, (c) => { finalComment = c; });
+export function lastDecendentComment(rootComment: Comment): Comment {
+  let finalComment: Comment = rootComment;
+  walkDfsComments(rootComment, (c) => {
+    finalComment = c;
+  });
   return finalComment;
 }
 
 // Get the last comment in the thread.
-export function indexComments(rootComment : Comment) {
+export function indexComments(rootComment: Comment) {
   let index = 0;
   walkDfsComments(rootComment, (c) => {
     c.dfs_index = index;
@@ -178,7 +187,9 @@ export function indexComments(rootComment : Comment) {
 }
 
 export function makeParent(comment: Comment, parent: Comment) {
-  if(!parent.children) { parent.children = []; }
+  if (!parent.children) {
+    parent.children = [];
+  }
   parent.children.push(comment);
   parent.children.sort(compareCommentOrderSmallestFirst);
   comment.parent_id = parent.id;
@@ -192,7 +203,7 @@ function selectRootComment(comment: Comment, rootComment: Comment|null) {
   // At this point, we get down to comparing offsets to choose the parent.
   if (rootComment) {
     let commentCmp = compareCommentOrder(rootComment, comment);
-    if(commentCmp < 0) {
+    if (commentCmp < 0) {
       makeParent(comment, rootComment);
     } else if (commentCmp > 0) {
       makeParent(rootComment, comment);
@@ -215,14 +226,13 @@ function selectRootComment(comment: Comment, rootComment: Comment|null) {
 // Add and sort children to each comment in a conversation.
 // Also set the isRoot field of every comment, and return the
 // overall root comment of the conversation.
-export function structureConversaton(conversation : Conversation)
-    : Comment|null {
+export function structureConversaton(conversation: Conversation): Comment|null {
   let ids = Object.keys(conversation);
 
-  let rootComment : Comment|null = null;
-  let latestComments : Comment[] = [];
+  let rootComment: Comment|null = null;
+  let latestComments: Comment[] = [];
 
-  for(let i of ids) {
+  for (let i of ids) {
     let comment = conversation[i];
     comment.isFinal = false;
     comment.isLatest = false;
@@ -230,15 +240,17 @@ export function structureConversaton(conversation : Conversation)
       latestComments = [comment];
     } else {
       let dtime = compareByDateFn(latestComments[0], comment);
-      if(dtime > 0) {
+      if (dtime > 0) {
         latestComments = [comment];
-      } else if(dtime === 0) {
+      } else if (dtime === 0) {
         latestComments.push(comment);
       }
     }
 
-    if(!comment.children) { comment.children = []; }
-    if(comment.parent_id !== null && comment.parent_id !== "") {
+    if (!comment.children) {
+      comment.children = [];
+    }
+    if (comment.parent_id !== null && comment.parent_id !== '') {
       let parent = conversation[comment.parent_id];
       if (parent) {
         makeParent(comment, parent);
@@ -254,20 +266,20 @@ export function structureConversaton(conversation : Conversation)
   }  // For comments.
 
   // Identify the final comment w.r.t. dfs. i.e. the one at the bottom.
-  if(rootComment) {
+  if (rootComment) {
     indexComments(rootComment);
     let finalComment = lastDecendentComment(rootComment);
     finalComment.isFinal = true;
   }
 
   // Idenitfy the latest action. Order by lex on time desc then index desc.
-  latestComments.sort((c1,c2) => {
+  latestComments.sort((c1, c2) => {
     if (c1.dfs_index === undefined || c2.dfs_index === undefined) {
       throw Error('Comments should have dfs_index but do not');
     }
     return c2.dfs_index - c1.dfs_index;
   });
-  if(latestComments.length > 0) {
+  if (latestComments.length > 0) {
     latestComments[0].isLatest = true;
   }
   // latestComments[].forEach(c => {
