@@ -1,45 +1,48 @@
 <!--The content below is only a placeholder and can be replaced.-->
-<div style="text-align:center">
+<div *ngIf="!embed" style="text-align:center">
   <h3>
     WikiDetox Conversation Viewer
   </h3>
 </div>
-<div>
+<div *ngIf="!embed">
+  <form [formGroup]="form" (submit)="submitSearch()">
 
-<form (ngSubmit)="submitSearch()" #searchForm="ngForm">
+  <button mat-button type="button"
+    [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Search by
+  </button>
+  <mat-menu #menu="matMenu">
+    <mat-radio-group class="searchby-radio-group"
+        (change)="updateLocationHash()"
+        formControlName="searchBy">
+      <mat-radio-button class="searchby-radio-button" *ngFor="let s of searchBys"
+        [value]="s">{{s}}</mat-radio-button>
+    </mat-radio-group>
+  </mat-menu>
 
-<button mat-button type="button"
-  [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Search by
-</button>
-<mat-menu #menu="matMenu">
-  <mat-radio-group class="searchby-radio-group"
-      (change)="updateLocationHash()"
-      [(ngModel)]="searchBy" name="searchBy">
-    <mat-radio-button class="searchby-radio-button" *ngFor="let s of searchBys"
-      [value]="s">{{s}}</mat-radio-button>
-  </mat-radio-group>
-</mat-menu>
+  <mat-form-field class="search-text">
+    <input matInput type="text" placeholder="{{form.value.searchBy}}"
+          formControlName="searchFor">
+  </mat-form-field>
 
-<mat-form-field class="search-text">
-  <input matInput placeholder="{{searchBy}}" [(ngModel)]="searchFor" name="searchFor">
-</mat-form-field>
+  <button mat-raised-button
+    [disabled]="!form.valid || inFlightRequest !== undefined"
+    type="submit" color="primary">Search</button>
+  </form>
 
-<button mat-raised-button
-  [disabled]="!searchForm.form.valid || inFlightRequest !== undefined"
-  type="submit" color="primary">Search</button>
-</form>
-
-<mat-progress-bar *ngIf="inFlightRequest" mode="query"></mat-progress-bar>
-
+  <mat-progress-bar *ngIf="inFlightRequest" mode="query"></mat-progress-bar>
 </div>
+
 <div *ngIf="errorMessage" class="errorMessage">{{errorMessage}}</div>
 
 <div class="conversation" *ngIf="rootComment">
-  <div>In page: <b>{{rootComment.page_title}}</b></div>
-  <div class="convid">
-      <span class="convid-text">(conversation id: {{rootComment.id}})</span>
+  <div *ngIf="showPageContext">
+    <div>In page: <b>{{rootComment.page_title}}</b></div>
+    <div class="convid">
+        <span class="convid-text">(conversation id: {{rootComment.id}})</span>
+    </div>
   </div>
+
   <app-conversation *ngIf="rootComment" [rootComment]="rootComment"></app-conversation>
 </div>
 
-<div id="debug-pre-output">{{searchResult}}</div>
+<div *ngIf="!embed" id="debug-pre-output">{{searchResult}}</div>
