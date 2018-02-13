@@ -50,7 +50,7 @@ def run(known_args, pipeline_args):
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
     '--job_name=reconstruction-super-long-page-{pageid}-week{lw}year{ly}-week{uw}year{uy}'.format(pageid=known_args.page_id, lw=known_args.lower_week, ly=known_args.lower_year, uw=known_args.upper_week, uy=known_args.upper_year),
-    '--num_workers=10',
+    '--num_workers=5',
     '--extra_package=third_party/mwparserfromhell.tar.gz'
   ])
   pipeline_options = PipelineOptions(pipeline_args)
@@ -175,13 +175,17 @@ if __name__ == '__main__':
   known_args.input_table= 'wikidetox_conversations.ingested_super_long_%s'%(known_args.page_id)
   known_args.input_page_state_table= 'wikidetox_conversations.page_states_%s'%(known_args.page_id)
   known_args.page_states_output_table = 'wikidetox_conversations.page_states_%s'%(known_args.page_id) 
-  if known_args.week:
-     known_args.lower_week, known_args.upper_week = int(known_args.week), int(known_args.week)
-     known_args.lower_year, known_args.upper_year = int(known_args.year), int(known_args.year)
-  known_args.lower_week = int(known_args.lower_week)
-  known_args.lower_year = int(known_args.lower_year) 
-  known_args.upper_week = int(known_args.upper_week)
-  known_args.upper_year = int(known_args.upper_year)
-  known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_%s_from_week%d_year%dto_week%d_year%d'%(known_args.page_id, known_args.lower_week, known_args.lower_year, known_args.upper_week, known_args.upper_year)
-  run(known_args, pipeline_args)
+  for year in range(2005, 2006):
+      for week in range(17, 22):
+          known_args.week = week
+          known_args.year = year 
+          if known_args.week:
+             known_args.lower_week, known_args.upper_week = int(known_args.week), int(known_args.week)
+             known_args.lower_year, known_args.upper_year = int(known_args.year), int(known_args.year)
+          known_args.lower_week = int(known_args.lower_week)
+          known_args.lower_year = int(known_args.lower_year) 
+          known_args.upper_week = int(known_args.upper_week)
+          known_args.upper_year = int(known_args.upper_year)
+          known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_%s_from_week%d_year%dto_week%d_year%d'%(known_args.page_id, known_args.lower_week, known_args.lower_year, known_args.upper_week, known_args.upper_year)
+          run(known_args, pipeline_args)
 
