@@ -84,7 +84,7 @@ def run(known_args, pipeline_args):
                    # Reconstruct the conversations
     page_states | "WritePageStates" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.page_states_output_table, schema=known_args.page_states_output_schema, write_disposition='WRITE_APPEND', validate=True))
     # Write the page states to BigQuery
-    reconstruction_results | "WriteReconstructedResults" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.output_table, schema=known_args.output_schema, validate=True))
+    reconstruction_results | "WriteReconstructedResults" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.output_table, schema=known_args.output_schema, write_disposition='WRITE_APPEND', validate=True))
     # Write the reconstructed results to BigQuery
 
 
@@ -192,10 +192,10 @@ if __name__ == '__main__':
                       default=output_schema,
                       help='Output table schema.')
   known_args, pipeline_args = parser.parse_known_args()
-  for year in range(2006, 2007):
-      lower = 12
-      if year > 2006: lower = 1
-      for week in range(lower, 14):
+  for year in range(2007, 2009):
+      lower = 2
+      if year > 2007: lower = 1
+      for week in range(lower, 54):
           known_args.week = week
           known_args.year = year
           if known_args.week:
@@ -205,6 +205,6 @@ if __name__ == '__main__':
           known_args.lower_year = int(known_args.lower_year) 
           known_args.upper_week = int(known_args.upper_week)
           known_args.upper_year = int(known_args.upper_year)
-          known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_long_pages_from_week%d_year%dto_week%d_year%d'%(known_args.lower_week, known_args.lower_year, known_args.upper_week, known_args.upper_year)
+          known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_long_pages_from_week12year2005'
           run(known_args, pipeline_args)
 

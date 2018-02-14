@@ -143,7 +143,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
                 rearrangement[removal[1]['a1']] = start_tok + insert['b1']
                 if DEBUGGING_MODE: 
                    print('REARRANGEMENT: ', removal[1]['a1'], start_tok + insert['b1'])
-                updated_actions.append(comment_rearrangement(removal[0][0], removal[1]['tokens'], insert['b1'] + start_tok, rev, removal[1]['a1']))
+#                updated_actions.append(comment_rearrangement(removal[0][0], removal[1]['tokens'], insert['b1'] + start_tok, rev, removal[1]['a1']))
                 tmp_ins = []
                 # Divide the comment addition
                 if not(start_tok == 0):
