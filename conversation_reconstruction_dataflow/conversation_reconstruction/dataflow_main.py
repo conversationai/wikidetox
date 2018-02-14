@@ -49,11 +49,12 @@ def run(known_args, pipeline_args):
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
     '--job_name=reconstruction-short-pages-week{lw}year{ly}-week{uw}year{uy}'.format(lw=known_args.lower_week, ly=known_args.lower_year, uw=known_args.upper_week, uy=known_args.upper_year),
-    '--num_workers=50',
+    '--num_workers=30',
     '--extra_package=third_party/mwparserfromhell.tar.gz'
   ])
   pipeline_options = PipelineOptions(pipeline_args)
   pipeline_options.view_as(SetupOptions).save_main_session = True
+  jobname = 'reconstruction-short-pages-week{lw}year{ly}-week{uw}year{uy}'.format(lw=known_args.lower_week, ly=known_args.lower_year, uw=known_args.upper_week, uy=known_args.upper_year)
 
   debug_page =''#'and page_id = \'37130483\''
   debug1 =''#'where page_id = \'37130483\''
@@ -65,26 +66,45 @@ def run(known_args, pipeline_args):
   last_page_state = "WITH page_states AS (SELECT * FROM {page_state_table} {debug}) SELECT page_id, ARRAY_AGG(page_states ORDER BY timestamp DESC, rev_id DESC LIMIT 1)[OFFSET(0)] AS last_page_state FROM page_states GROUP BY page_id".format(page_state_table=known_args.input_page_state_table, debug=debug1)
   groupby_mapping = lambda x: (x['page_id'], x)
   with beam.Pipeline(options=pipeline_options) as p:
-    to_be_processed = (p | 'Read_to_be_processed' >> beam.io.Read(beam.io.BigQuerySource(query=ingested_revs_for_processing, validate=True, use_standard_sql=True))
-                         | 'INGESTED_assign_page_id_as_key' >> beam.Map(groupby_mapping))
-    # Read from ingested table to get revisions to process
-    last_revision = (p 
-         | 'Retrieve_last_revision' >> beam.io.Read(beam.io.BigQuerySource(query=last_revision_processed, validate=True, use_standard_sql=True))
-         | 'LASTREV_assign_page_id_as_key' >> beam.Map(groupby_mapping))
-    # Read from ingested table to get last processed revision 
-    page_state = (p | 'Retrieve_page_state' >> beam.io.Read(beam.io.BigQuerySource(query=last_page_state, validate=True, use_standard_sql=True))
-                    | 'PAGESTATE_assign_page_id_as_key' >> beam.Map(groupby_mapping))
+    if known_args.read_input_from_cloud:
+       groupby_mapping = lambda x: (json.loads(x)['page_id'], json.loads(x))
+       to_be_processed = (p | 'Read_to_be_processed' >> beam.io.ReadFromText("gs://wikidetox-viz-dataflow/testing/%s.input_revs*"%jobname)| 'INGESTED_assign_page_id_as_key' >> beam.Map(groupby_mapping))
+       # Read from ingested table to get revisions to process
+       last_revision = (p | 'Retrieve_last_revision' >> beam.io.ReadFromText("gs://wikidetox-viz-dataflow/testing/%s.last_rev*"%jobname)| 'LASTREV_assign_page_id_as_key' >> beam.Map(groupby_mapping))
+       # Read from ingested table to get last processed revision 
+       page_state = (p | 'Retrieve_page_state' >> beam.io.ReadFromText("gs://wikidetox-viz-dataflow/testing/%s.page_states*"%jobname)| 'PAGESTATE_assign_page_id_as_key' >> beam.Map(groupby_mapping))
+       # Read from page state table to get the page states recorded from previous processing steps
+       mapping = lambda x: (json.loads(x)['page_id'], json.loads(x))
+    else:
+       to_be_processed = (p | 'Read_to_be_processed' >> beam.io.Read(beam.io.BigQuerySource(query=ingested_revs_for_processing, validate=True, use_standard_sql=True))
+                            | 'INGESTED_assign_page_id_as_key' >> beam.Map(groupby_mapping))
+       # Read from ingested table to get revisions to process
+       last_revision = (p 
+            | 'Retrieve_last_revision' >> beam.io.Read(beam.io.BigQuerySource(query=last_revision_processed, validate=True, use_standard_sql=True))
+            | 'LASTREV_assign_page_id_as_key' >> beam.Map(groupby_mapping))
+       # Read from ingested table to get last processed revision 
+       page_state = (p | 'Retrieve_page_state' >> beam.io.Read(beam.io.BigQuerySource(query=last_page_state, validate=True, use_standard_sql=True))
+                       | 'PAGESTATE_assign_page_id_as_key' >> beam.Map(groupby_mapping))
     # Read from page state table to get the page states recorded from previous processing steps
 
-    reconstruction_results, page_states = ({'to_be_processed': to_be_processed, 'last_revision': last_revision, 'page_state': page_state}
+    reconstruction_results, page_states, last_rev, input_ps, input_rev\
+                   = ({'to_be_processed': to_be_processed, 'last_revision': last_revision, 'page_state': page_state}
                    | beam.CoGroupByKey()
                    # Join information based on page_id
-                   | beam.ParDo(ReconstructConversation()).with_outputs('page_states', main = 'reconstruction_results'))
+                   | beam.ParDo(ReconstructConversation()).with_outputs('page_states', 'last_revision', 'input_page_state', 'to_be_processed_revision', main = 'reconstruction_results'))
                    # Reconstruct the conversations
-    page_states | "WritePageStates" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.page_states_output_table, schema=known_args.page_states_output_schema, write_disposition='WRITE_APPEND', validate=True))
-    # Write the page states to BigQuery
-    reconstruction_results | "WriteReconstructedResults" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.output_table, schema=known_args.output_schema, validate=True))
-    # Write the reconstructed results to BigQuery
+    if known_args.save_res_to_cloud:
+       page_states | "WritePageStates" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/%s/page_states"%jobname) 
+       reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/%s/reconstructed"%jobname) 
+    else:
+       page_states | "WritePageStates" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.page_states_output_table, schema=known_args.page_states_output_schema, write_disposition='WRITE_APPEND', validate=True))
+       # Write the page states to BigQuery
+       reconstruction_results | "WriteReconstructedResults" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.output_table, schema=known_args.output_schema, write_disposition='WRITE_APPEND', validate=True))
+       # Write the reconstructed results to BigQuery
+    if known_args.save_input_to_cloud_storage:
+       last_rev | "WriteBackInput_last_rev" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/testing/%s.last_rev"%jobname)
+       input_ps | "WriteBackInput_page_states" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/testing/%s.page_states"%jobname)
+       input_rev | "WriteBackInput_input_revisions" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/testing/%s.input_revs"%jobname)
 
 
 class ReconstructConversation(beam.DoFn):
@@ -93,6 +113,7 @@ class ReconstructConversation(beam.DoFn):
     rows = data['to_be_processed']
     last_revision = data['last_revision']
     page_state = data['page_state'] 
+
     if rows == []: return 
     # Return when no revisions need to be processed for this page
     if page_id == None: return
@@ -102,6 +123,9 @@ class ReconstructConversation(beam.DoFn):
     if not(page_state) == []:
        last_revision = last_revision[0]
        page_state = page_state[0]
+       if known_args.save_input_to_cloud_storage: 
+          yield beam.pvalue.TaggedOutput('last_revision', json.dumps(last_revision))
+          yield beam.pvalue.TaggedOutput('input_page_state', json.dumps(page_state))
        logging.info('Page %s existed: loading page state, last revision: %s'%(page_id, last_revision['last_rev']['rev_id'])) 
        processor.load(page_state['last_page_state']['page_state'], page_state['last_page_state']['deleted_comments'], page_state['last_page_state']['conversation_id'], page_state['last_page_state']['authors'], last_revision['last_rev']['text'])
     revision = {}
@@ -117,18 +141,28 @@ class ReconstructConversation(beam.DoFn):
         if cur_revision['record_index'] == cur_revision['records_count'] - 1:
            cnt += 1
            last_revision = revision['rev_id']
-           try:
-              page_state, actions = processor.process(revision, DEBUGGING_MODE = False)
-           except: 
-              logging.error('ERRORLOG: Reconstruction on page %s failed! last revision: %s' %(page_id, last_revision))
-              raise ValueError
+           if known_args.save_input_to_cloud_storage:
+              actions = []
+           else:
+              try:
+                 page_state, actions = processor.process(revision, DEBUGGING_MODE = False)
+              except: 
+                 logging.error('ERRORLOG: Reconstruction on page %s failed! last revision: %s' %(page_id, last_revision))
+                 raise ValueError
            last_page_state = page_state 
            for action in actions:
-               yield action
-           if cnt % LOG_INTERVAL == 0:
+               if not(known_args.save_res_to_cloud):
+                  yield action
+               else:
+                  yield json.dumps(action)
+           if cnt % LOG_INTERVAL == 0 and not(known_args.save_res_to_cloud):
               yield beam.pvalue.TaggedOutput('page_states', page_state)
-    if last_page_state:
+        if known_args.save_input_to_cloud_storage: 
+           yield beam.pvalue.TaggedOutput('to_be_processed_revision', json.dumps(cur_revision))
+    if last_page_state and not(known_args.save_res_to_cloud):
        yield beam.pvalue.TaggedOutput('page_states', last_page_state)
+    if (known_args.save_res_to_cloud):
+       yield beam.pvalue.TaggedOutput('page_states', json.dumps(last_page_state))
     if not(error_encountered):
        logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' %(page_id, last_revision))
 
@@ -136,12 +170,26 @@ class ReconstructConversation(beam.DoFn):
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
   parser = argparse.ArgumentParser()
-  # Input BigQuery Table
+  parser.add_argument('--save_res_to_bigQuery',
+                      dest='save_res_to_cloud',
+                      action='store_false',
+                      help='Save the result to BigQuery.')
+  parser.add_argument('--save_input_to_bigQuery',
+                      dest='save_input_to_cloud_storage',
+                      action='store_false',
+                      help='Save the inputs to Cloud.')
+  parser.add_argument('--load_input_from_cloud',
+                      dest='read_input_from_cloud',
+                      action='store_true',
+                      help='Read input from Cloud.')
 
+
+  # Input BigQuery Table
   parser.add_argument('--input_table',
                       dest='input_table',
                       default='wikidetox_conversations.ingested_all_100rev',
                       help='Input table with ingested revisions.')
+
   parser.add_argument('--input_page_state_table',
                       dest='input_page_state_table',
                       default='wikidetox_conversations.page_states_short',
@@ -202,6 +250,6 @@ if __name__ == '__main__':
   known_args.lower_year = int(known_args.lower_year) 
   known_args.upper_week = int(known_args.upper_week)
   known_args.upper_year = int(known_args.upper_year)
-  known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_short_pages_from_week%d_year%dto_week%d_year%d'%(known_args.lower_week, known_args.lower_year, known_args.upper_week, known_args.upper_year)
+  known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_short_pages'
   run(known_args, pipeline_args)
 
