@@ -1,0 +1,1 @@
+python dataflow_main.py --input_table wikidetox_conversations.ingested_all_100rev --input_page_state_table wikidetox_conversations.page_states_short --last_revision_table wikidetox_conversations.short_page_last_revisions --page_states_output_table  wikidetox_conversations.page_states_short
