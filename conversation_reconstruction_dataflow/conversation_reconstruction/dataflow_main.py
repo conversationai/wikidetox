@@ -47,7 +47,7 @@ def run(known_args, pipeline_args):
   """Main entry point; defines and runs the reconstruction pipeline."""
 
   pipeline_args.extend([
-    '--runner=DataflowRunner',
+    '--runner=DirectRunner',
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
@@ -67,7 +67,7 @@ def run(known_args, pipeline_args):
   within_time_range = '((week >= {lw} and year = {ly}) or year > {ly}) and ((week <= {uw} and year = {uy}) or year < {uy})'.format(lw = known_args.lower_week, ly = known_args.lower_year, uw = known_args.upper_week, uy = known_args.upper_year)
   before_time_range = '(week < {lw} and year = {ly}) or year < {ly}'.format(lw=known_args.lower_week, ly=known_args.lower_year) 
   ingested_revs_for_processing = "WITH revs AS (SELECT * FROM {input_table} WHERE {time_range} {debug}) SELECT page_id, ARRAY_AGG(revs) AS cur_rev FROM revs GROUP BY page_id".format(input_table=known_args.input_table, time_range=within_time_range, debug=debug_page)
-  last_revision_processed = "WITH revs AS (SELECT * FROM {input_table} WHERE {before_time_range} {debug}) SELECT page_id, ARRAY_AGG(revs ORDER BY timestamp DESC, rev_id_in_int DESC LIMIT 1)[OFFSET(0)] AS last_rev FROM revs GROUP BY page_id".format(input_table=known_args.input_table, before_time_range=before_time_range, debug=debug_page)
+  last_revision_processed = "WITH revs AS (SELECT * FROM {input_table} WHERE {before_time_range} {debug}) SELECT page_id, ARRAY_AGG(revs ORDER BY timestamp DESC, rev_id_in_int DESC LIMIT 1)[OFFSET(0)] AS last_rev FROM revs GROUP BY page_id".format(input_table=known_args.last_revision_table, before_time_range=before_time_range, debug=debug_page)
   last_page_state = "WITH page_states AS (SELECT * FROM {page_state_table} {debug}) SELECT page_id, ARRAY_AGG(page_states ORDER BY timestamp DESC, rev_id DESC LIMIT 1)[OFFSET(0)] AS last_page_state FROM page_states GROUP BY page_id".format(page_state_table=known_args.input_page_state_table, debug=debug1)
   groupby_mapping = lambda x: (x['page_id'], x)
   with beam.Pipeline(options=pipeline_options) as p:
@@ -77,7 +77,6 @@ def run(known_args, pipeline_args):
        to_be_processed = (p | 'Read_to_be_processed' >> beam.io.ReadFromText("gs://wikidetox-viz-dataflow/testing/%s.input_revs*"%jobname)| 'INGESTED_assign_page_id_as_key' >> beam.Map(groupby_mapping))
        last_revision = (p | 'Retrieve_last_revision' >> beam.io.ReadFromText("gs://wikidetox-viz-dataflow/testing/%s.last_rev*"%jobname)| 'LASTREV_assign_page_id_as_key' >> beam.Map(groupby_mapping))
        page_state = (p | 'Retrieve_page_state' >> beam.io.ReadFromText("gs://wikidetox-viz-dataflow/testing/%s.page_states*"%jobname)| 'PAGESTATE_assign_page_id_as_key' >> beam.Map(groupby_mapping))
-       mapping = lambda x: (json.loads(x)['page_id'], json.loads(x))
     else:
        # Read from BigQuery
        to_be_processed = (p | 'Read_to_be_processed' >> beam.io.Read(beam.io.BigQuerySource(query=ingested_revs_for_processing, validate=True, use_standard_sql=True))
@@ -135,6 +134,7 @@ class ReconstructConversation(beam.DoFn):
   def process(self, info):
     (page_id, data) = info
     if page_id == None: return
+
     if known_args.read_input_from_cloud:
        # Load input from cloud(the format is different here)
        rows = data['to_be_processed']
@@ -145,22 +145,20 @@ class ReconstructConversation(beam.DoFn):
           page_state = page_state[0]
        # Also the types were not preserved
        fields = ['rev_id_in_int', 'week', 'year', 'records_count', 'record_index']
-       for p in page_state:
-           p['rev_id'] = int(p['rev_id'])
+       page_state['rev_id'] = int(page_state['rev_id'])
        for r in rows:
            for f in fields:
                r[f] = int(r[f])
            r['truncated'] = bool(r['truncated'])
-       for r in last_revision:
-           for f in fields:
-               r[f] = int(r[f])
-           r['truncated'] = bool(r['truncated'])
+       for f in fields:
+           last_revision[f] = int(last_revision[f])
+       last_revision['truncated'] = bool(last_revision['truncated'])
     else:
        if data['to_be_processed'] == []: 
           rows = []
        else:
           rows = data['to_be_processed'][0]['cur_rev']
-       if data['last_revision'] == []
+       if data['last_revision'] == []:
           last_revision = []
        else:
           last_revision = data['last_revision'][0]['last_rev']
@@ -170,10 +168,10 @@ class ReconstructConversation(beam.DoFn):
           page_state = []
        # Return when no revisions need to be processed for this page
        if not(rows == []) and 'Archive' in rows[0]['page_title']: return 
-
     logging.info('USERLOG: Reconstruction work start on page: %s'%page_id)
     processor = Conversation_Constructor()
     last_revision_to_save = last_revision
+    print(last_revision)
     if not(page_state) == []:
        # Write the input to cloud
        yield beam.pvalue.TaggedOutput('last_revision', json.dumps(last_revision))
@@ -301,9 +299,9 @@ if __name__ == '__main__':
                       help='Number of weeks you want to execute in one batch.')
 
   known_args, pipeline_args = parser.parse_known_args()
-  known_args.ingested_revision_schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
-  known_args.output_schema = 'user_id:STRING, user_text:STRING, timestamp:STRING, content:STRING, parent_id:STRING, replyTo_id:STRING, indentation:INTEGER, page_id:STRING, page_title:STRING, type:STRING, id:STRING, rev_id:STRING, conversation_id:STRING, authors:STRING'  
-  known_args.page_states_output_schema = 'rev_id:INTEGER, page_id:STRING, page_state:STRING, deleted_comments:STRING, conversation_id:STRING, authors:STRING, timestamp:STRING'  
+  known_args.ingested_revision_schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING,user_ip:STRING,truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER,week:INTEGER,year:INTEGER,rev_id_in_int:INTEGER'
+  known_args.output_schema = 'user_id:STRING,user_text:STRING,timestamp:STRING,content:STRING,parent_id:STRING,replyTo_id:STRING,indentation:INTEGER,page_id:STRING,page_title:STRING,type:STRING,id:STRING,rev_id:STRING,conversation_id:STRING,authors:STRING'  
+  known_args.page_states_output_schema = 'rev_id:INTEGER,page_id:STRING,page_state:STRING,deleted_comments:STRING,conversation_id:STRING,authors:STRING,timestamp:STRING'  
   # If only one week was specified 
   if known_args.week:
      known_args.lower_week, known_args.upper_week = int(known_args.week), int(known_args.week)
