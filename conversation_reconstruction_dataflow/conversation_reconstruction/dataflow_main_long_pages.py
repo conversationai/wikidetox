@@ -47,7 +47,7 @@ def run(known_args, pipeline_args):
   """Main entry point; defines and runs the reconstruction pipeline."""
 
   pipeline_args.extend([
-    '--runner=DataflowRunner',
+    '--runner=DirectRunner',
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
@@ -140,6 +140,17 @@ class ReconstructConversation(beam.DoFn):
        if not(page_state == []):
           last_revision = last_revision[0]
           page_state = page_state[0]
+       fields = ['rev_id_in_int', 'week', 'year', 'records_count', 'record_index']
+       for p in page_state:
+           p['rev_id'] = int(p['rev_id'])
+       for r in rows:
+           for f in fields:
+               r[f] = int(r[f])
+           r['truncated'] = bool(r['truncated'])
+       for r in last_revision:
+           for f in fields:
+               r[f] = int(r[f])
+           r['truncated'] = bool(r['truncated'])
     else:
        if data['to_be_processed'] == []: 
           rows = []
@@ -171,12 +182,12 @@ class ReconstructConversation(beam.DoFn):
     second_last_page_state = page_state 
     error_encountered = False
     cnt = 0
-    revision_lst = sorted([r for r in rows], key=lambda k: (k['timestamp'], k['rev_id_in_int'], k['recored_index']))
+    revision_lst = sorted([r for r in rows], key=lambda k: (k['timestamp'], int(k['rev_id_in_int']), int(k['record_index'])))
     last_loading = 0
     last_page_state = None
     for cur_revision in revision_lst:
         if not('rev_id' in cur_revision): continue
-        if cur_revision['record_index'] == 0: 
+        if int(cur_revision['record_index']) == 0: 
            revision = cur_revision
         else:
            revision['text'] += cur_revision['text']
