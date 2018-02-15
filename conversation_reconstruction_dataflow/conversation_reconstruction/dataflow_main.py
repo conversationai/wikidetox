@@ -102,11 +102,13 @@ def run(known_args, pipeline_args):
     else:
        page_states | "WritePageStates" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.page_states_output_table, schema=known_args.page_states_output_schema, write_disposition='WRITE_APPEND', validate=True))
        # Write the page states to BigQuery
-       reconstruction_results | "WriteReconstructedResults" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.output_table, schema=known_args.output_schema, write_disposition='WRITE_APPEND', validate=True))
+       reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/short_pages/reconstructed_%s"%jobname) 
        # Write the reconstructed results to BigQuery
        last_rev_output | "WriteCollectedLastRevision" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.last_revision_table, schema=known_args.ingested_revision_schema, write_disposition='WRITE_TRUNCATE', validate=True))
        last_rev | "WriteBackInput_last_rev" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/testing/%s.last_rev"%jobname)
     if known_args.save_input_to_cloud_storage:
+       input_rev | "WriteBackInput_revs" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/testing/%s.input_revs"%jobname) 
+
        last_rev | "WriteBackInput_last_rev" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/testing/%s.last_rev"%jobname)
        input_ps | "WriteBackInput_page_states" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/testing/%s.page_states"%jobname)
 
@@ -137,8 +139,8 @@ class ReconstructConversation(beam.DoFn):
        last_revision = data['last_revision']
        page_state = data['page_state']
        if not(page_state == []):
-          last_revision = last_revision[0]['last_rev']
-          page_state = page_state[0]['last_page_state']
+          last_revision = last_revision[0]
+          page_state = page_state[0]
     else:
        if data['to_be_processed'] == []: 
           rows = []
@@ -168,7 +170,7 @@ class ReconstructConversation(beam.DoFn):
     second_last_page_state = page_state 
     error_encountered = False
     cnt = 0
-    revision_lst = sorted([r for r in rows], key=lambda k: (k['timestamp'], k['rev_id_in_int']))
+    revision_lst = sorted([r for r in rows], key=lambda k: (k['timestamp'], k['rev_id_in_int'], k['record_index']))
     last_loading = 0
     last_page_state = None
     for cur_revision in revision_lst:
@@ -290,10 +292,8 @@ if __name__ == '__main__':
                       dest='week_step',
                       default=1,
                       help='Number of weeks you want to execute in one batch.')
-  parser.add_argument('--setup_file',
-                      help='Setup file.')
 
-  known_args, pipeline_args = parser.parse_args()
+  known_args, pipeline_args = parser.parse_known_args()
   known_args.last_revision_table = 'wikidetox_conversations.ingested_all_100rev'
   known_args.ingested_revision_schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
   known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_short_pages'
