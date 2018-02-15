@@ -1,0 +1,1 @@
+python dataflow_main.py --input_table wikidetox_conversations.ingested_long_pages_year2007 --input_page_state_table wikidetox_conversations.page_states_long --last_revision_table wikidetox_conversations.long_page_last_revisions --page_states_output_table  wikidetox_conversations.page_states_long --category long --setup_file ./setup.py
