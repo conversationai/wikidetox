@@ -10,6 +10,7 @@ You may obtain a copy of the License at
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
+
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
@@ -41,7 +42,7 @@ from apache_beam.io.gcp import bigquery as bigquery_io
 from construct_utils.conversation_constructor import Conversation_Constructor
 
 
-LOG_INTERVAL = 200
+LOG_INTERVAL = 100
 
 def run(known_args, pipeline_args):
   """Main entry point; defines and runs the reconstruction pipeline."""
@@ -64,9 +65,11 @@ def run(known_args, pipeline_args):
 
   within_time_range = '((week >= {lw} and year = {ly}) or year > {ly}) and ((week <= {uw} and year = {uy}) or year < {uy})'.format(lw = known_args.lower_week, ly = known_args.lower_year, uw = known_args.upper_week, uy = known_args.upper_year)
   before_time_range = '(week < {lw} and year = {ly}) or year < {ly}'.format(lw=known_args.lower_week, ly=known_args.lower_year) 
-  ingested_revs_for_processing = "SELECT * FROM {input_table} WHERE {time_range} {debug} ORDER BY timestamp, rev_id_in_int".format(input_table=known_args.input_table, time_range=within_time_range, debug=debug_page)
+  before_time_range_1 = '(week(timestamp) < {lw} and year(timestamp) = {ly}) or year(timestamp)< {ly}'.format(lw=known_args.lower_week, ly=known_args.lower_year) 
+
+  ingested_revs_for_processing = "SELECT * FROM {input_table} WHERE {time_range} {debug}".format(input_table=known_args.input_table, time_range=within_time_range, debug=debug_page)
   last_revision_processed = "SELECT * FROM {input_table} WHERE {before_time_range} {debug} ORDER BY timestamp DESC, rev_id_in_int DESC LIMIT 1".format(input_table=known_args.input_table, before_time_range=before_time_range, debug=debug_page)
-  last_page_state = "SELECT * FROM {page_state_table} {debug} ORDER BY timestamp DESC, rev_id DESC LIMIT 1".format(page_state_table=known_args.input_page_state_table, debug=debug1)
+  last_page_state = "SELECT * FROM {page_state_table} {debug} WHERE {before_time_range} ORDER BY timestamp DESC, rev_id DESC LIMIT 1".format(before_time_range=before_time_range_1, page_state_table=known_args.input_page_state_table, debug=debug1)
   with beam.Pipeline(options=pipeline_options) as p:
     if known_args.read_input_from_cloud:
        to_be_processed = (p | 'Read_to_be_processed' >> beam.io.ReadFromText("gs://wikidetox-viz-dataflow/testing/%s.input_revs*"%jobname))
@@ -82,7 +85,7 @@ def run(known_args, pipeline_args):
        last_revision = (p 
             | 'Retrieve_last_revision' >> beam.io.Read(beam.io.BigQuerySource(query=last_revision_processed, validate=True, use_standard_sql=True)))
        # Read from ingested table to get last processed revision 
-       page_state = (p | 'Retrieve_page_state' >> beam.io.Read(beam.io.BigQuerySource(query=last_page_state, validate=True, use_standard_sql=True)))
+       page_state = (p | 'Retrieve_page_state' >> beam.io.Read(beam.io.BigQuerySource(query=last_page_state, validate=True)))
        # Read from page state table to get the page states recorded from previous processing steps
        mapping = (lambda x: (x['page_id'], x))
 
@@ -95,8 +98,10 @@ def run(known_args, pipeline_args):
        reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/%s/reconstructed"%jobname) 
     else:
        page_states | "WritePageStates" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.page_states_output_table, schema=known_args.page_states_output_schema, write_disposition='WRITE_APPEND', validate=True))
+       reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/results_%s/reconstructed%s"%(known_args.page_id, jobname)) 
+
        # Write the page states to BigQuery
-       reconstruction_results | "WriteReconstructedResults" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.output_table, schema=known_args.output_schema, write_disposition='WRITE_APPEND', validate=True))
+#       reconstruction_results | "WriteReconstructedResults" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.output_table, schema=known_args.output_schema, write_disposition='WRITE_APPEND', validate=True))
       # Write the reconstructed results to BigQuery
     if known_args.save_input_to_cloud_storage:
        last_rev | "WriteBackInput_last_rev" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/testing/%s.last_rev"%jobname)
@@ -143,13 +148,15 @@ class ReconstructConversation(beam.DoFn):
     error_encountered = False
     cnt = 0
     last_loading = 0 
-    for cur_revision in rows:
+    rev_list = sorted(rows, key=lambda key: (key['timestamp'], key['rev_id_in_int']))
+    for cur_revision in rev_list:
         if not('rev_id' in cur_revision): continue
         if cur_revision['record_index'] == 0: 
            revision = cur_revision
         else:
            revision['text'] += cur_revision['text']
         if cur_revision['record_index'] == cur_revision['records_count'] - 1:
+           print(revision['timestamp'])
            cnt += 1
            last_revision = revision['rev_id']
            text = revision['text']
@@ -157,7 +164,7 @@ class ReconstructConversation(beam.DoFn):
               page_state, actions = processor.process(revision, DEBUGGING_MODE = False)
            else:
               actions = []
-           last_page_state = page_state 
+           last_page_state = copy.deepcopy(page_state)
            for action in actions:
                if known_args.save_res_to_cloud:
                   yield json.dumps(action)
@@ -252,6 +259,7 @@ if __name__ == '__main__':
   known_args.input_table= 'wikidetox_conversations.ingested_super_long_%s'%(known_args.page_id)
   known_args.input_page_state_table= 'wikidetox_conversations.page_states_%s'%(known_args.page_id)
   known_args.page_states_output_table = 'wikidetox_conversations.page_states_%s'%(known_args.page_id) 
+  known_args.output_table = 'wikidetox_conversations.reconstructed_%s'%(known_args.page_id) 
   if known_args.week:
      known_args.lower_week, known_args.upper_week = int(known_args.week), int(known_args.week)
      known_args.lower_year, known_args.upper_year = int(known_args.year), int(known_args.year)
@@ -268,7 +276,8 @@ if __name__ == '__main__':
   known_args.upper_year = known_args.lower_year
 
 
-  known_args.output_table = 'wikidetox-viz:wikidetox_conversations.reconstructed_%s_from_week16year2005'%(known_args.page_id)
+  if known_args.save_input_to_cloud_storage:
+     known_args.save_res_to_cloud = True
 
   while ((known_args.lower_week <= uw and known_args.lower_year == uy) or known_args.lower_year < uy): 
       known_args.upper_week += known_args.week_step 
