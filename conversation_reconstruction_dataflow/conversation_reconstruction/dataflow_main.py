@@ -254,6 +254,10 @@ if __name__ == '__main__':
                       help='Read input from Cloud.')
 
   # Input/Output parameters
+  parser.add_argument('--category',
+                      dest='category',
+                      help='Specify the job category: long (pages), short (pages),test.')
+
   parser.add_argument('--input_table',
                       dest='input_table',
                       help='Input table with ingested revisions.')
