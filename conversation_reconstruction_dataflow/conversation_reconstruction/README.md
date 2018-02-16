@@ -14,23 +14,23 @@ The workflow can be seen in the following picture:
 
 # Parameters of the code
 
-## Job category
+### Job category
   Specify which kind of data you are processing.
   --category CATEGORY   Specify the job category: long (pages), short (pages),test.
 
-## Parameters for testing
+### Parameters for testing
 
   --save_res_to_cloud   Save the page states result to Cloud as well, if you are not confident of the results yet, save it to the cloud to separate from the page states table where the following reconstruction might depend on it.
   --save_input_to_cloud Save the inputs to Cloud, no processing will be run if this is turned on. This is for you to prepare for testing. 
   --load_input_from_cloud Read input from Cloud.
 
-## Input Parmeters
+### Input Parmeters
   --input_table Input table with ingested revisions.
   --input_page_state_table Input page states table from previous reconstruction process.
   --last_revision_table  The table you want to store and read from for the last revision that was processed on each page.
   --page_states_output_table Output page state table for reconstruction.
 
-## Parameters for the time period to run
+### Parameters for the time period to run
   You can select any arbitrary week(ranging from 1 to 53) in 2001 to 2017 to process, using parameters 'week' and 'year'. Revisions from the same page must be processed sequentially in temporal order. Thus make sure you've processed all the data before week W from year Y, stored all the page states into a page state table, then start running processing on week W and year Y, otherwise sanity checks in the code will assert errors. 
  
   --week WEEK           The week of data you want to process
