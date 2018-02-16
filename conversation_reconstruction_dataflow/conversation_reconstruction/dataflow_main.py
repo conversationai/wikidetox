@@ -47,7 +47,7 @@ def run(known_args, pipeline_args):
   """Main entry point; defines and runs the reconstruction pipeline."""
 
   pipeline_args.extend([
-    '--runner=DirectRunner',
+    '--runner=DataflowRunner',
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
@@ -98,12 +98,14 @@ def run(known_args, pipeline_args):
        # Saving result to cloud storage
        page_states | "WritePageStates" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/%s/page_states"%jobname) 
        reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/reconstructed_res/%s"%jobname) 
+       last_rev_output | "WriteCollectedLastRevision" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/%s/last_rev"%jobname)
+ 
     else:
        # Saving page states and last processed revision to BigQuery, and the last time last processed revision to cloud for bak up
        page_states | "WritePageStates" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.page_states_output_table, schema=known_args.page_states_output_schema, write_disposition='WRITE_APPEND', validate=True))
        reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/short_pages/reconstructed_%s"%jobname) 
-       last_rev_output | "WriteCollectedLastRevision" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.last_revision_table, schema=known_args.ingested_revision_schema, write_disposition='WRITE_TRUNCATE', validate=True))
-       last_rev | "WriteBackInput_last_rev" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/testing/%s.last_rev"%jobname)
+#       last_rev_output | "WriteCollectedLastRevision" >> beam.io.Write(bigquery_io.BigQuerySink(known_args.last_revision_table, schema=known_args.ingested_revision_schema, write_disposition='WRITE_TRUNCATE', validate=True))
+       last_rev | "WriteBackInput_last_rev" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/bakup/%s.last_rev"%jobname)
 
     if known_args.save_input_to_cloud_storage:
        # Write input data to cloud to save cost on testing
@@ -140,19 +142,21 @@ class ReconstructConversation(beam.DoFn):
        rows = data['to_be_processed']
        last_revision = data['last_revision']
        page_state = data['page_state']
+       fields = ['rev_id_in_int', 'week', 'year', 'records_count', 'record_index']
        if not(page_state == []):
           last_revision = last_revision[0]
           page_state = page_state[0]
+          page_state['rev_id'] = int(page_state['rev_id'])
+          for f in fields:
+              last_revision[f] = int(last_revision[f])
+          last_revision['truncated'] = bool(last_revision['truncated'])
+
        # Also the types were not preserved
-       fields = ['rev_id_in_int', 'week', 'year', 'records_count', 'record_index']
-       page_state['rev_id'] = int(page_state['rev_id'])
+
        for r in rows:
            for f in fields:
                r[f] = int(r[f])
            r['truncated'] = bool(r['truncated'])
-       for f in fields:
-           last_revision[f] = int(last_revision[f])
-       last_revision['truncated'] = bool(last_revision['truncated'])
     else:
        if data['to_be_processed'] == []: 
           rows = []
@@ -168,10 +172,16 @@ class ReconstructConversation(beam.DoFn):
           page_state = []
        # Return when no revisions need to be processed for this page
        if not(rows == []) and 'Archive' in rows[0]['page_title']: return 
+    page_state = []
+    if rows == []:
+       if not(last_revision == []): #not(known_args.save_res_to_cloud) and 
+          yield beam.pvalue.TaggedOutput('last_revision_output', last_revision)
+          yield beam.pvalue.TaggedOutput('last_revision', json.dumps(last_revision))
+       return
+
     logging.info('USERLOG: Reconstruction work start on page: %s'%page_id)
     processor = Conversation_Constructor()
     last_revision_to_save = last_revision
-    print(last_revision)
     if not(page_state) == []:
        # Write the input to cloud
        yield beam.pvalue.TaggedOutput('last_revision', json.dumps(last_revision))
@@ -188,7 +198,7 @@ class ReconstructConversation(beam.DoFn):
     revision_lst = sorted([r for r in rows], key=lambda k: (k['timestamp'], k['rev_id_in_int'], k['record_index']))
     # Sort by temporal order
     last_loading = 0
-    last_page_state = None
+    last_page_state = page_state 
     for cur_revision in revision_lst:
         # Process revision by revision 
         if not('rev_id' in cur_revision): continue
@@ -220,7 +230,7 @@ class ReconstructConversation(beam.DoFn):
     if second_last_page_state and not(cnt == last_loading):
        # Merge the last two page states
        last_page_state = self.merge(last_page_state, second_last_page_state)
-    if last_page_state:
+    if last_page_state and not(last_page_state == []):
        size = sys.getsizeof(last_page_state)
        if size > 10485760:
           # Send error if the page state gets too big
@@ -229,7 +239,7 @@ class ReconstructConversation(beam.DoFn):
           yield beam.pvalue.TaggedOutput('page_states', last_page_state)
        else:
           yield beam.pvalue.TaggedOutput('page_states', json.dumps(last_page_state))
-    if not(known_args.save_res_to_cloud) and not(last_revision_to_save == []):
+    if not(last_revision_to_save == []): #not(known_args.save_res_to_cloud) and 
        yield beam.pvalue.TaggedOutput('last_revision_output', last_revision_to_save)
     if not(error_encountered):
        logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' %(page_id, last_revision))
