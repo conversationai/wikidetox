@@ -48,6 +48,7 @@ from apache_beam.io import ReadFromText
 from apache_beam.io import WriteToText
 from apache_beam.pipeline import AppliedPTransform
 from apache_beam.io.gcp import bigquery #WriteToBigQuery
+from datetime import datetime
 
 THERESHOLD = 10385760 
 LOGGING_THERESHOLD = 500
@@ -61,7 +62,7 @@ def run(known_args, pipeline_args):
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
     '--job_name=ingest-job-on-previously-stuck-revisions',
-    '--num_workers=50',
+    '--num_workers=10',
   ])
 
   pipeline_options = PipelineOptions(pipeline_args)
@@ -73,7 +74,20 @@ def run(known_args, pipeline_args):
   with beam.Pipeline(options=pipeline_options) as p:
     pcoll = (p | ReadFromText(known_args.input)
                    | beam.ParDo(WriteDecompressedFile())
-                   | beam.io.Write(bigquery.BigQuerySink(known_args.table, schema=known_args.schema, validate = True)))
+                   | beam.Map(lambda x: ('{week}at{year}'.format(week=x['week'], year=x['year']), x))
+                   | beam.GroupByKey()
+                   | beam.ParDo(WriteToStorage()))
+
+class WriteToStorage(beam.DoFn):
+  def process(self, element):
+      (key, val) = element
+      week, year = key
+      path = known_args.output + 'date-{week}at{year}/revisions*.json'.format(week=week, year=year)
+      outputfile = beam.io.filesystems.create(path)
+      for output in val:
+          outputfile.write(json.dumps(output) + '\n')
+      outputfile.close() 
+
 
 def truncate_content(s):
     """
@@ -87,6 +101,10 @@ def truncate_content(s):
               - Concatenating the 'text' field of the list returns the original text content.
     """
     dic = json.loads(s) 
+    dt = datetime.strptime(dic['timestamp'], "%Y-%m-%d %H:%M:%S.%f %Z")
+    year, wk = dt.isocalendar()[:2]
+    dic['year'] = year
+    dic['week'] = week
     dic['truncated'] = False
     dic['records_count'] = 1
     dic['record_index'] = 0
@@ -117,20 +135,31 @@ def truncate_content(s):
            dic['records_count'] = no_records
        return dics
 
+def is_in_range(pid):
+    for lr, ur in ingest_range:
+        if pid >= lr and pid <= ur:
+           return True
+    return False
+
+def is_time_range(ts):
+    dt = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S.%f %Z")
+    if not(dt.year == 2017): return (dt.year < 2017) 
+    else:
+       return (dt.month < 6)
 
 class WriteDecompressedFile(beam.DoFn):
   def process(self, element):
     logging.info('USERLOG: Working on %s' % element)
     chunk_name = element
 
-    in_file_path = path.join('gs://wikidetox-viz-dataflow/raw-downloads/', chunk_name)
+    in_file_path = path.join('gs://wikidetox-viz-dataflow/raw-downloads-20180201/20180201-dumps/', chunk_name)
 
     logging.info('USERLOG: Running gsutil %s ./' % in_file_path)
     cp_local_cmd = (['gsutil', 'cp', in_file_path, './'])
     subprocess.call(cp_local_cmd)
 
     logging.info('USERLOG: Running ingestion process on %s' % chunk_name)
-    ingestion_cmd = ['python2', '-m', 'ingest_utils.run_ingester', '-i', chunk_name]
+    ingestion_cmd = ['python2', '-m', 'ingest_utils/run_ingester.py', '-i', chunk_name]
     status = 'success'
     ingest_proc = subprocess.Popen(ingestion_cmd, stdout=subprocess.PIPE, bufsize = 4096)
     cnt = 0
@@ -153,6 +182,7 @@ class WriteDecompressedFile(beam.DoFn):
          logging.info('USERLOG: File %s contains large row, rowsize %d, being truncated to %d pieces' % (chunk_name, sys.getsizeof(line), len(ret)))
       maxsize = max(maxsize, sys.getsizeof(line))
       cnt += 1
+      break
     logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, maxsize: %d, last_revision %s, finishing status: %s' % (chunk_name, cnt, maxsize, last_revision, status))
 
 if __name__ == '__main__':
@@ -165,19 +195,20 @@ if __name__ == '__main__':
                       help='If you want to run the input dumps in batch, pick a batch number to run')
   parser.add_argument('--input',
                       dest='input',
-                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_stuck',
+                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_reingest',
                       help='Input file to process.')
   # Destination BigQuery Table
-  schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:STRING,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
-  parser.add_argument('--table',
-                      dest='table',
-                      default='wikidetox-viz:wikidetox_conversations.ingested_conversations_stuck',
-                      help='Output table to write results to.')
+  schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:INTEGER,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
+  parser.add_argument('--output',
+                      dest='output',
+                      default='gs://wikidetox-viz-dataflow/reingested/',
+                      help='Output storage.')
   parser.add_argument('--schema',
                       dest='schema',
                       default=schema,
                       help='Output table schema.')
 
   known_args, pipeline_args = parser.parse_known_args()
+  ingest_range = [[5137452, 5149115], [13135007,13252449],[51894080,52312206],[42663462,42930511],[952461, 972044],[2515120,2535917],[4684994,4750440]]
   run(known_args, pipeline_args)
 
