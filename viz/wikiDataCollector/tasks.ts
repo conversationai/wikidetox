@@ -11,7 +11,8 @@ import { GetWikiData } from "./getWikiData";
 import { StoreData } from "./StoreData";
 import { TestCommentData } from "./testCommentData";
 
-const configPath = "config/dev.json";
+// TODO : pass this as params
+const configPath = "config/production.json";
 const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 
 const wikidata = new GetWikiData();
@@ -94,6 +95,7 @@ const getMonthData = (start, end, cb) => {
 };
 
 export class Tasks {
+
     public doStreaming = doStreaming;
     public flagReverted = bigquery.flagReverted.bind(bigquery);
     public logStreamTask = bigquery.logStreamTask.bind(bigquery);
@@ -126,11 +128,11 @@ program
     });
 
 program
-    .command("addComments <file_path>")
+    .command("addComments <filePath>")
     .description("Find revids for the given file and add comments to it.")
-    .action((file_path) => {
+    .action((filePath) => {
         const t0 = new Date().getTime();
-        storeData.readFile(file_path, (data) => {
+        storeData.readFile(filePath, (data) => {
 
             if (typeof data === "string") {
                 data = JSON.parse(data);
@@ -138,22 +140,22 @@ program
             data.forEach((r) => { r.revid = r.rev_id; });
             console.log(data.length);
 
-            function storeInter(data, i) {
-                const fileName = file_path.replace(".json", "");
+            function storeInter(dataInter, i) {
+                const fileName = filePath.replace(".json", "");
 
                 storeData.createFolder(fileName);
                 storeData.clearFolder(fileName);
 
-                storeData.writeFile(fileName + "/" + fileName + "_" + i + "_with_comments.json", data, () => {
+                storeData.writeFile(fileName + "/" + fileName + "_" + i + "_with_comments.json", dataInter, () => {
                     console.log(fileName + "_" + i + "_with_comments.json file saved ");
                 }, {});
             }
 
-            wikidata.addCommentForRevidData({ data, storeInterData: storeInter }, (err, data) => {
+            wikidata.addCommentForRevidData({ data, storeInterData: storeInter }, (err, dataRev) => {
                 if (err) {
                     console.log(err);
                 } else {
-                    storeData.writeFile(file_path.replace(".json", "") + "_with_comments.json", data, () => {
+                    storeData.writeFile(filePath.replace(".json", "") + "_with_comments.json", dataRev, () => {
                         console.log(" file saved ");
                         const t1 = new Date().getTime();
                         console.log("Call to 'addComments' took " + (t1 - t0) / 1000 + " seconds.");
@@ -178,17 +180,17 @@ program
     });
 
 program
-    .command("addToxicScore <file_path>")
+    .command("addToxicScore <filePath>")
     .description("Add toxic score to the comments in the given file.")
-    .action((file_path) => {
+    .action((filePath) => {
         const t0 = new Date().getTime();
-        storeData.readFile(file_path, (data) => {
+        storeData.readFile(filePath, (data) => {
 
-            toxicScore.addToxicScore(data, (err, data) => {
+            toxicScore.addToxicScore(data, (err, dataScore) => {
                 if (err) {
                     console.log(err);
                 } else {
-                    storeData.writeFile(file_path.replace("_with_comments.json", "") + "_with_score.json", data, () => {
+                    storeData.writeFile(filePath.replace("_with_comments.json", "") + "_with_score.json", dataScore, () => {
                         console.log(" file saved ");
                         const t1 = new Date().getTime();
                         console.log("Call to 'addToxicScore' took " + (t1 - t0) / 1000 + " seconds.");
