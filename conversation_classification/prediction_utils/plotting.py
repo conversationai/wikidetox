@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import scipy.stats
 import numpy as np
 
-def attacker_plot(profiles, ASPECTS, num_catergories=3, \
+def attacker_plot(profiles, ASPECTS, num_categories=3, \
     catergories={'Min': 0, 'Max': 1, 'In the Middle': 2, 'Anonymous':3, 'New Comer':4, 'No Gap': 5, 'Bot': 6},\
     cats = ['Min', 'Max', 'In the Middle', 'Anonymous', 'New Comer'], experience=-1):
 
@@ -46,15 +46,15 @@ def attacker_plot(profiles, ASPECTS, num_catergories=3, \
                 cnts[clss][catergories[p[aspect]]][-1] += 1
                 if catergories[p[aspect]] == 0:
                     cur.append(1)
-                elif catergories[p[aspect]] < num_catergories:
+                elif catergories[p[aspect]] < num_categories:
                     cur.append(0)
             mins[clss].append(cur)
         previous = [0 for a in ASPECTS]
         first_three = [0 for a in ASPECTS]
-        for bad in bads[clss][:num_catergories]:
+        for bad in bads[clss][:num_categories]:
             for ii, b in enumerate(bad):
                 first_three[ii] += b
-        for ind,bad in enumerate(bads[clss][:num_catergories]):
+        for ind,bad in enumerate(bads[clss][:num_categories]):
             for ii, b in enumerate(bad):
                 if first_three[ii]: bad[ii] = bad[ii] / first_three[ii]
             bads[clss][ind] = bad
@@ -107,14 +107,17 @@ def attacker_plot(profiles, ASPECTS, num_catergories=3, \
     for ind, aspect in enumerate(ASPECTS):
         print(aspect, ':', scipy.stats.binom_test(cnts[clss][0][ind], cnts[clss][0][ind] + cnts[clss][1][ind]))
     
-def plot_profiles(profiles, ASPECTS, num_catergories = 3, \
+def plot_profiles(profiles, ASPECTS, num_categories = 3, \
     catergories = {'Min': 0, 'Max': 1, 'In the Middle': 2, 'Anonymous':3, 'New Comer':4, 'No Gap': 5, 'Bot': 6}, \
     cats = ['min', 'max', 'in the middle', 'Anonymous', 'New Comer'], \
     catergory_names = ['Proportion replied', 'Being replied latency', 'Reply latency', \
             'Age', 'Status', '# edits on Wikipedia'], \
     conv_label = ['Offender is ', 'Non-offender is '], \
     experience=-1):
-
+    """
+      Plots the profiles of the last participant of a conversation.
+      With respect to each aspect(for example, age), how much percentage of the conversations with last participant being the youngest/ordest/in the middle/there's no age gap in the group/the last participant never spoke in the conversation before/the last participant is anonymous or a bot.
+    """
     f, ax = plt.subplots(1, figsize=(13,6))
     bar_width = 0.4
     bar_l = [i for i in range(len(ASPECTS))] 
@@ -138,15 +141,15 @@ def plot_profiles(profiles, ASPECTS, num_catergories = 3, \
                 cnts[clss][catergories[p[aspect]]][-1] += 1
                 if catergories[p[aspect]] == 0:
                     cur.append(1)
-                elif catergories[p[aspect]] < num_catergories:
+                elif catergories[p[aspect]] < num_categories:
                     cur.append(0)
             mins[clss].append(cur)
         previous = [0 for a in ASPECTS]
         first_three = [0 for a in ASPECTS]
-        for bad in bads[clss][:num_catergories]:
+        for bad in bads[clss][:num_categories]:
             for ii, b in enumerate(bad):
                 first_three[ii] += b
-        for ind,bad in enumerate(bads[clss][:num_catergories]):
+        for ind,bad in enumerate(bads[clss][:num_categories]):
             for ii, b in enumerate(bad):
                 if first_three[ii]: bad[ii] = bad[ii] / first_three[ii]
             bads[clss][ind] = bad
