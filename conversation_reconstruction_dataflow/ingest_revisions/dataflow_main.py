@@ -46,6 +46,7 @@ from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.io import ReadFromText
 from apache_beam.io import WriteToText
+from apache_beam.io import filesystems
 from apache_beam.pipeline import AppliedPTransform
 from apache_beam.io.gcp import bigquery #WriteToBigQuery
 from datetime import datetime
@@ -62,7 +63,7 @@ def run(known_args, pipeline_args):
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
     '--job_name=ingest-job-on-previously-stuck-revisions',
-    '--num_workers=10',
+    '--num_workers=30',
   ])
 
   pipeline_options = PipelineOptions(pipeline_args)
@@ -81,9 +82,10 @@ def run(known_args, pipeline_args):
 class WriteToStorage(beam.DoFn):
   def process(self, element):
       (key, val) = element
-      week, year = key
-      path = known_args.output + 'date-{week}at{year}/revisions*.json'.format(week=week, year=year)
-      outputfile = beam.io.filesystems.create(path)
+      week, year = [int(x) for x in key.split('at')]
+      path = known_args.output + 'date-{week}at{year}/revisions.json'.format(week=week, year=year)
+      logging.info('USERLOG: Write to path %s.'%path)
+      outputfile = filesystems.FileSystems.create(path)
       for output in val:
           outputfile.write(json.dumps(output) + '\n')
       outputfile.close() 
@@ -101,8 +103,8 @@ def truncate_content(s):
               - Concatenating the 'text' field of the list returns the original text content.
     """
     dic = json.loads(s) 
-    dt = datetime.strptime(dic['timestamp'], "%Y-%m-%d %H:%M:%S.%f %Z")
-    year, wk = dt.isocalendar()[:2]
+    dt = datetime.strptime(dic['timestamp'], "%Y-%m-%dT%H:%M:%SZ")
+    year, week = dt.isocalendar()[:2]
     dic['year'] = year
     dic['week'] = week
     dic['truncated'] = False
@@ -149,7 +151,9 @@ def is_time_range(ts):
 
 class WriteDecompressedFile(beam.DoFn):
   def process(self, element):
-    logging.info('USERLOG: Working on %s' % element)
+    """
+      Process Mode:
+    """
     chunk_name = element
 
     in_file_path = path.join('gs://wikidetox-viz-dataflow/raw-downloads-20180201/20180201-dumps/', chunk_name)
@@ -159,8 +163,7 @@ class WriteDecompressedFile(beam.DoFn):
     subprocess.call(cp_local_cmd)
 
     logging.info('USERLOG: Running ingestion process on %s' % chunk_name)
-    ingestion_cmd = ['python2', '-m', 'ingest_utils/run_ingester.py', '-i', chunk_name]
-    status = 'success'
+    ingestion_cmd = ['python2', '-m', 'ingest_utils.run_ingester', '-i', chunk_name]
     ingest_proc = subprocess.Popen(ingestion_cmd, stdout=subprocess.PIPE, bufsize = 4096)
     cnt = 0
     maxsize = 0
@@ -168,7 +171,7 @@ class WriteDecompressedFile(beam.DoFn):
     last_completed = time.time()
     for i, line in enumerate(ingest_proc.stdout):
       try:
-         content = json.loads(line) 
+          content = json.loads(line) 
       except:
          break
       last_revision = content['rev_id']
@@ -182,8 +185,7 @@ class WriteDecompressedFile(beam.DoFn):
          logging.info('USERLOG: File %s contains large row, rowsize %d, being truncated to %d pieces' % (chunk_name, sys.getsizeof(line), len(ret)))
       maxsize = max(maxsize, sys.getsizeof(line))
       cnt += 1
-      break
-    logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, maxsize: %d, last_revision %s, finishing status: %s' % (chunk_name, cnt, maxsize, last_revision, status))
+    logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, maxsize: %d, last_revision %s' % (chunk_name, cnt, maxsize, last_revision))
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
