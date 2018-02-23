@@ -51,7 +51,6 @@ from apache_beam.pipeline import AppliedPTransform
 from apache_beam.io.gcp import bigquery #WriteToBigQuery
 from datetime import datetime
 
-THERESHOLD = 10385760 
 LOGGING_THERESHOLD = 500
 
 def run(known_args, pipeline_args):
@@ -91,51 +90,13 @@ class WriteToStorage(beam.DoFn):
       outputfile.close() 
 
 
-def truncate_content(s):
-    """
-      Truncate a large revision into small pieces. BigQuery supports line size less than 10MB. 
-      Input: Ingested revision in json format, 
-              - Fields with data type string: sha1,user_id,format,user_text,timestamp,text,page_title,model,page_namespace,page_id,rev_id,comment, user_ip
-      Output: A list of ingested revisions as dictionaries, each dictionary has size <= 10MB.
-              - Contains same fields with input 
-              - Constains additional fields: truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER
-              - The list if revisions shared the same basic information expect 'text'
-              - Concatenating the 'text' field of the list returns the original text content.
-    """
+def add_week_year_fields(s):
     dic = json.loads(s) 
     dt = datetime.strptime(dic['timestamp'], "%Y-%m-%dT%H:%M:%SZ")
     year, week = dt.isocalendar()[:2]
     dic['year'] = year
     dic['week'] = week
-    dic['truncated'] = False
-    dic['records_count'] = 1
-    dic['record_index'] = 0
-    filesize = sys.getsizeof(s)
-    if filesize <= THERESHOLD:
-       return [dic]
-    else:
-       l = len(dic['text'])
-       contentsize = sys.getsizeof(dic['text'])
-       pieces = max(math.ceil(float(filesize) / float(THERESHOLD)), 2)
-       piece_size = int(l / pieces)
-       dic['truncated'] = True
-       dics = []
-       last = 0
-       ind = 0
-       while (last < l):
-           cur_dic = copy.deepcopy(dic)
-           if last + piece_size >= l:
-              cur_dic['text'] = cur_dic['text'][last:]
-           else:
-              cur_dic['text'] = cur_dic['text'][last:last+piece_size]
-           last += piece_size
-           cur_dic['record_index'] = ind
-           dics.append(cur_dic)
-           ind += 1
-       no_records = len(dics)
-       for dic in dics:
-           dic['records_count'] = no_records
-       return dics
+    return dic
 
 def is_in_range(pid):
     for lr, ur in ingest_range:
@@ -175,9 +136,8 @@ class WriteDecompressedFile(beam.DoFn):
       except:
          break
       last_revision = content['rev_id']
-      ret = truncate_content(line)
-      for r in ret:
-          yield r
+      ret = add_week_year_fields(line)
+      yield ret
       if i % LOGGING_THERESHOLD == 0:
          logging.info('USERLOG: %d revisions on %s ingested, %d seconds on ingestion, last revision: %s.'%(i, chunk_name, time.time() - last_completed, last_revision)) 
          last_completed = time.time()
@@ -200,16 +160,10 @@ if __name__ == '__main__':
                       default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_reingest',
                       help='Input file to process.')
   # Destination BigQuery Table
-  schema = 'sha1:STRING,user_id:STRING,format:STRING,user_text:STRING,timestamp:STRING,text:STRING,page_title:STRING,model:STRING,page_namespace:STRING,page_id:STRING,rev_id:INTEGER,comment:STRING, user_ip:STRING, truncated:BOOLEAN,records_count:INTEGER,record_index:INTEGER'
   parser.add_argument('--output',
                       dest='output',
                       default='gs://wikidetox-viz-dataflow/reingested/',
                       help='Output storage.')
-  parser.add_argument('--schema',
-                      dest='schema',
-                      default=schema,
-                      help='Output table schema.')
-
   known_args, pipeline_args = parser.parse_known_args()
   ingest_range = [[5137452, 5149115], [13135007,13252449],[51894080,52312206],[42663462,42930511],[952461, 972044],[2515120,2535917],[4684994,4750440]]
   run(known_args, pipeline_args)
