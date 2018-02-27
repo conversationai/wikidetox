@@ -78,20 +78,26 @@ class WriteToStorage(beam.DoFn):
   def __init__(self):
       self.writer = None
 
+  def start_bundle(self):
+      worker = 0 
+      path = known_args.output + 'date-{week}at{year}/revisions-{worker}.json'.format(week=week, year=year, worker=worker)
+      while (filesystems.FileSystems.exists(path)):
+          worker += 1  
+          path = known_args.output + 'date-{week}at{year}/revisions-{worker}.json'.format(week=week, year=year, worker=worker)
+      logging.info('USERLOG: Write to path %s.'%path)
+
   def process(self, element):
       (key, val) = element
       week, year = [int(x) for x in key.split('at')]
       if self.writer == None:
          path = known_args.output + 'date-{week}at{year}/revisions-from-{rev}.json'.format(week=week, year=year, rev=element['rev_id'])
-         self.writer = filesystems.FileSystems.create(path)
-         logging.info('USERLOG: Write to path %s.'%path)
-      logging.info('TESTLOG: %s.'%type(val))
+      outputfile = filesystems.FileSystems.create(path)
+  
       for output in val:
           self.writer.write(json.dumps(output) + '\n')
 
   def finish_bundle(self):
-      if not(self.writer == None):
-         self.writer.close() 
+      outputfile.close() 
 
 def add_week_year_fields(s):
     dic = json.loads(s) 
@@ -108,7 +114,7 @@ def is_in_range(pid):
     return False
 
 def is_in_time_range(ts):
-    dt = datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ")
+    dt = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S.%f %Z")
     if not(dt.year == 2017): return (dt.year < 2017) 
     else:
        return (dt.month < 6)
@@ -125,7 +131,7 @@ class WriteDecompressedFile(beam.DoFn):
    # logging.info('USERLOG: Running gsutil %s ./' % in_file_path)
    # cp_local_cmd = (['gsutil', 'cp', in_file_path, './'])
    # subprocess.call(cp_local_cmd)
-    chunk_name = "ingest_utils/testdata/test_wiki_dump.xml" 
+    chunk_name = "ingest_utils/testdat/test_wiki_dump.xml" 
 
     logging.info('USERLOG: Running ingestion process on %s' % chunk_name)
     ingestion_cmd = ['python2', '-m', 'ingest_utils.run_ingester', '-i', chunk_name]
@@ -141,12 +147,13 @@ class WriteDecompressedFile(beam.DoFn):
          break
       last_revision = content['rev_id']
       ret = add_week_year_fields(line)
-      logging.info('TESTLOG: IS_IN_RANGE %d, IS_IN_TIME_RANGE %d.'%(is_in_range(content['page_id']), is_in_time_range(content['timestamp'])))
       if is_in_range(content['page_id']) and is_in_time_range(content['timestamp']):
          yield ret
       if i % LOGGING_THERESHOLD == 0:
          logging.info('USERLOG: %d revisions on %s ingested, %d seconds on ingestion, last revision: %s.'%(i, chunk_name, time.time() - last_completed, last_revision)) 
          last_completed = time.time()
+      if len(ret) > 1:
+         logging.info('USERLOG: File %s contains large row, rowsize %d, being truncated to %d pieces' % (chunk_name, sys.getsizeof(line), len(ret)))
       maxsize = max(maxsize, sys.getsizeof(line))
       cnt += 1
     logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, maxsize: %d, last_revision %s' % (chunk_name, cnt, maxsize, last_revision))
