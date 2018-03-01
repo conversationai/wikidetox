@@ -42,6 +42,7 @@ import os
 import time
 
 import apache_beam as beam
+from apache_beam.metrics.metric import Metrics
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.io import ReadFromText
@@ -57,11 +58,12 @@ def run(known_args, pipeline_args):
   """Main entry point; defines and runs the ingestion pipeline."""
 
   pipeline_args.extend([
-    '--runner=DirectRunner',
+    '--runner=DataflowRunner',
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=ingest-job-on-previously-stuck-revisions',
+    '--job_name=ingest-job-on-previously-stuck-revisions-test',
+    '--streaming',
     '--num_workers=30',
   ])
 
@@ -75,23 +77,16 @@ def run(known_args, pipeline_args):
                    | beam.ParDo(WriteToStorage()))
 
 class WriteToStorage(beam.DoFn):
-  def __init__(self):
-      self.writer = None
-
   def process(self, element):
       (key, val) = element
       week, year = [int(x) for x in key.split('at')]
-      if self.writer == None:
-         path = known_args.output + 'date-{week}at{year}/revisions-from-{rev}.json'.format(week=week, year=year, rev=element['rev_id'])
-         self.writer = filesystems.FileSystems.create(path)
-         logging.info('USERLOG: Write to path %s.'%path)
-      logging.info('TESTLOG: %s.'%type(val))
+      path = known_args.output + 'date-{week}at{year}/revisions.json'.format(week=week, year=year)
+      logging.info('USERLOG: Write to path %s.'%path)
+      outputfile = filesystems.FileSystems.create(path)
       for output in val:
-          self.writer.write(json.dumps(output) + '\n')
+          outputfile.write(json.dumps(output) + '\n')
+      outputfile.close() 
 
-  def finish_bundle(self):
-      if not(self.writer == None):
-         self.writer.close() 
 
 def add_week_year_fields(s):
     dic = json.loads(s) 
@@ -114,18 +109,17 @@ def is_in_time_range(ts):
        return (dt.month < 6)
 
 class WriteDecompressedFile(beam.DoFn):
+  def __init__(self):
+      self.processed_revisions = Metrics.counter(self.__class__, 'processed_revisions')
+
   def process(self, element):
-    """
-      Process Mode:
-    """
     chunk_name = element
 
-   # in_file_path = path.join('gs://wikidetox-viz-dataflow/raw-downloads-20180201/20180201-dumps/', chunk_name)
+    in_file_path = path.join('gs://wikidetox-viz-dataflow/raw-downloads-20180201/20180201-dumps/', chunk_name)
 
-   # logging.info('USERLOG: Running gsutil %s ./' % in_file_path)
-   # cp_local_cmd = (['gsutil', 'cp', in_file_path, './'])
-   # subprocess.call(cp_local_cmd)
-    chunk_name = "ingest_utils/testdata/test_wiki_dump.xml" 
+    logging.info('USERLOG: Running gsutil %s ./' % in_file_path)
+    cp_local_cmd = (['gsutil', 'cp', in_file_path, './'])
+    subprocess.call(cp_local_cmd)
 
     logging.info('USERLOG: Running ingestion process on %s' % chunk_name)
     ingestion_cmd = ['python2', '-m', 'ingest_utils.run_ingester', '-i', chunk_name]
@@ -139,16 +133,16 @@ class WriteDecompressedFile(beam.DoFn):
           content = json.loads(line) 
       except:
          break
-      last_revision = content['rev_id']
+      self.processed_revisions.inc()
       ret = add_week_year_fields(line)
-      logging.info('TESTLOG: IS_IN_RANGE %d, IS_IN_TIME_RANGE %d.'%(is_in_range(content['page_id']), is_in_time_range(content['timestamp'])))
-      if is_in_range(content['page_id']) and is_in_time_range(content['timestamp']):
+      if is_in_range(int(content['page_id'])) and is_in_time_range(content['timestamp']):
+         last_revision = content['rev_id']
+         cnt += 1
          yield ret
       if i % LOGGING_THERESHOLD == 0:
          logging.info('USERLOG: %d revisions on %s ingested, %d seconds on ingestion, last revision: %s.'%(i, chunk_name, time.time() - last_completed, last_revision)) 
          last_completed = time.time()
       maxsize = max(maxsize, sys.getsizeof(line))
-      cnt += 1
     logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, maxsize: %d, last_revision %s' % (chunk_name, cnt, maxsize, last_revision))
 
 if __name__ == '__main__':
@@ -156,14 +150,13 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--input',
                       dest='input',
-                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_reingest',
+                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_reingest_test',
                       help='Input file to process.')
   # Destination Cloud storage Folder 
   parser.add_argument('--output',
                       dest='output',
-                      default='gs://wikidetox-viz-dataflow/reingested/',
+                      default='gs://wikidetox-viz-dataflow/reingested_test/',
                       help='Output storage.')
   known_args, pipeline_args = parser.parse_known_args()
   ingest_range = [[5137452, 5149115], [13135007,13252449],[51894080,52312206],[42663462,42930511],[952461, 972044],[2515120,2535917],[4684994,4750440]]
   run(known_args, pipeline_args)
-
