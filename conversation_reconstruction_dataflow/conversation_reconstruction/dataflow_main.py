@@ -22,7 +22,6 @@ import traceback
 
 
 def run(arg_dict):
-
   parser = argparse.ArgumentParser()
   parser.add_argument('--input',
                       dest='input',
