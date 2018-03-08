@@ -91,7 +91,7 @@ def run(known_args, pipeline_args):
   groupby_mapping = lambda x: (x['page_id'], x)
   with beam.Pipeline(options=pipeline_options) as p:
        pcoll = (p | ReadFromAvro(known_args.input) 
-                 | beam.Map(lambda x: ('{week}at{year}'.format(week=x['week'], year=x['year']), x))
+                 | beam.Map(lambda x: ('{year}'.format(year=x['year']), x))
                  | beam.GroupByKey()
                  | beam.ParDo(WriteToStorage()))
 
@@ -101,13 +101,16 @@ class WriteToStorage(beam.DoFn):
     self.outputfile = None
   def process(self, element):
       (key, val) = element
-      week, year = [int(x) for x in key.split('at')]
+      #week, year = [int(x) for x in key.split('at')]
+      year = int(key)
       if self.outputfile == None:
          cnt = 0
-         path = known_args.output + 'date-{week}at{year}/revisions-{index}.avro'.format(week=week, year=year, index=cnt)
+#         path = known_args.output + 'date-{week}at{year}/revisions-{index}.avro'.format(week=week, year=year, index=cnt)
+         path = known_args.output + 'date-{year}/revisions-{index}.avro'.format(year=year, index=cnt)
          while filesystems.FileSystems.exists(path):
              cnt += 1
-             path = known_args.output + 'date-{week}at{year}/revisions-{index}.avro'.format(week=week, year=year, index=cnt)
+#             path = known_args.output + 'date-{week}at{year}/revisions-{index}.avro'.format(week=week, year=year, index=cnt)
+             path = known_args.output + 'date-{year}/revisions-{index}.avro'.format(week=week, year=year, index=cnt)
          logging.info('USERLOG: Write to path %s.'%path)
          self.outputfile = filesystems.FileSystems.create(path)
          self.df_writer = datafile.DataFileWriter(self.outputfile, self.rec_writer, writers_schema = SCHEMA)
