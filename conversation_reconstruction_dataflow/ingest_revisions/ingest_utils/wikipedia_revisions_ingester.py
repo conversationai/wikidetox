@@ -75,6 +75,8 @@ class ParserContentHandler(xml.sax.ContentHandler):
          # filter out archives
 #        ret = {x: self.data[x] for x in entry_list} 
         print(json.dumps(self.data))
+      else:
+        print('REVID' + self.data['rev_id'])
       self.data = {} 
        
     if self.xml_path.element_path_eq(self.data_reset_path):

@@ -62,8 +62,7 @@ def run(known_args, pipeline_args):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=ingest-job-on-previously-stuck-revisions-test',
-    '--streaming',
+    '--job_name=ingest-job-on-previously-stuck-revisions',
     '--num_workers=30',
   ])
 
@@ -132,6 +131,9 @@ class WriteDecompressedFile(beam.DoFn):
       try:
           content = json.loads(line) 
       except:
+         revid = line 
+         logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=revid, time=time.time() - last_completed))
+         last_completed = time.time()
          break
       self.processed_revisions.inc()
       ret = add_week_year_fields(line)
@@ -139,9 +141,8 @@ class WriteDecompressedFile(beam.DoFn):
          last_revision = content['rev_id']
          cnt += 1
          yield ret
-      if i % LOGGING_THERESHOLD == 0:
-         logging.info('USERLOG: %d revisions on %s ingested, %d seconds on ingestion, last revision: %s.'%(i, chunk_name, time.time() - last_completed, last_revision)) 
-         last_completed = time.time()
+      logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=last_revision, time=time.time() - last_completed))
+      last_completed = time.time()
       maxsize = max(maxsize, sys.getsizeof(line))
     logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, maxsize: %d, last_revision %s' % (chunk_name, cnt, maxsize, last_revision))
 
@@ -150,12 +151,12 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--input',
                       dest='input',
-                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_reingest_test',
+                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_reingest',
                       help='Input file to process.')
   # Destination Cloud storage Folder 
   parser.add_argument('--output',
                       dest='output',
-                      default='gs://wikidetox-viz-dataflow/reingested_test/',
+                      default='gs://wikidetox-viz-dataflow/reingested/',
                       help='Output storage.')
   known_args, pipeline_args = parser.parse_known_args()
   ingest_range = [[5137452, 5149115], [13135007,13252449],[51894080,52312206],[42663462,42930511],[952461, 972044],[2515120,2535917],[4684994,4750440]]
