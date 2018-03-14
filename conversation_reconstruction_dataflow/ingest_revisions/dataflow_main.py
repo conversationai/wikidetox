@@ -134,7 +134,6 @@ class WriteDecompressedFile(beam.DoFn):
          revid = line 
          logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=revid, time=time.time() - last_completed))
          last_completed = time.time()
-         break
       self.processed_revisions.inc()
       ret = add_week_year_fields(line)
       if is_in_range(int(content['page_id'])) and is_in_time_range(content['timestamp']):
