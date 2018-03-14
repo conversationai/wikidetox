@@ -72,6 +72,7 @@ SCHEMA_STR = """{
 }"""
  
 SCHEMA = schema.parse(SCHEMA_STR)
+THERESHOLD = 5000
 
 def run(known_args, pipeline_args):
   """Main entry point; defines and runs the reconstruction pipeline."""
@@ -88,10 +89,10 @@ def run(known_args, pipeline_args):
   jobname = 'shard-{table}'.format(table=known_args.category)
 
   # Queries extracting the data
-  groupby_mapping = lambda x: (x['page_id'], x)
   with beam.Pipeline(options=pipeline_options) as p:
        pcoll = (p | ReadFromAvro(known_args.input) 
-                 | beam.Map(lambda x: ('{year}'.format(year=x['year']), x))
+                 | beam.Map(lambda x: ('{week}at{year}'.format(week=x['week'], year=x['year']), x))
+                 #| beam.Map(lambda x: ('{year}'.format(week=x['week'], year=x['year']), x))
                  | beam.GroupByKey()
                  | beam.ParDo(WriteToStorage()))
 
@@ -99,23 +100,33 @@ class WriteToStorage(beam.DoFn):
   def start_bundle(self):
     self.rec_writer = io.DatumWriter(SCHEMA)
     self.outputfile = None
+    self.week = None
+    self.year = None
   def process(self, element):
       (key, val) = element
-      #week, year = [int(x) for x in key.split('at')]
-      year = int(key)
-      if self.outputfile == None:
+      week, year = [int(x) for x in key.split('at')]
+#      year = int(key)
+      if self.outputfile == None or not(year == self.year):
+         self.week = week
+         self.year = year
+         if not(self.outputfile == None):
+            self.df_writer.close()
+            self.outputfile.close()
          cnt = 0
-#         path = known_args.output + 'date-{week}at{year}/revisions-{index}.avro'.format(week=week, year=year, index=cnt)
-         path = known_args.output + 'date-{year}/revisions-{index}.avro'.format(year=year, index=cnt)
-         while filesystems.FileSystems.exists(path):
+#         self.path = known_args.output + 'date-{week}at{year}/revisions-{index}.avro'.format(week=week, year=year, index=cnt)
+         self.path = known_args.output + 'date-{year}/revisions-week{week}-{index}.avro'.format(week=week, year=year, index=cnt)
+         while filesystems.FileSystems.exists(self.path):
              cnt += 1
-#             path = known_args.output + 'date-{week}at{year}/revisions-{index}.avro'.format(week=week, year=year, index=cnt)
-             path = known_args.output + 'date-{year}/revisions-{index}.avro'.format(week=week, year=year, index=cnt)
-         logging.info('USERLOG: Write to path %s.'%path)
-         self.outputfile = filesystems.FileSystems.create(path)
+#             self.path = known_args.output + 'date-{week}at{year}/revisions-{index}.avro'.format(week=week, year=year, index=cnt)
+             self.path = known_args.output + 'date-{year}/revisions-week{week}-{index}.avro'.format(week=week, year=year, index=cnt)
+         logging.info('USERLOG: Write to path %s.'%self.path)
+         self.outputfile = filesystems.FileSystems.create(self.path)
          self.df_writer = datafile.DataFileWriter(self.outputfile, self.rec_writer, writers_schema = SCHEMA)
+      filecnts = 0
       for output in val:
           self.df_writer.append(output)
+          filecnts += 1 
+      logging.info('Number of records %d written to %s.'%(filecnts, self.path))
   def finish_bundle(self):
       if not(self.outputfile == None):
          self.df_writer.close()
