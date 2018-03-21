@@ -16,11 +16,12 @@ limitations under the License.
 
 -------------------------------------------------------------------------------
 
-A dataflow pipeline to reconstruct conversations on Wikipedia talk pages from ingested json files.
+A dataflow pipeline to shard ingested revisions on Wikipedia talk pages based on the week in the year the revision was created.
 
 Run with:
 
-python dataflow_main.py --setup_file ./setup.py
+shard*.sh in helper_shell
+
 """
 from __future__ import absolute_import
 import argparse
@@ -75,7 +76,7 @@ SCHEMA = schema.parse(SCHEMA_STR)
 THERESHOLD = 5000
 
 def run(known_args, pipeline_args):
-  """Main entry point; defines and runs the reconstruction pipeline."""
+  """Main entry point; defines and runs the sharding pipeline."""
 
   pipeline_args.extend([
     '--runner=DataflowRunner',
@@ -91,8 +92,7 @@ def run(known_args, pipeline_args):
   # Queries extracting the data
   with beam.Pipeline(options=pipeline_options) as p:
        pcoll = (p | ReadFromAvro(known_args.input) 
-                 | beam.Map(lambda x: ('{week}at{year}'.format(week=x['week'], year=x['year']), x))
-                 #| beam.Map(lambda x: ('{year}'.format(week=x['week'], year=x['year']), x))
+                 | beam.Map(lambda x: ('{week}at{year}'.format(week=x['week'], year=x['year']), x)) 
                  | beam.GroupByKey()
                  | beam.ParDo(WriteToStorage()))
 
@@ -105,7 +105,6 @@ class WriteToStorage(beam.DoFn):
   def process(self, element):
       (key, val) = element
       week, year = [int(x) for x in key.split('at')]
-#      year = int(key)
       if self.outputfile == None or not(year == self.year):
          self.week = week
          self.year = year
@@ -113,11 +112,9 @@ class WriteToStorage(beam.DoFn):
             self.df_writer.close()
             self.outputfile.close()
          cnt = 0
-#         self.path = known_args.output + 'date-{week}at{year}/revisions-{index}.avro'.format(week=week, year=year, index=cnt)
          self.path = known_args.output + 'date-{year}/revisions-week{week}-{index}.avro'.format(week=week, year=year, index=cnt)
          while filesystems.FileSystems.exists(self.path):
              cnt += 1
-#             self.path = known_args.output + 'date-{week}at{year}/revisions-{index}.avro'.format(week=week, year=year, index=cnt)
              self.path = known_args.output + 'date-{year}/revisions-week{week}-{index}.avro'.format(week=week, year=year, index=cnt)
          logging.info('USERLOG: Write to path %s.'%self.path)
          self.outputfile = filesystems.FileSystems.create(self.path)
@@ -131,8 +128,6 @@ class WriteToStorage(beam.DoFn):
       if not(self.outputfile == None):
          self.df_writer.close()
          self.outputfile.close()
-
-
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
