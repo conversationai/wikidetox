@@ -10,7 +10,8 @@ The code will read from a join of the following two tables:
 
 The workflow can be seen in the following picture:
 
-![conversation_construction_workflow](docs/workflow.png)
+![conversation_construction_workflow](docs/dataflow_pipeline.png)
+![conversation_construction_workflow](docs/dataflow_pipeline.png)
 
 # Parameters of the code
 
@@ -37,6 +38,8 @@ The workflow can be seen in the following picture:
 # Efficient Reconstruction Approach
 
 The reconstruction job was parallelized by the pages, and the reconstruction speed on each page largely depends on the number and total size of revisions on a certain page. Since the distribution of number of revisions of each page is not uniform for Wikipedia data, we divided pages into three categories for more efficient reconstruction because of the constraint on memory of dataflow jobs.
+
+![conversation_construction_workflow](docs/general_pipeline.png)
 
 - Short pages: Pages with fewer than 100 revisions in total.
 - Long pages: Pages with more than 100 revisions but fewer than 100,000 reivisions in total.
