@@ -11,7 +11,6 @@ The code will read from a join of the following two tables:
 The workflow can be seen in the following picture:
 
 ![conversation_construction_workflow](docs/dataflow_pipeline.png)
-![conversation_construction_workflow](docs/dataflow_pipeline.png)
 
 # Parameters of the code
 
