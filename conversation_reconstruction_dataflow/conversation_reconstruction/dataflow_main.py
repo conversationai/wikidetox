@@ -20,7 +20,8 @@ A dataflow pipeline to reconstruct conversations on Wikipedia talk pages from in
 
 Run with:
 
-python dataflow_main.py --setup_file ./setup.py
+reconstruct*.sh in helper_shell
+
 """
 from __future__ import absolute_import
 import argparse
@@ -82,8 +83,8 @@ def run(known_args, pipeline_args):
     # Saving page states and last processed revision to BigQuery, and the last time last processed revision to cloud for bak up
     reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/reconstructed_res/%s"%jobname) 
     last_rev_output | "WriteCollectedLastRevision" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/process_tmp/next_%s/last_rev"%known_args.category)
-    input_last_rev | "WriteBackInput_last_rev" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/bakup/%s/last_rev"%jobname)
-    input_page_states | "WriteBackInput_page_states" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/bakup/%s/page_states"%jobname)
+#    input_last_rev | "WriteBackInput_last_rev" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/bakup/%s/last_rev"%jobname)
+#    input_page_states | "WriteBackInput_page_states" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/bakup/%s/page_states"%jobname)
 
 class ReconstructConversation(beam.DoFn):
   def merge(self, ps1, ps2):
@@ -107,7 +108,7 @@ class ReconstructConversation(beam.DoFn):
 
   def process(self, info):
     (page_id, data) = info
-    if (page_id == None): return
+    if (page_id == None) or (page_id == "34948919") or (page_id == "15854766"): return
 
     # Load input from cloud(the format is different here)
     rows = data['to_be_processed']
