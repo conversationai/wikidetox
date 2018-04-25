@@ -156,11 +156,11 @@ define(['./add3DIcons'], function (add3DIcons) {
                             <span>${nonToxic}</span>
                         </div>
                         <div class="items">
-                            <div class="iconBox iconReverted"></div>
+                            <div class="iconBox x2 iconReverted"></div>
                             <span>${reverted}</span>
                         </div>
                         <div class="items">
-                            <div class="iconBox iconToxic"></div>
+                            <div class="iconBox x2 iconToxic"></div>
                             <span>${toxic}</span>
                         </div>
                     </div>
@@ -211,12 +211,12 @@ define(['./add3DIcons'], function (add3DIcons) {
 
         $("#calendarList").html(templ);
 
-        $('#calendarList .iconToxic').each(function (ele) {
-            add3DIcons(this, 'toxic');
-        });
-        $('#calendarList .iconReverted').each(function (ele) {
-            add3DIcons(this, 'nonToxic');
-        });
+        // $('#calendarList .iconToxic').each(function (ele) {
+        //     add3DIcons(this, 'toxic');
+        // });
+        // $('#calendarList .iconReverted').each(function (ele) {
+        //     add3DIcons(this, 'nonToxic');
+        // });
 
     };
 

@@ -1,4 +1,7 @@
-// const tasks = require('../wikiDataCollector/tasks');
+
+import { Tasks } from "../wikiDataCollector/tasks";
+
+const tasks = new Tasks();
 
 export class GetMonthData {
     // TSTODO : define data
@@ -71,27 +74,27 @@ export class GetMonthData {
         const endTime = new Date(dateStr);
         endTime.setMonth(startTime.getMonth() + 1);
 
-        // tasks.getMonthData(startTime, endTime, (err, data) => {
-        //     if (!err) {
-        //         let minifiedComments = this.getCommentsMinified(data);
-        //         cb(err, minifiedComments);
-        //         return;
-        //     } else {
-        //         cb(err, null);
-        //     }
-        // });
+        tasks.getMonthData(startTime, endTime, (err, data) => {
+            if (!err) {
+                let minifiedComments = this.getCommentsMinified(data);
+                cb(err, minifiedComments);
+                return;
+            } else {
+                cb(err, null);
+            }
+        });
 
     }
 
     public getCalendarData(cb: (err, data) => void) {
-        // tasks.getCalendarData((err, data) => {
-        //     if (!err) {
-        //         let calendarData = this.getCalanderDataCombined(data);
-        //         cb(err, calendarData);
-        //         return;
-        //     } else {
-        //         cb(err, null);
-        //     }
-        // });
+        tasks.getCalendarData((err, data) => {
+            if (!err) {
+                let calendarData = this.getCalanderDataCombined(data);
+                cb(err, calendarData);
+                return;
+            } else {
+                cb(err, null);
+            }
+        });
     }
 }

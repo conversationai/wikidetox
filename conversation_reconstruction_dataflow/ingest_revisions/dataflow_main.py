@@ -133,10 +133,11 @@ class WriteDecompressedFile(beam.DoFn):
     kill = lambda process, status: process.kill();status='timeout'
     status = 'success'
     ingest_proc = subprocess.Popen(ingestion_cmd, stdout=subprocess.PIPE, bufsize = 4096)
-    timer = Timer(my_timeout, kill, (ingest_proc, status))
-    timer.start()
+#    timer = Timer(my_timeout, kill, (ingest_proc, status))
+#    timer.start()
     cnt = 0
     maxsize = 0
+    last_revision = 'None'
     for i, line in enumerate(ingest_proc.stdout):
       try:
          content = json.loads(line) 
@@ -151,8 +152,8 @@ class WriteDecompressedFile(beam.DoFn):
       maxsize = max(maxsize, sys.getsizeof(line))
       cnt += 1
     logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, maxsize: %d, last_revision %s, finishing status: %s' % (chunk_name, cnt, maxsize, last_revision, status))
-    ingest_proc.wait()
-    timer.cancel()
+#    ingest_proc.wait()
+#    timer.cancel()
 
 
 if __name__ == '__main__':
