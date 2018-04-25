@@ -6,9 +6,9 @@
     "node": ">=4.3.2"
   },
   "scripts": {
-    "start-prod": "node build/server/index.js config/production.json",
+    "start": "node server/index.js config/production.json",
     "start-dev": "node build/server/index.js config/dev.json",
-    "build-server": "tsc --outdir build/ -p tsconfig.server.json"
+    "build-server": "tsc --forceConsistentCasingInFileNames  --outdir build/ -p tsconfig.server.json;cp -r http-pub build/;cp -r config build/;cp package.json build/;cp app.yaml build/;cp cron.yaml build/"
   },
   "dependencies": {
     "@google-cloud/bigquery": "^0.9.4",
