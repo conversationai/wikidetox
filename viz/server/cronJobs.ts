@@ -1,7 +1,8 @@
 
 import * as schedule from "node-schedule";
+import { Tasks } from "../wikiDataCollector/tasks";
 
-// const tasks = require('../wikiDataCollector/tasks');
+const tasks = new Tasks();
 
 export class ScheduleTask {
 
@@ -21,36 +22,36 @@ export class ScheduleTask {
         const st = new Date();
         console.log("Start: streaming wiki data at ", st);
 
-        // tasks.doStreaming(startTime, endTime, function (err, data) {
+        tasks.doStreaming(startTime, endTime, (err, data) => {
 
-        //     if (err) {
-        //         console.log(err);
-        //         console.log('Cannot do streaming for interval : ' + startTime + ' - ' + endTime)
-        //         return;
-        //     }
-        //     let et = new Date();
-        //     console.log('Finished : streaming wiki data at ', new Date());
-        //     let rows_added = 0;
-        //     try {
-        //         rows_added = data.result.match(/\d+/)[0]
-        //     } catch (e) {
-        //         console.log(e);
-        //     }
+            if (err) {
+                console.log(err);
+                console.log(`Cannot do streaming for interval : ${startTime}  - ${endTime}`)
+                return;
+            }
+            let et = new Date();
+            console.log("Finished : streaming wiki data at", new Date());
+            let rowsAdded = 0;
+            try {
+                rowsAdded = data.result.match(/\d+/)[0];
+            } catch (e) {
+                console.log(e);
+            }
 
-        //     tasks.logStreamTask({
-        //         "timestamp": et,
-        //         "cron_runtime": data.timeTook,
-        //         "start_time": new Date(startTime),
-        //         "end_time": new Date(endTime),
-        //         "rows_added": Number(rows_added)
-        //     });
+            tasks.logStreamTask({
+                cron_runtime: data.timeTook,
+                end_time: new Date(endTime),
+                rows_added: Number(rowsAdded),
+                start_time: new Date(startTime),
+                timestamp: et,
+            });
 
-        //     tasks.flagReverted(cb);
-        // });
+            tasks.flagReverted(cb);
+        });
 
     }
 
-    public runJob(config: any): void {
+    public runJob(config: any) {
 
         if (new Date() < new Date(config.startStremingTime)) {
             console.log("Will start at ", config.startStremingTime);
@@ -62,12 +63,13 @@ export class ScheduleTask {
 
         startTime.setHours(new Date().getHours() - 2);
         startTime.setMinutes(0);
-        endTime.setHours(new Date().getHours() - 1);
-        endTime.setMinutes(0);
+        endTime.setHours(new Date().getHours() - 2);
+        endTime.setMinutes(5);
 
         this.doStreaming(startTime, endTime, () => {
             console.log("Done");
         });
+        return true;
     }
     public startScheduleTask(): void {
         schedule.scheduleJob(this.streamWikiDataScheduleTime, this.runJob);

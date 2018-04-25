@@ -94,7 +94,7 @@ header {
     background: url('../images/menu.svg') no-repeat 0 0;
     height: 30px;
     width: 30px;
-}                                                                  (--SS) */
+} (--SS) */
 
 .logo {
     background: url('../images/logo.svg') no-repeat center center;
@@ -108,7 +108,7 @@ header {
     margin-top: 27px;
     font-size: 24px;
     color: #000000;
-    /*font-weight: normal;                                        (--SS) */
+    /*font-weight: normal; (--SS) */
 }
 
 .titleMain span {
@@ -146,7 +146,7 @@ header {
 .iconReverted {
     width: 20px;
     height: 22px;
-    /*background: url(../images/reverted@1x.png) no-repeat 0px 0px;*/
+    background: url(../images/reverted@1x.png) no-repeat 0px 0px;
     display: inline-block;
     top: 5px;
     position: relative;
@@ -176,7 +176,7 @@ header {
     top: 5px;
     width: 20px;
     height: 20px;
-    /*background: url(../images/toxic@1x.png) no-repeat 0px 0px;*/
+    background: url(../images/toxic@1x.png) no-repeat 0px 0px;
     display: inline-block;
 }
 
@@ -408,7 +408,7 @@ header {
     top: 30px;
     right: 30px;
     cursor: pointer;
-}                                                                  (--SS) */
+} (--SS) */
 
 .light {
     font-weight: 300;
@@ -455,13 +455,13 @@ header {
 }
 
 .iconToxic.x2 {
-    /*background: url(../images/toxic@2x.png) no-repeat 0px 0px;*/
+    background: url(../images/toxic@2x.png) no-repeat 0px 0px;
     height: 45px;
     width: 40px;
 }
 
 .iconReverted.x2 {
-    /*background: url(../images/reverted@2x.png) no-repeat 0px 0px;*/
+    background: url(../images/reverted@2x.png) no-repeat 0px 0px;
     height: 45px;
     width: 40px;
 }
@@ -714,6 +714,7 @@ a {
     margin: 0 auto;
     font-size: 18px;
     font-weight: 300;
+    background-position: 50% 0;
 }
 
 .monthsDetails .items span {

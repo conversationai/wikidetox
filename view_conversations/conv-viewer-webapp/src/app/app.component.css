@@ -1,0 +1,35 @@
+#debug-pre-output {
+  font-family: monospace;
+  white-space: pre;
+}
+
+.searchby-radio-group {
+
+}
+.searchby-radio-button {
+  display: block;
+}
+
+.errorMessage {
+  color: #AA0000;
+  font-weight: 200%;
+}
+
+.menu {
+  display: inline-flex;
+  align-items: center;
+  padding-right: 5px;
+}
+
+.conversation {
+  border: 1px solid #CCC;
+  padding: 5px;
+  background: #EEE;
+}
+.convid {
+  text-align: right;
+}
+.convid-text {
+  font-size: 80%;
+  color: #BBB;
+}

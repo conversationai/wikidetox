@@ -1,10 +1,7 @@
-# Predicting Conversations Going Bad
+# Predicting Conversations Go Awry 
 
-This is the package for the machine learning task predicting conversations going bad. The conversations are matched in bigquery and downloaded to local storage.
+This is the package for the machine learning task predicting conversations that go awry. 
 
-To run the prediction task:
-- data_cleansing/get_data.py will prepare the data for feature extraction
-- feature_extraction/feat_extraction.py will extract the features needed in the machine learning task
-- data_cleansing/get_train_data.py will randomly split the data into train, develop and test splits.
-
-Run the prediction task in Prediction Task.ipynb
+You can find the conversation data with features extracted in data/.
+To run the matching, check out matching.bigquery. 
+To run the prediction task checkout Ipython Notebook of Prediction Task and Attacker Plots.ipynb.
