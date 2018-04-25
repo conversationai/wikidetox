@@ -5,7 +5,7 @@ import * as path from "path";
 import * as request from "request";
 
 import { ScheduleTask } from "./cronJobs";
-import { GetMonthData } from "./GetMonthData";
+import { GetMonthData } from "./getMonthData";
 
 const scheduleCronJobs = new ScheduleTask();
 const getMonthData = new GetMonthData();
@@ -42,7 +42,7 @@ export class Server {
         this.app.use(bodyParser.urlencoded({
             extended: true,
         }));
-        const publicDir = path.join(__dirname, "../../http-pub");
+        const publicDir = path.join(__dirname, "../http-pub");
         this.app.use(express.static(publicDir));
 
         this.app.get("/", (req, res) => {
@@ -50,7 +50,7 @@ export class Server {
         });
 
         // start schedule tasks
-        this.app.get("/tasks/hourly", function(req, res) {
+        this.app.get("/tasks/hourly", (req, res) => {
             console.log("Received cron call at : ", new Date());
             if (req.get("X-Appengine-Cron")) {
                 scheduleCronJobs.runJob(this.config);
@@ -86,7 +86,7 @@ export class Server {
                 }
             });
         });
-        this.app.post("/feedback", function(req, res) {
+        this.app.post("/feedback", (req, res) => {
             this.postFeedback(req, res);
         });
 

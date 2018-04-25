@@ -1,0 +1,20 @@
+{
+  "name": "@conversationai/wpconvlib",
+  "version": "0.0.3",
+  "description": "JS/TS library for working with talk page conversations on Wikipedia.",
+  "main": "./build/tsc/conversation.js",
+  "types": "./build/tsc/conversation.d.ts",
+  "scripts": {
+    "test": "node fuse",
+    "build": "tsc"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "fuse-box": "^2.2.31",
+    "fuse-test-runner": "^1.0.14",
+    "typescript": "^2.1.6"
+  },
+  "type": "git",
+  "url": "https://github.com/conversationai/wikidetox.git",
+  "license": "Apache-2.0"
+}
