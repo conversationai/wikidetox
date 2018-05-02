@@ -224,13 +224,13 @@ define(['jquery', './animate', './screen', './screens/sphereView', './screens/co
             });
         });
 
-        $('.iconToxic,.iconReverted').html('')
-        $('.iconToxic').each(function (ele) {
-            add3DIcons(this, 'toxic');
-        });
-        $('.iconReverted').each(function (ele) {
-            add3DIcons(this, 'nonToxic');
-        });
+        // $('.iconToxic,.iconReverted').html('')
+        // $('.iconToxic').each(function (ele) {
+        //     add3DIcons(this, 'toxic');
+        // });
+        // $('.iconReverted').each(function (ele) {
+        //     add3DIcons(this, 'nonToxic');
+        // });
 
         $('#calendarScreen .backToSphereView').on('click', function () {
             if (DetoxViz.currentMonth) {
