@@ -1,0 +1,14 @@
+<div class="action">
+  <table class="action" [ngClass]="{ 'finalcomment': isHighlighted}">
+    <tr>
+      <td class="whenandwho">
+        <div class="author">{{rootComment.user_text}}</div>
+        <div class="timestamp">{{rootComment.timestamp}}</div>
+      </td>
+      <td class="content">{{rootComment.content}}</td>
+    </tr>
+  </table>
+</div>
+<div class="indent">
+  <app-conversation *ngFor="let c of rootComment.children" [rootComment]="c"></app-conversation>
+</div>
