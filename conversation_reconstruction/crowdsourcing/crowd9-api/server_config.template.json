@@ -1,9 +1,0 @@
-{
-  "port": "8080",
-  "staticPath": "static",
-  "adminKey": "",
-  "cloudProjectId": "enter your cloud project id here",
-  "spannerInstanceId": "enter your spanner instance ID here",
-  "spannerDatabaseName": "enter your spanner DB name here",
-  "isProduction": true
-}

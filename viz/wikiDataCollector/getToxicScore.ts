@@ -51,14 +51,14 @@ export class GetToxicScore {
             }
 
             if (!scoreResponse.attributeScores && scoreResponse.error) {
-                if (scoreResponse.error.code === 429) {
-                    cb(null, {
-                        text: worstText,
-                        toxicityProbability: 0.0,
-                    });
-                    console.log("COMMENT_ANALYZER_URL Error", scoreResponse);
-                    return;
-                }
+                //if (scoreResponse.error.code === 429) {
+                cb(null, {
+                    text: worstText,
+                    toxicityProbability: 0.0,
+                });
+                console.log("COMMENT_ANALYZER_URL Error", scoreResponse);
+                return;
+                //}
             }
 
             if (scoreResponse.attributeScores.hasOwnProperty("TOXICITY")) {
@@ -117,7 +117,7 @@ export class GetToxicScore {
 
         const getRevIdAsFunctions = commentsData.map((dataRevId) => {
             return (cbRevId) => {
-                this.getToxicityScore(data.comment, cbRevId, dataRevId);
+                this.getToxicityScore(dataRevId.comment, cbRevId, dataRevId);
             };
         });
 

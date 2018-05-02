@@ -3,7 +3,7 @@
 
 import * as async from "async";
 import * as request from "request";
-import { StoreData } from "./storeData";
+import { StoreData } from "./StoreData";
 
 const storeData = new StoreData("/data");
 

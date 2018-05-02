@@ -294,11 +294,11 @@ export class BigQueryStore {
         const table = dataset.table(this.cronLogs);
         // Inserts data into a table
         table.insert([{
-            timestamp: options.timestamp,
             cron_runtime: options.cron_runtime,
-            start_time: options.start_time,
             end_time: options.end_time,
             rows_added: options.rows_added,
+            start_time: options.start_time,
+            timestamp: options.timestamp,
         }]).then((insertErrors, data) => {
             return insertErrors;
         }).catch((err) => {
