@@ -32,9 +32,8 @@ def comment_adding(insert_op, rev, page_actions):
     action['content'] = ''.join(insert_op['tokens'])
     indentation = action['indentation']
     if '[OUTDENT: ' in action['content']:
-       cont = action['content'][action['content'].find('[OUTDENT: ') + 10 :]
-       cont = cont[:cont.find(']')]
-       indentation += int(cont) 
+       indentation += locate_last_indentation(page_actions, insert_op['b1']) + 1
+
     action['user_id'] = rev['user_id']
     action['user_text'] = rev['user_text']
     action['timestamp'] = rev['timestamp']
@@ -74,9 +73,7 @@ def comment_modification(prev_id, tokens, new_action_start, new_action_end, rev,
     action['parent_id'] = prev_id
     action['content'] = ''.join(tokens)
     if '[OUTDENT: ' in action['content']:
-       cont = action['content'][action['content'].find('[OUTDENT: ') + 10 :]
-       cont = cont[:cont.find(']')]
-       indentation += int(cont) 
+       indentation += locate_last_indentation(page_actions, new_action_start) + 1
 
     action['user_id'] = rev['user_id']
     action['user_text'] = rev['user_text']
