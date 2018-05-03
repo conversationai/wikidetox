@@ -158,7 +158,6 @@ if __name__ == '__main__':
                       dest='output',
                       default='gs://wikidetox-viz-dataflow/reingested/',
                       help='Output storage.')
-
   known_args, pipeline_args = parser.parse_known_args()
   ingest_range = [[5137452, 5149115], [13135007,13252449],[51894080,52312206],[42663462,42930511],[952461, 972044],[2515120,2535917],[4684994,4750440]]
   run(known_args, pipeline_args)

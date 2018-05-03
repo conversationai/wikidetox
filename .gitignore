@@ -77,7 +77,15 @@ viz/config/
 build/
 
 .ipynb_checkpoints/
-.*.swp
-*.egg-info/
-enwiki-*
 
+# swp files
+.*.swp
+
+# egg-info
+*.egg-info/
+
+# debugging output
+conversation_reconstruction_dataflow/conversation_reconstruction/*output
+conversation_reconstruction_dataflow/conversation_reconstruction/note
+conversation_reconstruction_dataflow/conversation_reconstruction/LOG_*
+enwiki-*

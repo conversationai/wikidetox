@@ -2,4 +2,4 @@ noaho
 mwtypes
 yamlconf
 deltas
-google-cloud-bigquery=0.28.0
+google-cloud-bigquery==0.28.0
