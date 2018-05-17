@@ -9,7 +9,7 @@ define(function () {
 
         randomSpherePoint: function (x0, y0, z0, radius) {
             var u = Math.random();
-            var v = Math.random();
+            var v = (Math.random() * 0.6) + 0;
             var theta = 2 * Math.PI * u;
             var phi = Math.acos(2 * v - 1);
             var x = x0 + (radius * Math.sin(phi) * Math.cos(theta));
