@@ -63,8 +63,8 @@ export class ScheduleTask {
 
         startTime.setHours(new Date().getHours() - 2);
         startTime.setMinutes(0);
-        endTime.setHours(new Date().getHours() - 2);
-        endTime.setMinutes(5);
+        endTime.setHours(new Date().getHours() - 1);
+        endTime.setMinutes(0);
 
         this.doStreaming(startTime, endTime, () => {
             console.log("Done");
