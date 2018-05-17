@@ -65,7 +65,6 @@ define(['three', './controls/lightUp', '../../libs/OBJLoader'], function (THREE,
         }
     }
     return function (ele, icon) {
-        console.log(ele);
         var container;
         var camera, scene, renderer;
         var mouseX = 0, mouseY = 0;
