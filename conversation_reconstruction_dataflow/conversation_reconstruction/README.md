@@ -53,3 +53,23 @@ We provide two scripts for you to run on different data in helper_shell/.
 
 - reconstruct_short.sh: This will process the relatively short pages, we suggest running with more weeks(~1 year) in one batch.
 - reconstruct_long.sh: This will process the relatively longer pages, we suggest running with one week in one batch.
+
+# Dataset structure
+
+We record the following entries for each conversation action:
+- id: The id of the action is the a string of three integers separated by ‘.’ representing: the id of the revision that the action was recorded, the offset of the starting position where the action  took place on the new page and the previous page.
+- content: The content of the action, for actions with the type section creation, comment addition and modification, content is the updated text after the action. For comment removal and restoration actions, the content is the part of text being removed from and restored back to the page respectively.
+- type: The type of the action from the six categories listed above.
+- parent_id: The id of the parent action that contributed to the original content of the comment. Thus section creation and comment additions don’t have a parent. For modification, removal and restoration, the parent action is the action who added the original content that has been either modified, removed or restored on the page.
+- ancestor_id: In contract to parent id, which records the direct parent action, this is the id of the original action from which all the derivations come from.
+- indentation: Number of indentation symbols at the beginning of the content.
+- replyTo_id: The id of the action that the current action is replying to, reply relation inferred using indentations.
+- conversation id: Id of the conversation that the action belongs to, 
+- user_id: The id of the Wikipedian who did the action.
+- user_text: The text of the Wikipedian’s username who did the action.
+- authors: A list of pairs of id and username information from the Wikipedians who has changed the content of the action.
+- timestamp: The timestamp of the action.
+- page_id: Id of the page where the action took place
+- page_title: Title of the page where the action took place.
+- rev_id: Id of the revision when the action took place.
+
