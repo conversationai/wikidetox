@@ -7,6 +7,8 @@ The visualization works by interpreting diffs on Talk Pages into comments, and t
 using [Perspective API hosted models](https://github.com/conversationai/perspectiveapi/blob/master/api_reference.md#models).
 If a comment is above a certain threshold, the visualization allows Wikipedians to go the [historical Wikipedia revision page](https://en.wikipedia.org/wiki/Help:Page_history) to help improve the conversation and/or raise awareness with the relevant admins. This work is part of the [Study of Harassment and its Impact](https://meta.wikimedia.org/wiki/Research:Study_of_harassment_and_its_impact), and the [WikiDetox Project](https://meta.wikimedia.org/wiki/Research:Detox), and we hope it can help support Wikipedia's [anti-harassment guidelines](https://en.wikipedia.org/wiki/Wikipedia:How_to_deal_with_harassment).
 
+[DEMO](https://wikidetox-viz.appspot.com/)
+
 ## Setup
 
 To setup an instance you need a [Google Cloud Project](https://cloud.google.com/resource-manager/docs/creating-managing-projects) with the [Perpsective API](http://perspectiveapi.com) enabled.
