@@ -92,4 +92,5 @@ def clean(rev):
     ret = substitute_patterns(ret, post_sub_patterns)
     ret = re.sub('[\n]+', '\n', str(ret))
     ret = '\n'.join([x.strip() for x in ret.splitlines() if not(x.strip() == "")]) + '\n'
+    if ret == '\n': return ""
     return ret

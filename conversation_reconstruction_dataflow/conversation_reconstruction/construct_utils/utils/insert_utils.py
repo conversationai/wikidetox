@@ -94,9 +94,6 @@ def get_action_start(action_lst, token_position):
 
 def get_action_end(action_lst, token_position):
     ans = find_pos(token_position, action_lst)
-   #if action_lst[ans] == token_position:
-   #     return action_lst[ans]
-   # else:
     return action_lst[ans + 1]
 
 def is_in_boundary(x, start, end):
@@ -104,15 +101,21 @@ def is_in_boundary(x, start, end):
 
 def locate_replyTo_id(actions, action_pos, action_indentation):
     action_lst = sorted(list(actions.keys()))
- #   print(action_lst, action_pos)
     ind = find_pos(action_pos, action_lst)
-  #  print(ind, action_indentation)
     ret = None
     while ind >= 0:
         if actions[action_lst[ind]][1] < action_indentation:
             return actions[action_lst[ind]][0]
         ind -=1
     return ret
+
+def locate_last_indentation(actions, action_pos):
+    action_lst = sorted(list(actions.keys()))
+    ind = find_pos(action_pos, action_lst)
+    ret = None
+    while ind >= 0:
+        return actions[action_lst[ind]][1]
+    return 0
 
 def get_firstline(tokens):
     lines = "".join(tokens).splitlines()
@@ -142,7 +145,6 @@ def locate_new_token_pos(old_pos, ops, errorchoice='raise_error'):
     for op in ops:
         if op['name'] == 'equal':
             if is_in_boundary(old_pos, op['a1'], op['a2']):
-             #   print(old_pos, op['a1'], op['a2'])
                 new_pos = op['b1'] + old_pos - op['a1']
         else:
             if op['name'] == 'delete':
@@ -155,7 +157,7 @@ def locate_new_token_pos(old_pos, ops, errorchoice='raise_error'):
                         else:
                             new_pos = op['b1']
             if old_pos == op['a2']:
-                if errorchoice == 'left_bound':
+                if errorchoice == 'left_bound':# and not(op['tokens'][-1].type == 'break' and op['name'] == 'insert'):
                    new_pos = op['b1']
                 else:
                    new_pos = max(new_pos, op['b2'])
