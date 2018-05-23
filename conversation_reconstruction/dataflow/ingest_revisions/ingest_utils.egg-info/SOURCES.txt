@@ -1,0 +1,12 @@
+README.md
+setup.py
+ingest_utils/__init__.py
+ingest_utils/run_ingester.py
+ingest_utils/wikipedia_revisions_download.py
+ingest_utils/wikipedia_revisions_ingester.py
+ingest_utils/xml_path.py
+ingest_utils.egg-info/PKG-INFO
+ingest_utils.egg-info/SOURCES.txt
+ingest_utils.egg-info/dependency_links.txt
+ingest_utils.egg-info/requires.txt
+ingest_utils.egg-info/top_level.txt
