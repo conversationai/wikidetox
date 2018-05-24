@@ -4,7 +4,9 @@ This is the codebase for the dataflow pipeline working on constructing conversat
 
 Please consult the scripts in helper_shell folder to run the pipeline with correct parameter setting.
 
-The code will read from cloud storage of ingested JSON formatted Wikipedia data dump and processed intermediate structure.
+The code will read from a join of the following two tables: 
+- A table with all revisions ingested in JSON format from wikipedia data dump.
+- A table with page states of previous reconstructed revisions.
 
 The workflow can be seen in the following picture:
 
@@ -71,7 +73,3 @@ We record the following entries for each conversation action:
 - page_title: Title of the page where the action took place.
 - rev_id: Id of the revision when the action took place.
 
-# Auxiliary Code
-
-The codes in tmp_src are outdated code running this pipeline.
-The code in post_processing helps 1) compute the ancestor_id (mentioned above and 2) shards the results based on the month of the data.
