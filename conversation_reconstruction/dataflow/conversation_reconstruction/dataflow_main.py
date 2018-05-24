@@ -66,9 +66,9 @@ def run(known_args, pipeline_args):
   json_mapping_tmp = lambda x: (x[0]["page_id"], x[0]) if (type(x[0]) is dict) else ((ast.literal_eval(x)["page_id"], ast.literal_eval(x)) if (type(ast.literal_eval(x)) is dict) else (ast.literal_eval(x)[0]["page_id"], ast.literal_eval(x)[0]))
   json_mapping = lambda x: (json.loads(x)["page_id"], json.loads(x))
   with beam.Pipeline(options=pipeline_options) as p:
-   # Read from Cloud Storage 
-    to_be_processed = (p | 'Read_to_be_processed' >> beam.io.ReadFromText(known_args.input.format(week=known_args.week, year=known_args.year))
-                          | 'INGESTED_assign_page_id_as_key' >> beam.Map(json_mapping))
+   # Read from BigQuery
+    to_be_processed = (p | 'Read_to_be_processed' >> beam.io.ReadFromAvro(known_args.input.format(week=known_args.week, year=known_args.year))
+                          | 'INGESTED_assign_page_id_as_key' >> beam.Map(avro_mapping))
     last_revision = (p | 'Retrieve_last_revision' >> beam.io.ReadFromText("gs://wikidetox-viz-dataflow/process_tmp/%s/*last_rev*"%known_args.category)| 'LASTREV_assign_page_id_as_key' >> beam.Map(json_mapping))
     page_state = (p | 'Retrieve_page_state' >> beam.io.ReadFromText("gs://wikidetox-viz-dataflow/process_tmp/%s/*page_states*"%known_args.category)| 'PAGESTATE_assign_page_id_as_key' >> beam.Map(json_mapping))
 
@@ -108,22 +108,22 @@ class ReconstructConversation(beam.DoFn):
 
   def process(self, info):
     (page_id, data) = info
-    logging.info('USERLOG: Reconstruction work start on page: %s'%page_id)
-    if (page_id == None) or (page_id == "34948919") or (page_id == "15854766") or (page_id == "32094486"): return
+    if (page_id == None) or (page_id == "34948919") or (page_id == "15854766") or (page_id == "32094486") or (page_id == "43758735") or (page_id == "22811813"): return
 
     # Load input from cloud(the format is different here)
     rows = data['to_be_processed']
     last_revision = data['last_revision']
     page_state = data['page_state']
     # Clean type formatting
-    fields = ['rev_id', 'week', 'year']
+    fields = ['rev_id_in_int', 'week', 'year', 'records_count', 'record_index']
     if not(last_revision == []):
        for ind in range(len(last_revision)):
-           last_revision[ind]['rev_id'] = int(last_revision[ind]['rev_id'])
-       last_revision = sorted(last_revision, key=lambda x : x['rev_id'])
+           last_revision[ind]['rev_id_in_int'] = int(last_revision[ind]['rev_id_in_int'])
+       last_revision = sorted(last_revision, key=lambda x : x['rev_id_in_int'])
        last_revision = last_revision[-1]
        for f in fields:
            last_revision[f] = int(last_revision[f])
+       last_revision['truncated'] = bool(last_revision['truncated'])
     else:
        last_revision = None
     if not(page_state == []):
@@ -137,6 +137,7 @@ class ReconstructConversation(beam.DoFn):
     for r in rows:
         for f in fields:
             r[f] = int(r[f])
+        r['truncated'] = bool(r['truncated'])
     # Ignore Archive pages 
     if not(rows == []) and 'Archive' in rows[0]['page_title']: return 
 
@@ -150,6 +151,7 @@ class ReconstructConversation(beam.DoFn):
           yield beam.pvalue.TaggedOutput('page_states', json.dumps(page_state))
        return
 
+    logging.info('USERLOG: Reconstruction work start on page: %s'%page_id)
     processor = Conversation_Constructor()
     last_revision_to_save = last_revision
     if not(page_state == None):
@@ -165,28 +167,32 @@ class ReconstructConversation(beam.DoFn):
     second_last_page_state = page_state 
     error_encountered = False
     cnt = 0
-    revision_lst = sorted([r for r in rows], key=lambda k: (k['timestamp'], k['rev_id']))
+    revision_lst = sorted([r for r in rows], key=lambda k: (k['timestamp'], k['rev_id_in_int'], k['record_index']))
     # Sort by temporal order
     last_loading = 0
     last_page_state = page_state 
     for cur_revision in revision_lst:
         # Process revision by revision 
         if not('rev_id' in cur_revision): continue
-        revision = cur_revision
-        cnt += 1
-        last_revision = revision['rev_id']
-        last_revision_to_save = copy.deepcopy(revision)
-        text = revision['text']
-        page_state, actions = processor.process(revision, DEBUGGING_MODE = False)
-        last_page_state = copy.deepcopy(page_state)
-        for action in actions:
-            yield json.dumps(action)
-        if cnt % LOG_INTERVAL == 0 and cnt and not(page_state == []):
-          # reload after every 200 revisions to keep the memory low
-           processor = Conversation_Constructor()
-           second_last_page_state = copy.deepcopy(page_state)
-           last_loading = cnt
-           processor.load(page_state['page_state'], page_state['deleted_comments'], page_state['conversation_id'], page_state['authors'], text)
+        if cur_revision['record_index'] == 0: 
+           revision = cur_revision
+        else:
+           revision['text'] += cur_revision['text']
+        if cur_revision['record_index'] == cur_revision['records_count'] - 1:
+           cnt += 1
+           last_revision = revision['rev_id']
+           last_revision_to_save = copy.deepcopy(revision)
+           text = revision['text']
+           page_state, actions = processor.process(revision, DEBUGGING_MODE = False)
+           last_page_state = copy.deepcopy(page_state)
+           for action in actions:
+               yield json.dumps(action)
+           if cnt % LOG_INTERVAL == 0 and cnt and not(page_state == []):
+             # reload after every 200 revisions to keep the memory low
+              processor = Conversation_Constructor()
+              second_last_page_state = copy.deepcopy(page_state)
+              last_loading = cnt
+              processor.load(page_state['page_state'], page_state['deleted_comments'], page_state['conversation_id'], page_state['authors'], text)
     if second_last_page_state and not(cnt == last_loading):
        # Merge the last two page states
        last_page_state = self.merge(last_page_state, second_last_page_state)
