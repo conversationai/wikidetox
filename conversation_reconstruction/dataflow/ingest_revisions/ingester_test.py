@@ -33,37 +33,67 @@ import os
 import signal
 import sys
 import copy
+import time
+from io import BytesIO
 
-from threading import Timer
 from os import path
 from ingest_utils import wikipedia_revisions_ingester as wiki_ingester
+import resource
 import math
-THERESHOLD = 500
+import os
+test_length = 100000
+text_length = 10000
+memory_boundary = 20000 #in KB
+
+with open("ingest_utils/testdata/mediawiki_header.xml", "r") as f:
+     mediawiki_header = ""
+     for line in f:
+        mediawiki_header = mediawiki_header + line
+non_talk_page_header = "<page>\n<title>This is not a talk page</title>\n<ns>6</ns>\n<id>111111</id>\n"
+
+def generateInfiniteXML(length, w):
+    cnt = 0
+    text = 'x' * text_length
+    w.write(mediawiki_header)
+    for cnt in range(length):
+        content = "<revision>\n<id>{id}</id>\n<text>{text}</text>\n</revision>\n".format(id = cnt, text= text)
+        w.write(content)
+    w.write("</page>\n")
+    w.write(non_talk_page_header)
+    text = text * 5
+    for cnt in range(length):
+        content = "<revision>\n<id>{id}</id>\n<text>{text}</text>\n</revision>\n".format(id = cnt, text= text)
+        w.write(content)
+    w.write("</page>\n</mediawiki>")
+
 
 class TestWikiIngester(unittest.TestCase):
   def test_ingester(self):
     input_file = path.join('ingest_utils', 'testdata', 'test_wiki_dump.xml')
-
-    kill = lambda process, status: process.kill(); status = 'timeout'
     status = 'success'
-    ingestion_cmd = ['python2', '-m', 'ingest_utils.run_ingester', '-i', input_file]
-    ingest_proc = subprocess.Popen(ingestion_cmd, stdout=subprocess.PIPE, bufsize = 4096)
-    for i, line in enumerate(ingest_proc.stdout):
-      tmp_line = sorted(truncate_content(line), key=lambda d: d['record_index'])
-      concated_content = ''
-      parsed_line = copy.deepcopy(tmp_line[0]) 
-      for cur_line in tmp_line:
-          concated_content += cur_line['text']
-      parsed_line['text'] = concated_content 
-      if i == 0:
-        self.assertEqual(parsed_line['comment'], 'a test comment 1')
-      if i == 1:
-        self.assertEqual(parsed_line['page_title'], 'Third Page (namespace 1)')
-        self.assertEqual(parsed_line['text'], ' The first revision on the third page. Written by Tinker JJ. Has a comment.')
-      if i == 2 or i == 3:
-        self.assertEqual(parsed_line['page_id'], '54197571')
+    for i, line in enumerate(wiki_ingester.parse_stream(input_file)):
+        if i == 0:
+          self.assertEqual(line['comment'], 'a test comment 1')
+        if i == 1:
+          self.assertEqual(line['page_title'], 'Third Page (namespace 1)')
+          self.assertEqual(line['text'], ' The first revision on the third page. Written by Tinker JJ. Has a comment.')
+        if i == 2 or i == 3:
+          self.assertEqual(line['page_id'], '54197571')
     self.assertEqual(i, 3)
-    self.assertEqual(status, 'success')
+    
+    # This is a test on parsing very large xml files to make sure the streaming
+    # doesn't consume too much memory.
+  #  with open("ingest_utils/testdata/gigantic_xml.xml", "w") as w: 
+  #     generateInfiniteXML(test_length, w)
+  #  print("written")
+    input_file = path.join('ingest_utils', 'testdata', 'gigantic_xml.xml')
+    start = time.time()
+    for i, line in enumerate(wiki_ingester.parse_stream(input_file)):
+        if i % 5000 == 0:
+           memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+           assert(memory_usage <= memory_boundary)
+    print(time.time() - start)
+  #  os.system("rm ingest_utils/testdata/gigantic_xml.xml")
 
 if __name__ == '__main__':
   unittest.main()
