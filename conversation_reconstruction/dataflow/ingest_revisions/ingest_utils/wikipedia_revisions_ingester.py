@@ -24,120 +24,61 @@ from __future__ import division
 from __future__ import print_function
 
 import json
-import subprocess
-import xml.sax
-from . import xml_path
-import argparse
+from lxml import etree
+import StringIO
 
 
+TALK_PAGE_NAMESPACE = ['1', '3', '5', '7', '9', '11', '13', '15', "101", "109", "119", "447", "711", "829", "2301", "2303"] 
+revision_values = {'comment': 'comment', 'format': 'format', 'model': 'model', 'id': 'rev_id', 'timestamp': 'timestamp', 'sha1': 'sha1', 'text': 'text'}
+contributor_values = {'id': 'user_id', 'username': 'user_text', 'ip': 'user_ip'}
+page_data_mapping = {"ns": "namespace", "id": "id", "title": "title"}
 
-TALK_PAGE_NAMESPACE = ['1', '3', '5', '7', '9', '11', '13', '15'] 
-
-class ParserContentHandler(xml.sax.ContentHandler):
-  """Content handler using a minimal incremental combinator parser."""
-
-  def __init__(self, data_reset_path, data_paths, revision_reset_path):
-    xml.sax.ContentHandler.__init__(self)
-    # The path through the XML to get to where we currently are.
-    self.xml_path = xml_path.XmlPath()
-    self.data = {}
-    self.data_reset_path = data_reset_path
-    self.data_paths = data_paths
-    self.revision_reset_path = revision_reset_path
-    self.page_data = {}
-
-  def startElement(self, name, attrs):
-    self.xml_path.enter(name)
-
-  def endElement(self, name):
-    # TODO(nthain): Wrap the inside of the top ifs in a try-catch
-    # to determine when things go wrong.
-    if self.xml_path.element_path_eq(self.revision_reset_path):
-      if 'user_ip' in self.data:
-         self.data['user_id'] = None
-         self.data['user_text'] = self.data['user_ip']
-      # assert page information has to be included
-      if not('page_id' in self.page_data or 'page_namespace' in self.page_data or 'page_title' in self.page_data):
-         self.data = {}
-         return
-      self.data['page_id'] = self.page_data['page_id']
-      self.data['page_namespace'] = self.page_data['page_namespace']
-      self.data['page_title'] = self.page_data['page_title']
-      if not('text' in self.data):
-         self.data['text'] = ""
-      if not('user_id' in self.data):
-         self.data['user_id'] = None
-         self.data['user_text'] = None
-      if not('comment' in self.data):
-         self.data['comment'] = None
-#      entry_list = ['page_id', 'page_title', 'page_namespace', 'text', 'user_id', 'user_text', 'timestamp', 'rev_id']
-      if self.data['page_namespace'] in TALK_PAGE_NAMESPACE and not('/Archive_' in self.data['page_title']):
-         # filter out archives
-#        ret = {x: self.data[x] for x in entry_list} 
-        print(json.dumps(self.data))
-      else:
-        print('REVID' + self.data['rev_id'])
-      self.data = {} 
-       
-    if self.xml_path.element_path_eq(self.data_reset_path):
-      self.page_data = {}
-
-    self.xml_path.exit()
-
-  def characters(self, content_text):
-    self.xml_path.add_line_of_content()
-    for data_name, data_path in self.data_paths:
-      if self.xml_path.element_path_eq(data_path):
-        if 'page' in data_name:
-          if data_name not in self.page_data:
-            self.page_data[data_name] = ""
-          self.page_data[data_name] += content_text
-        else:
-          if data_name not in self.data:
-            self.data[data_name] = ""
-          self.data[data_name] += content_text
-
-def _get_paths():
-  data_reset_path = xml_path.XmlPath().enter_many(['mediawiki', 'page'])
-  revision_reset_path = xml_path.XmlPath().enter_many(['mediawiki', 'page', 'revision']) 
-  data_paths = [
-      ('comment', xml_path.XmlPath().enter_many(
-          ['mediawiki', 'page', 'revision', 'comment'])),
-      ('format', xml_path.XmlPath().enter_many(
-          ['mediawiki', 'page', 'revision', 'format'])),
-      ('model', xml_path.XmlPath().enter_many(
-          ['mediawiki', 'page', 'revision', 'model'])),
-      ('page_id', xml_path.XmlPath().enter_many(['mediawiki', 'page', 'id'])),
-      ('page_namespace',
-       xml_path.XmlPath().enter_many(['mediawiki', 'page', 'ns'])),
-      ('page_title',
-       xml_path.XmlPath().enter_many(['mediawiki', 'page', 'title'])),
-      ('rev_id',
-       xml_path.XmlPath().enter_many(['mediawiki', 'page', 'revision', 'id'])),
-      ('timestamp', xml_path.XmlPath().enter_many(
-          ['mediawiki', 'page', 'revision', 'timestamp'])),
-      ('sha1', xml_path.XmlPath().enter_many(
-          ['mediawiki', 'page', 'revision', 'sha1'])),
-      ('text', xml_path.XmlPath().enter_many(
-          ['mediawiki', 'page', 'revision', 'text'])),
-      ('user_id', xml_path.XmlPath().enter_many(
-          ['mediawiki', 'page', 'revision', 'contributor', 'id'])),
-      ('user_text', xml_path.XmlPath().enter_many(
-          ['mediawiki', 'page', 'revision', 'contributor', 'username'])),
-      ('user_ip', xml_path.XmlPath().enter_many(
-          ['mediawiki', 'page', 'revision', 'contributor', 'ip'])),
-
-  ]
-  return data_reset_path, revision_reset_path, data_paths
+def process_revision(namespace_length, rev):
+    ret = {}
+    for k in contributor_values.keys():
+        ret[k] = None
+    for k in revision_values.keys():
+        ret[k] = None
+    for ele in rev.iter():
+        parent = ele.getparent().tag[namespace_length:]
+        if parent == "revision":
+           if ele.tag[namespace_length:] in revision_values.keys():
+              ret[revision_values[ele.tag[namespace_length:]]] = ele.text
+        if parent == "contributor":
+           if ele.tag[namespace_length:] in contributor_values.keys():
+              ret[contributor_values[ele.tag[namespace_length:]]] = ele.text
+    return ret
 
 def parse_stream(input_file):
-  data_reset_path, revision_reset_path, data_paths = _get_paths()
-  content_handler = ParserContentHandler(
-    data_reset_path=data_reset_path, 
-    data_paths=data_paths, 
-    revision_reset_path=revision_reset_path)
+  context = etree.iterparse(input_file, events=('end', 'start', ), tag=('{*}page', '{*}ns', '{*}title', '{*}id', '{*}revision'))
+  page_data = {}
+  rev_data = {}
+  route = []
+  for event, ele in context:
+      namespace_length = ele.tag.find("}")+1
+      if event == 'start':
+         route.append(ele.tag[namespace_length:])
+         continue
+      route.pop()
+      if ele.tag[namespace_length:] == "page":
+         page_data = {}
+      if ele.tag[namespace_length:] in ["ns", "id", "title"] and route[-1] == "page":
+         page_data[page_data_mapping[ele.tag[namespace_length:]]] = ele.text
+      if "namespace" in page_data and "revision" in ele.tag: #  and page_data["namespace"] in TALK_PAGE_NAMESPACE
+         rev_data = process_revision(namespace_length, ele)
+         for page_data_name in page_data_mapping.values():
+             if page_data_name in page_data:
+                rev_data['page_%s'%page_data_name] = page_data[page_data_name]
+             else:
+                rev_data['page_%s'%page_data_name] = None
+         yield rev_data
+         rev_data = {}
+      ele.clear()
+      while ele.getprevious() is not None:
+          del ele.getparent()[0]
+  del context
 
-  cmd = (['7z', 'x', input_file, '-so']
-       if input_file.endswith('.7z') else ['cat', input_file])
-  p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-  xml.sax.parse(p.stdout, content_handler)
+if __name__ == "__main__":
+#   parse_stream("testdata/gigantic_xml.xml")
+   for x in parse_stream("testdata/gigantic_xml.xml"):
+       pass
