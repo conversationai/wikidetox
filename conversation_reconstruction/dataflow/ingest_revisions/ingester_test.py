@@ -80,19 +80,20 @@ class TestWikiIngester(unittest.TestCase):
         if i == 2 or i == 3:
           self.assertEqual(line['page_id'], '54197571')
     self.assertEqual(i, 3)
-    
+
     # This is a test on parsing very large xml files to make sure the streaming
     # doesn't consume too much memory.
-  #  with open("ingest_utils/testdata/gigantic_xml.xml", "w") as w: 
-  #     generateInfiniteXML(test_length, w)
-  #  print("written")
+    if not(path.exists("ingest_utils/testdata/gigantic_xml.xml")):
+       with open("ingest_utils/testdata/gigantic_xml.xml", "w") as w: 
+          generateInfiniteXML(test_length, w)
     input_file = path.join('ingest_utils', 'testdata', 'gigantic_xml.xml')
     start = time.time()
     for i, line in enumerate(wiki_ingester.parse_stream(input_file)):
         if i % 5000 == 0:
            memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
            assert(memory_usage <= memory_boundary)
-    print(time.time() - start)
+    costed_time = time.time() - start
+    print("Time spent on parsing: ", costed_time)
   #  os.system("rm ingest_utils/testdata/gigantic_xml.xml")
 
 if __name__ == '__main__':
