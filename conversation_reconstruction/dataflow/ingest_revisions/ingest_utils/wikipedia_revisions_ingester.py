@@ -28,7 +28,7 @@ from lxml import etree
 import StringIO
 
 
-TALK_PAGE_NAMESPACE = ['1', '3', '5', '7', '9', '11', '13', '15', "101", "109", "119", "447", "711", "829", "2301", "2303"] 
+TALK_PAGE_NAMESPACE = ['1', '3', '5', '7', '9', '11', '13', '15', "101", "109", "119", "447", "711", "829", "2301", "2303"]
 revision_values = {'comment': 'comment', 'format': 'format', 'model': 'model', 'id': 'rev_id', 'timestamp': 'timestamp', 'sha1': 'sha1', 'text': 'text'}
 contributor_values = {'id': 'user_id', 'username': 'user_text', 'ip': 'user_ip'}
 page_data_mapping = {"ns": "namespace", "id": "id", "title": "title"}
@@ -79,6 +79,5 @@ def parse_stream(input_file):
   del context
 
 if __name__ == "__main__":
-#   parse_stream("testdata/gigantic_xml.xml")
    for x in parse_stream("testdata/gigantic_xml.xml"):
        pass
