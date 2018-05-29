@@ -26,7 +26,6 @@ python dataflow_main.py --setup_file ./setup.py
 
 from __future__ import absolute_import
 
-import argparse
 import logging
 import subprocess
 from threading import Timer
@@ -35,11 +34,18 @@ import sys
 import zlib
 import copy
 from os import path
-import xml.sax
 from ingest_utils import wikipedia_revisions_ingester as wiki_ingester
 import math
 import os
 import time
+import urllib2
+
+from HTMLParser import HTMLParser
+import re
+import shutil
+
+from absl import app
+from absl import flags
 
 import apache_beam as beam
 from apache_beam.metrics.metric import Metrics
@@ -52,112 +58,123 @@ from apache_beam.pipeline import AppliedPTransform
 from apache_beam.io.gcp import bigquery #WriteToBigQuery
 from datetime import datetime
 
-LOGGING_THERESHOLD = 500
+FLAGS = flags.FLAGS
 
-def run(known_args, pipeline_args):
+flags.DEFINE_string('output', 'gs://wikidetox-viz-dataflow/ingested/',
+                     'Specify the output storage in cloud.')
+flags.DEFINE_string('language', 'en',
+                    'Specify the language of the Wiki Talk Page you want to ingest.') 
+flags.DEFINE_string('dumpdate', 'latest',
+                    'Specify the date of the Wikipedia data dump.')
+
+class ParseDirectory(HTMLParser):
+  def __init__(self):
+    self.files = []
+    HTMLParser.__init__(self)
+
+  def handle_starttag(self, tag, attrs):
+    self.files.extend(attr[1] for attr in attrs if attr[0] == 'href')
+
+  def files(self):
+    return self.files
+
+def run(FLAGS, sections):
   """Main entry point; defines and runs the ingestion pipeline."""
 
-  pipeline_args.extend([
-    '--runner=DataflowRunner',
+  pipeline_args = [
+    '--runner=DirectRunner',
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=ingest-job-on-previously-stuck-revisions',
+    '--job_name=ingest-latest-revisions',
     '--num_workers=30',
-  ])
+    '--setup_file=./setup.py',
+  ]
 
   pipeline_options = PipelineOptions(pipeline_args)
   pipeline_options.view_as(SetupOptions).save_main_session = True
+  sections = sections[:2]
   with beam.Pipeline(options=pipeline_options) as p:
-    pcoll = (p | ReadFromText(known_args.input)
-                   | beam.ParDo(WriteDecompressedFile())
-                   | beam.Map(lambda x: ('{week}at{year}'.format(week=x['week'], year=x['year']), x))
-                   | beam.GroupByKey()
-                   | beam.ParDo(WriteToStorage()))
+    pcoll = (p | beam.Create(sections)
+               | beam.ParDo(WriteDecompressedFile()).with_outputs('dump_files', main = 'ingested_results')
+               | beam.Map(lambda x: ('{week}at{year}'.format(week=x['week'], year=x['year']), x))
+               | beam.GroupByKey()
+               | beam.ParDo(WriteToStorage()))
 
 class WriteToStorage(beam.DoFn):
   def process(self, element):
       (key, val) = element
       week, year = [int(x) for x in key.split('at')]
-      path = known_args.output + 'date-{week}at{year}/revisions.json'.format(week=week, year=year)
+      path = FLAGS.output + 'date-{week}at{year}/revisions.json'.format(week=week, year=year)
       logging.info('USERLOG: Write to path %s.'%path)
       outputfile = filesystems.FileSystems.create(path)
       for output in val:
           outputfile.write(json.dumps(output) + '\n')
       outputfile.close() 
 
+def directory(mirror):
+  """Download the directory of files from the webpage.
 
-def add_week_year_fields(s):
-    dic = json.loads(s) 
+  This is likely brittle based on the format of the particular mirror site.
+
+  Args:
+    mirror: the base url (with language) of the wiki to scan.
+
+  Returns:
+    A list of filenames for compressed meta-history files for that langauge.
+  """
+  # Download the directory of files from the webpage for a particular language.
+  parser = ParseDirectory()
+  directory = urllib2.urlopen(mirror)
+  parser.feed(directory.read().decode('utf-8'))
+  # Extract the filenames of each XML meta history file.
+  meta = re.compile('^[a-zA-Z-]+wiki-latest-pages-meta-history.*\.7z$')
+  return [json.dumps((mirror, filename)) for filename in parser.files if meta.match(filename)]
+
+def add_week_year_fields(dic):
     dt = datetime.strptime(dic['timestamp'], "%Y-%m-%dT%H:%M:%SZ")
     year, week = dt.isocalendar()[:2]
     dic['year'] = year
     dic['week'] = week
     return dic
 
-def is_in_range(pid):
-    for lr, ur in ingest_range:
-        if pid >= lr and pid <= ur:
-           return True
-    return False
-
-def is_in_time_range(ts):
-    dt = datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ")
-    if not(dt.year == 2017): return (dt.year < 2017) 
-    else:
-       return (dt.month < 6)
-
 class WriteDecompressedFile(beam.DoFn):
   def __init__(self):
       self.processed_revisions = Metrics.counter(self.__class__, 'processed_revisions')
 
   def process(self, element):
-    chunk_name = element
+    mirror, chunk_name = json.loads(element)
 
-    in_file_path = path.join('gs://wikidetox-viz-dataflow/raw-downloads-20180201/20180201-dumps/', chunk_name)
+    logging.info('USERLOG: Download data dump %s to cloud storage.' % chunk_name)
+    url = ""
+    urllib2.urlretrieve(url, chunk_name)
+    dump_path = path.join('gs://wikidetox-viz-dataflow/raw-downloads-%s-%s/'%(FLAGS.dumpdate, FLAGS.language), chunk_name)
+    os.system("gsutil cp %s %s", chunk_name, dump_path)
 
-    logging.info('USERLOG: Running gsutil %s ./' % in_file_path)
-    cp_local_cmd = (['gsutil', 'cp', in_file_path, './'])
-    subprocess.call(cp_local_cmd)
-
+    chunk_name = chunk_name[:-3]
     logging.info('USERLOG: Running ingestion process on %s' % chunk_name)
-    ingestion_cmd = ['python2', '-m', 'ingest_utils.run_ingester', '-i', chunk_name]
-    ingest_proc = subprocess.Popen(ingestion_cmd, stdout=subprocess.PIPE, bufsize = 4096)
+    os.system("7z x %s"%chunk_name)
+    input_file = chunk_name
     cnt = 0
-    maxsize = 0
     last_revision = 'None'
     last_completed = time.time()
-    for i, line in enumerate(ingest_proc.stdout):
-      try:
-          content = json.loads(line) 
-      except:
-         revid = line 
-         logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=revid, time=time.time() - last_completed))
-         last_completed = time.time()
-         continue
+    for i, content in enumerate(wiki_ingester.parse_stream(input_file)):
       self.processed_revisions.inc()
-      ret = add_week_year_fields(line)
-      if is_in_range(int(content['page_id'])) and is_in_time_range(content['timestamp']):
-         last_revision = content['rev_id']
-         cnt += 1
-         yield ret
+      ret = add_week_year_fields(content)
+      last_revision = content['rev_id']
+      cnt += 1
+      yield ret
       logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=last_revision, time=time.time() - last_completed))
+      break
       last_completed = time.time()
-      maxsize = max(maxsize, sys.getsizeof(line))
     logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, maxsize: %d, last_revision %s' % (chunk_name, cnt, maxsize, last_revision))
 
-if __name__ == '__main__':
+def main(argv):
+  del argv
   logging.getLogger().setLevel(logging.INFO)
-  parser = argparse.ArgumentParser()
-  parser.add_argument('--input',
-                      dest='input',
-                      default='gs://wikidetox-viz-dataflow/input_lists/7z_file_list_reingest',
-                      help='Input file to process.')
-  # Destination Cloud storage Folder 
-  parser.add_argument('--output',
-                      dest='output',
-                      default='gs://wikidetox-viz-dataflow/reingested/',
-                      help='Output storage.')
-  known_args, pipeline_args = parser.parse_known_args()
-  ingest_range = [[5137452, 5149115], [13135007,13252449],[51894080,52312206],[42663462,42930511],[952461, 972044],[2515120,2535917],[4684994,4750440]]
-  run(known_args, pipeline_args)
+  mirror = 'http://dumps.wikimedia.your.org/{lan}wiki/{date}'.format(lan=FLAGS.language, date=FLAGS.dumpdate)
+  sections = directory(mirror)
+  run(FLAGS, sections)
+
+if __name__ == '__main__':
+   app.run(main)
