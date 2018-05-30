@@ -94,13 +94,3 @@ def parse_stream(input_file):
            yield rev_data
            rev_data = {}
         clearup(ele)
-
-#if __name__ == "__main__":
-#   ans_list = []
-#   for x in parse_stream("chwiki-latest-pages-meta-history.xml"):
-#       ans_list.append(json.dumps(x))
-#   ans_list.sort()
-#   m = hashlib.new("sha1")
-#   for elem in ans_list:
-#      m.update(str(elem))
-#   print(m.hexdigest())

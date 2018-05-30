@@ -100,9 +100,10 @@ class CustomCommands(setuptools.Command):
 # so this dependency will not trigger anything to be installed unless a version
 # restriction is specified.
 REQUIRED_PACKAGES = [
-    'google-cloud == 0.27.0', 
+    'google-cloud == 0.27.0',
     'google-cloud-storage == 1.3.2',
-    'google-apitools == 0.5.10'
+    'google-apitools == 0.5.10',
+    'lxml == 4.2.1',
     ]
 
 
