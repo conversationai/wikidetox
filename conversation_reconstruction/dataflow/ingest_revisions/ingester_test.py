@@ -44,6 +44,7 @@ import os
 test_length = 100000
 text_length = 10000
 memory_boundary = 20000 #in KB
+time_limit = 20 #seconds
 
 with open("ingest_utils/testdata/mediawiki_header.xml", "r") as f:
      mediawiki_header = ""
@@ -70,7 +71,6 @@ def generateInfiniteXML(length, w):
 class TestWikiIngester(unittest.TestCase):
   def test_ingester(self):
     input_file = path.join('ingest_utils', 'testdata', 'test_wiki_dump.xml')
-    status = 'success'
     for i, line in enumerate(wiki_ingester.parse_stream(input_file)):
         if i == 0:
           self.assertEqual(line['comment'], 'a test comment 1')
@@ -91,8 +91,9 @@ class TestWikiIngester(unittest.TestCase):
     for i, line in enumerate(wiki_ingester.parse_stream(input_file)):
         if i % 5000 == 0:
            memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-           assert(memory_usage <= memory_boundary)
+           self.assertLessEqual(memory_usage, memory_boundary)
     costed_time = time.time() - start
+    self.assertLessEqual(costed_time, time_limit)
     print("Time spent on parsing: ", costed_time)
   #  os.system("rm ingest_utils/testdata/gigantic_xml.xml")
 
