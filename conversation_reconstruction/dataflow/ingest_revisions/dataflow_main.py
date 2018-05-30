@@ -90,7 +90,7 @@ class WriteDecompressedFile(beam.DoFn):
     """Downloads a data dump file, store in cloud storage.
        Ingests the xml dump into json, returns the josn records
     """
-    mirror, chunk_name = json.loads(element)
+    mirror, chunk_name =  element
 
     logging.info('USERLOG: Download data dump %s to cloud storage.' % chunk_name)
     # Download and upload the raw data dump
@@ -163,14 +163,14 @@ def directory(mirror):
   parser.feed(directory.read().decode('utf-8'))
   # Extract the filenames of each XML meta history file.
   meta = re.compile('^[a-zA-Z-]+wiki-latest-pages-meta-history.*\.7z$')
-  return [json.dumps((mirror, filename)) for filename in parser.files if meta.match(filename)]
+  return [(mirror, filename) for filename in parser.files if meta.match(filename)]
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
   parser = argparse.ArgumentParser()
   parser.add_argument('--output',
                       dest='output',
-                      default='gs://wikidetox-viz-dataflow/ingested/',
+                      default='gs://wikidetox-viz-dataflow/ingested',
                       help='Specify the output storage in cloud.')
   parser.add_argument('--language',
                       dest='language',
@@ -191,5 +191,6 @@ if __name__ == '__main__':
      mirror = 'http://dumps.wikimedia.your.org/{lan}wiki/latest'.format(lan=known_args.language)
      sections = directory(mirror)
   else:
-     sections = dumpstatus['jobs']['metahistory7zdump']['files'].keys()
+     url = 'https://dumps.wikimedia.org/{lan}wiki/{date}'.format(lan=known_args.language, date=known_args.dumpdate)
+     sections = [(url, filename) for filename in dumpstatus['jobs']['metahistory7zdump']['files'].keys()]
   run(known_args, pipeline_args, sections)
