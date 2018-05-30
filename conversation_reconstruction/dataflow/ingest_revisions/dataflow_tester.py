@@ -31,7 +31,6 @@ from __future__ import print_function
 from dataflow_main import WriteDecompressedFile
 
 import json
-
 import tempfile
 import logging
 import unittest
@@ -59,7 +58,7 @@ class TestParDo(unittest.TestCase):
         '--job_name=test-ingestion-pipeline', 
         '--num_workers=30',
       ]
-      test_url  = [json.dumps(('http://dumps.wikimedia.your.org/chwiki/latest/', 'chwiki-latest-pages-meta-history.xml.7z'))]
+      test_url  = [('http://dumps.wikimedia.your.org/chwiki/latest/', 'chwiki-latest-pages-meta-history.xml.7z')]
       ans_hash = "8f32f3812f123411dafe9e715e34477df26d434e"
       temp_path = self.create_temp_file()
 
