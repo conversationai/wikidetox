@@ -25,59 +25,82 @@ from __future__ import print_function
 
 import json
 from lxml import etree
-import StringIO
+import hashlib
 
 
 TALK_PAGE_NAMESPACE = ['1', '3', '5', '7', '9', '11', '13', '15', "101", "109", "119", "447", "711", "829", "2301", "2303"]
-revision_values = {'comment': 'comment', 'format': 'format', 'model': 'model', 'id': 'rev_id', 'timestamp': 'timestamp', 'sha1': 'sha1', 'text': 'text'}
-contributor_values = {'id': 'user_id', 'username': 'user_text', 'ip': 'user_ip'}
-page_data_mapping = {"ns": "namespace", "id": "id", "title": "title"}
+FIELDS = ['comment', 'format', 'model', 'rev_id', 'timestamp', 'sha1', 'text', 'user_id', 'user_text', 'user_ip', 'page_id', 'page_title', 'page_namespace']
 
 def process_revision(namespace_length, rev):
-    ret = {}
-    for k in contributor_values.keys():
-        ret[k] = None
-    for k in revision_values.keys():
-        ret[k] = None
+    """Extracts information from individual revision."""
+    ret = {f: None for f in FIELDS}
     for ele in rev.iter():
         parent = ele.getparent().tag[namespace_length:]
-        if parent == "revision":
-           if ele.tag[namespace_length:] in revision_values.keys():
-              ret[revision_values[ele.tag[namespace_length:]]] = ele.text
-        if parent == "contributor":
-           if ele.tag[namespace_length:] in contributor_values.keys():
-              ret[contributor_values[ele.tag[namespace_length:]]] = ele.text
+        tag = ele.tag[namespace_length:]
+        if parent == "revision" and tag in ['comment', 'format', 'model', 'id', 'timestamp', 'sha1', 'text']:
+           if tag == "id": ret['rev_id'] = ele.text
+           else: ret[tag] = ele.text
+        elif parent == "contributor" and tag in ['id', 'username', 'ip']:
+          if tag == 'username': ret['user_text'] = ele.text
+          else: ret['user_' + tag] = ele.text
     return ret
 
+def clearup(ele):
+    """
+    Clears up used memory from:
+       1) the content in the current the tag;
+       2) the reference links from siblings to the current tag.
+    """
+    ele.clear() # utility of this : two ceonsecutive large ones
+    while ele.getprevious() is not None:
+        del ele.getparent()[0]
+
 def parse_stream(input_file):
-  context = etree.iterparse(input_file, events=('end', 'start', ), tag=('{*}page', '{*}ns', '{*}title', '{*}id', '{*}revision'))
-  page_data = {}
+  """
+  Iteratively parses XML file into json records.
+  Clears up memory after processing each element to avoid large revisions/pages taking up memories.
+  Variables:
+      STRING: page_id, page_title, page_namespace, tag
+      DICTIONARY: rev_data
+      INTEGER: namespace_length
+  """
+  context = etree.iterparse(input_file, events=('end', ), tag=('{*}page', '{*}ns', '{*}title', '{*}id', '{*}revision'))
+  page_id = None
+  page_title = None
+  page_namespace = None
   rev_data = {}
-  route = []
   for event, ele in context:
       namespace_length = ele.tag.find("}")+1
-      if event == 'start':
-         route.append(ele.tag[namespace_length:])
-         continue
-      route.pop()
-      if ele.tag[namespace_length:] == "page":
-         page_data = {}
-      if ele.tag[namespace_length:] in ["ns", "id", "title"] and route[-1] == "page":
-         page_data[page_data_mapping[ele.tag[namespace_length:]]] = ele.text
-      if "namespace" in page_data and "revision" in ele.tag: #  and page_data["namespace"] in TALK_PAGE_NAMESPACE
-         rev_data = process_revision(namespace_length, ele)
-         for page_data_name in page_data_mapping.values():
-             if page_data_name in page_data:
-                rev_data['page_%s'%page_data_name] = page_data[page_data_name]
-             else:
-                rev_data['page_%s'%page_data_name] = None
-         yield rev_data
-         rev_data = {}
-      ele.clear()
-      while ele.getprevious() is not None:
-          del ele.getparent()[0]
-  del context
+      tag = ele.tag[namespace_length:]
+      parent = ele.getparent().tag[namespace_length:]
+      if tag == "page":
+         page_id = None
+         page_title = None
+         page_namespace = None
+         clearup(ele)
+      elif tag == "ns" and parent == "page":
+         page_namespace = ele.text
+         clearup(ele)
+      elif tag == "id" and parent == "page":
+         page_id = ele.text
+         clearup(ele)
+      elif tag == "title" and parent == "page":
+         page_title = ele.text
+         clearup(ele)
+      elif tag == "revision":
+        if page_namespace and page_namespace in TALK_PAGE_NAMESPACE:
+           rev_data = process_revision(namespace_length, ele)
+           rev_data.update({"page_title": page_title, "page_id": page_id, "page_namespace": page_namespace})
+           yield rev_data
+           rev_data = {}
+        clearup(ele)
 
-if __name__ == "__main__":
-   for x in parse_stream("testdata/gigantic_xml.xml"):
-       pass
+#if __name__ == "__main__":
+#   ans_list = []
+#   for x in parse_stream("chwiki-latest-pages-meta-history.xml"):
+#       ans_list.append(json.dumps(x))
+#   ans_list.sort()
+#   m = hashlib.new("sha1")
+#   for elem in ans_list:
+#      m.update(str(elem))
+#   print(m.hexdigest())
