@@ -29,12 +29,14 @@ from __future__ import division
 from __future__ import print_function
 
 from dataflow_main import WriteDecompressedFile
+from dataflow_main import DownloadDataDumps 
 
 import json
 import tempfile
 import logging
 import unittest
 import hashlib
+import os
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
@@ -64,21 +66,31 @@ class TestParDo(unittest.TestCase):
 
       pipeline_options = PipelineOptions(pipeline_args)
       pipeline_options.view_as(SetupOptions).save_main_session = True
+
+      # Test Download
       with TestPipeline(options=pipeline_options) as p:
         p = (p | beam.Create(test_url)
-               | beam.ParDo(WriteDecompressedFile(), 'latest', 'ch')
-               | beam.Map(lambda x: json.dumps(x['rev_id']))
+               | beam.ParDo(DownloadDataDumps())
                | beam.io.WriteToText("%s"%temp_path, num_shards=1))
       results = []
       with open("%s-00000-of-00001"%temp_path) as result_file:
         for line in result_file:
           results.append(line[:-1])
-      self.assertEqual(len(results), 776)
-      results = sorted(results)
-      m = hashlib.new("sha1")
-      for elem in results:
-          m.update(str(elem))
-      self.assertEqual(m.hexdigest(), ans_hash)
+      self.assertEqual(''.join(results), 'chwiki-latest-pages-meta-history.xml.7z')
+
+      # Test Ingestion
+      with TestPipeline(options=pipeline_options) as p:
+        p = (p | beam.Create(['ingest_utils/testdata/test_wiki_dump.xml.7z'])
+               | beam.ParDo(WriteDecompressedFile())
+               | beam.io.WriteToText("%s"%temp_path, num_shards=1))
+      results = []
+      with open("%s-00000-of-00001"%temp_path) as result_file:
+        for line in result_file:
+          results.append(line[:-1])
+      self.assertEqual(len(results), 5)
+
+      # Test Full Pipeline
+      os.system('python dataflow_main.py --testmode --output gs://wikidetox-viz-dataflow/test/')
 
 if __name__ == '__main__':
    logging.getLogger().setLevel(logging.INFO)

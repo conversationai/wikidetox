@@ -64,7 +64,7 @@ def parse_stream(input_file):
       DICTIONARY: rev_data
       INTEGER: namespace_length
   """
-  context = etree.iterparse(input_file, events=('end', ), tag=('{*}page', '{*}ns', '{*}title', '{*}id', '{*}revision'))
+  context = etree.iterparse(input_file, events=('end', ), tag=('{*}page', '{*}ns', '{*}title', '{*}id', '{*}revision'), huge_tree=True)
   page_id = None
   page_title = None
   page_namespace = None
