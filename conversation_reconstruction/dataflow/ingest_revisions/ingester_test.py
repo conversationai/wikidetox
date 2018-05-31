@@ -43,7 +43,7 @@ import math
 import os
 test_length = 100000
 text_length = 10000
-memory_boundary = 20000 #in KB
+memory_boundary = 40000#in KB
 time_limit = 20 #seconds
 
 with open("ingest_utils/testdata/mediawiki_header.xml", "r") as f:
@@ -79,7 +79,8 @@ class TestWikiIngester(unittest.TestCase):
           self.assertEqual(line['text'], ' The first revision on the third page. Written by Tinker JJ. Has a comment.')
         if i == 2 or i == 3:
           self.assertEqual(line['page_id'], '54197571')
-    self.assertEqual(i, 3)
+    # The fourth revision includes a large text component.
+    self.assertEqual(i, 4)
 
     # This is a test on parsing very large xml files to make sure the streaming
     # doesn't consume too much memory.
