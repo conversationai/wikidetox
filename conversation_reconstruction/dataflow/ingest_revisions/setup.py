@@ -104,6 +104,7 @@ REQUIRED_PACKAGES = [
     'google-cloud-storage == 1.3.2',
     'google-apitools == 0.5.10',
     'lxml == 4.2.1',
+    'boto'
     ]
 
 
