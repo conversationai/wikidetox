@@ -75,7 +75,7 @@ def run(known_args, pipeline_args, sections):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=ingest-latest-revisions',
+    '--job_name=ingest-latest-revisions-{lan}'.format(lan=known_args.language),
     '--num_workers=30',
   ])
 
@@ -86,7 +86,6 @@ def run(known_args, pipeline_args, sections):
     if known_args.fromWiki:
        pcoll = (pcoll | "DownloadDataDumps" >> beam.ParDo(DownloadDataDumps(), known_args.raw))
     pcoll = ( pcoll | "Ingestion" >> beam.ParDo(WriteDecompressedFile(), known_args.raw)
-            | "Window" >> beam.WindowInto(beam.window.FixedWindows(10, 0))
             | "AddGroupByKey" >> beam.Map(lambda x: ('{week}at{year}'.format(week=x['week'], year=x['year']), x))
             | "ShardByWeek" >>beam.GroupByKey()
             | "WriteToStorage" >> beam.ParDo(WriteToStorage(), known_args.output, known_args.dumpdate, known_args.language))
@@ -104,7 +103,7 @@ class DownloadDataDumps(beam.DoFn):
     if output:
        # output maybe None in test mode
        dump_path = output + chunk_name
-       os.system("gsutil cp %s %s"%(chunk_name, dump_path))
+       os.system("gsutil mv %s %s"%(chunk_name, dump_path))
     yield chunk_name
 
 class WriteDecompressedFile(beam.DoFn):
@@ -137,6 +136,7 @@ class WriteDecompressedFile(beam.DoFn):
       yield content
       logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=last_revision, time=time.time() - last_completed))
       last_completed = time.time()
+    os.system("rm %s"%input_file)
     logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, last_revision %s' % (chunk_name, i, last_revision))
 
 class WriteToStorage(beam.DoFn):
