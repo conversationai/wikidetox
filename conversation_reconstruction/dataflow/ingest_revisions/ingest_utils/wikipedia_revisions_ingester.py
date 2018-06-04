@@ -94,3 +94,7 @@ def parse_stream(input_file):
            yield rev_data
            rev_data = {}
         clearup(ele)
+
+if __name__=="__main__":
+  for x in parse_stream(open("../enwiki-20180501-pages-meta-history8.xml-p1444867p1470135", "r")):
+       print(x['rev_id'])
