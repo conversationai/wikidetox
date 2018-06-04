@@ -1,0 +1,4 @@
+noaho
+requests
+mwtypes
+beautifulsoup4
