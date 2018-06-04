@@ -56,7 +56,7 @@ class TestParDo(unittest.TestCase):
             '--job_name=test-ingestion-pipeline', 
             '--num_workers=30',
         ]
-        test_url  = [('http://dumps.wikimedia.your.org/chwiki/latest/', 'chwiki-latest-pages-meta-history.xml.bz2')]
+        test_url  = [('http://dumps.wikimedia.your.org/chwiki/latest', 'chwiki-latest-pages-meta-history.xml.bz2')]
         return pipeline_args, test_url
 
     def create_temp_file(self):
@@ -78,7 +78,7 @@ class TestParDo(unittest.TestCase):
       with open("%s-00000-of-00001"%temp_path) as result_file:
         for line in result_file:
           results.append(line[:-1])
-      self.assertEqual(''.join(results), 'chwiki-latest-pages-meta-history.xml')
+      self.assertEqual(''.join(results), 'chwiki-latest-pages-meta-history.xml.bz2')
 
     def test_ingest(self):
       pipeline_args, test_url = self.init()
@@ -87,7 +87,7 @@ class TestParDo(unittest.TestCase):
       pipeline_options.view_as(SetupOptions).save_main_session = True
       # Test Ingestion
       with TestPipeline(options=pipeline_options) as p:
-        p = (p | beam.Create(['ingest_utils/testdata/test_wiki_dump.xml'])
+        p = (p | beam.Create(['ingest_utils/testdata/test_wiki_dump.xml.bz2'])
                | beam.ParDo(WriteDecompressedFile(), None, 'local')
                | beam.io.WriteToText("%s"%temp_path, num_shards=1))
       results = []
@@ -95,9 +95,9 @@ class TestParDo(unittest.TestCase):
         for line in result_file:
           results.append(line[:-1])
       self.assertEqual(len(results), 5)
-   # def test_full(self):
-   #   # Test Full Pipeline
-   #   os.system('python dataflow_main.py --testmode --output gs://wikidetox-viz-dataflow/test/')
+    def test_full(self):
+      # Test Full Pipeline
+      os.system('python dataflow_main.py --ingestFrom=local --localStorage=ingest_utils/testdata/test_wiki_dump1.xml.bz2 --testmode --output gs://wikidetox-viz-dataflow/test/')
 
 if __name__ == '__main__':
    logging.getLogger().setLevel(logging.INFO)
