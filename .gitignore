@@ -77,3 +77,24 @@ viz/config/
 build/
 
 .ipynb_checkpoints/
+
+# swp files
+.*.swp
+
+# egg-info
+*.egg-info/
+
+# debugging output
+conversation_reconstruction_dataflow/conversation_reconstruction/*output
+conversation_reconstruction_dataflow/conversation_reconstruction/note
+conversation_reconstruction_dataflow/conversation_reconstruction/LOG_*
+enwiki-*
+
+# private key
+conversation_reconstruction_dataflow/analysis/private.py
+
+# analysis data
+conversation_reconstruction_dataflow/analysis/data/*
+
+# xml ingestion test data
+conversation_reconstruction/dataflow/ingest_revisions/ingest_utils/testdata/gigantic_xml.xml
