@@ -32,14 +32,12 @@ from os import path
 import urllib2
 import traceback
 import ast
-from google.cloud import bigquery as bigquery_op 
 import copy
 import sys
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
-from apache_beam.io.avroio import ReadFromAvro 
 from construct_utils.conversation_constructor import Conversation_Constructor
 
 
@@ -60,31 +58,29 @@ def run(known_args, pipeline_args):
   pipeline_options = PipelineOptions(pipeline_args)
   pipeline_options.view_as(SetupOptions).save_main_session = True
   jobname = 'reconstruction-from-{table}-pages-week{lw}year{ly}'.format(table=known_args.category, lw=known_args.week, ly=known_args.year)
-  print(known_args.input.format(week=known_args.week, year=known_args.year))
 
-  avro_mapping = lambda x: (x['page_id'], x)
-  json_mapping_tmp = lambda x: (x[0]["page_id"], x[0]) if (type(x[0]) is dict) else ((ast.literal_eval(x)["page_id"], ast.literal_eval(x)) if (type(ast.literal_eval(x)) is dict) else (ast.literal_eval(x)[0]["page_id"], ast.literal_eval(x)[0]))
   json_mapping = lambda x: (json.loads(x)["page_id"], json.loads(x))
   with beam.Pipeline(options=pipeline_options) as p:
-   # Read from BigQuery
+    # Read from BigQuery
     to_be_processed = (p | 'Read_to_be_processed' >> beam.io.ReadFromText(known_args.input.format(week=known_args.week, year=known_args.year))
                           | 'INGESTED_assign_page_id_as_key' >> beam.Map(json_mapping))
-    last_revision = (p | 'Retrieve_last_revision' >> beam.io.ReadFromText("gs://wikidetox-viz-dataflow/process_tmp/%s/*last_rev*"%known_args.category)| 'LASTREV_assign_page_id_as_key' >> beam.Map(json_mapping))
-    page_state = (p | 'Retrieve_page_state' >> beam.io.ReadFromText("gs://wikidetox-viz-dataflow/process_tmp/%s/*page_states*"%known_args.category)| 'PAGESTATE_assign_page_id_as_key' >> beam.Map(json_mapping))
-
-    reconstruction_results, page_states, input_last_rev, last_rev_output, input_page_states\
+    last_revision_location = "gs://wikidetox-viz-dataflow/process_tmp/%s/*last_rev*"
+    last_revision = (p | 'Retrieve_last_revision' >> beam.io.ReadFromText(last_revision_location%known_args.category)
+                       | 'LASTREV_assign_page_id_as_key' >> beam.Map(json_mapping))
+    page_state_location = "gs://wikidetox-viz-dataflow/process_tmp/%s/*page_states*"
+    page_state = (p | 'Retrieve_page_state' >> beam.io.ReadFromText(page_state_location%known_args.category)
+                    | 'PAGESTATE_assign_page_id_as_key' >> beam.Map(json_mapping))
+    reconstruction_results, page_states, last_rev_output\
                    = ({'to_be_processed': to_be_processed, 'last_revision': last_revision, 'page_state': page_state}
-                   | beam.CoGroupByKey()
                    # Join information based on page_id
-                   | beam.ParDo(ReconstructConversation()).with_outputs('page_states', 'last_revision', 'last_revision_output', 'input_page_state', main = 'reconstruction_results'))
+                   | beam.CoGroupByKey()
+                   | beam.ParDo(ReconstructConversation()).with_outputs('page_states','last_revision_output', main = 'reconstruction_results'))
                    # Reconstruct the conversations
- 
-    page_states | "WritePageStates" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/process_tmp/next_%s/page_states"%known_args.category) 
-    # Saving page states and last processed revision to BigQuery, and the last time last processed revision to cloud for bak up
-    reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/reconstructed_res/%s"%jobname) 
+    # Saving page states and latest processed revisionn to cloud for future
+    # process
+    page_states | "WritePageStates" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/process_tmp/next_%s/page_states"%known_args.category)
+    reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/reconstructed_res/%s"%jobname)
     last_rev_output | "WriteCollectedLastRevision" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/process_tmp/next_%s/last_rev"%known_args.category)
-#    input_last_rev | "WriteBackInput_last_rev" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/bakup/%s/last_rev"%jobname)
-#    input_page_states | "WriteBackInput_page_states" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/bakup/%s/page_states"%jobname)
 
 class ReconstructConversation(beam.DoFn):
   def merge(self, ps1, ps2):
@@ -111,64 +107,53 @@ class ReconstructConversation(beam.DoFn):
     logging.info('USERLOG: Reconstruction work start on page: %s'%page_id)
     if (page_id == None) or (page_id == "34948919") or (page_id == "15854766") or (page_id == "32094486"): return
 
-    # Load input from cloud(the format is different here)
+    # Load input from cloud
     rows = data['to_be_processed']
     last_revision = data['last_revision']
     page_state = data['page_state']
     # Clean type formatting
-    fields = ['rev_id', 'week', 'year']
     if not(last_revision == []):
-       for ind in range(len(last_revision)):
-           last_revision[ind]['rev_id'] = int(last_revision[ind]['rev_id'])
-       last_revision = sorted(last_revision, key=lambda x : x['rev_id'])
-       last_revision = last_revision[-1]
-       for f in fields:
-           last_revision[f] = int(last_revision[f])
+       assert(len(last_revision) == 1)
+       last_revision = last_revision[0]
+       last_revision['rev_id'] = int(last_revision['rev_id'])
     else:
        last_revision = None
     if not(page_state == []):
-       for ind in range(len(page_state)):
-           page_state[ind]['rev_id'] = int(page_state[ind]['rev_id'])
-       page_state = sorted(page_state, key=lambda x : x['rev_id'])
-       page_state = page_state[-1]
+       assert(len(page_state) == 1)
+       page_state = page_state[0]
+       page_state['rev_id'] = int(page_state['rev_id'])
     else:
        page_state = None
 
     for r in rows:
-        for f in fields:
-            r[f] = int(r[f])
-    # Ignore Archive pages 
-    if not(rows == []) and 'Archive' in rows[0]['page_title']: return 
+        r['rev_id'] = int(r['rev_id'])
+    # Ignore Archive pages
+    #if not(rows == []) and 'Archive' in rows[0]['page_title']: return
 
-    # Return when no pages to be processed
+    # Return when the page doesn't have updates to be processed
     if rows == []:
-       if not(last_revision == None): 
+       if not(last_revision == None):
           yield beam.pvalue.TaggedOutput('last_revision_output', json.dumps(last_revision))
-          yield beam.pvalue.TaggedOutput('last_revision', json.dumps(last_revision))
-       if not(page_state == None): 
-          yield beam.pvalue.TaggedOutput('input_page_state', json.dumps(page_state))
+       if not(page_state == None):
           yield beam.pvalue.TaggedOutput('page_states', json.dumps(page_state))
        return
 
     processor = Conversation_Constructor()
     last_revision_to_save = last_revision
     if not(page_state == None):
-       # Write the input to cloud
-       yield beam.pvalue.TaggedOutput('last_revision', json.dumps(last_revision))
-       yield beam.pvalue.TaggedOutput('input_page_state', json.dumps(page_state))
        logging.info('Page %s existed: loading page state, last revision: %s'%(page_id, last_revision['rev_id'])) 
        # Load previous page state
        processor.load(page_state['page_state'], page_state['deleted_comments'], page_state['conversation_id'], page_state['authors'], last_revision['text'])
 
+    # Initialize
     revision = {}
     last_revision = 'None'
     second_last_page_state = page_state 
-    error_encountered = False
     cnt = 0
+    # Sort revisions by temporal order
     revision_lst = sorted([r for r in rows], key=lambda k: (k['timestamp'], k['rev_id']))
-    # Sort by temporal order
     last_loading = 0
-    last_page_state = page_state 
+    last_page_state = page_state
     for cur_revision in revision_lst:
         # Process revision by revision 
         if not('rev_id' in cur_revision): continue
@@ -182,21 +167,22 @@ class ReconstructConversation(beam.DoFn):
         for action in actions:
             yield json.dumps(action)
         if cnt % LOG_INTERVAL == 0 and cnt and not(page_state == []):
-          # reload after every 200 revisions to keep the memory low
+          # reload after every LOG_INTERVAL revisions to keep the low memory
+          # usage
            processor = Conversation_Constructor()
            second_last_page_state = copy.deepcopy(page_state)
            last_loading = cnt
            processor.load(page_state['page_state'], page_state['deleted_comments'], page_state['conversation_id'], page_state['authors'], text)
     if second_last_page_state and not(cnt == last_loading):
-       # Merge the last two page states
+       # Merge the last two page states if a reload happens while processing,
+       # otherwise in a situation where a week's data contains LOG_INTERVAL + 1
+       # revisions, the page state may only contain data from one revision.
        last_page_state = self.merge(last_page_state, second_last_page_state)
-    if last_page_state and not(last_page_state == []):
-       size = sys.getsizeof(last_page_state)
-       yield beam.pvalue.TaggedOutput('page_states', json.dumps(last_page_state))
-    if not(last_revision_to_save == []): 
-       yield beam.pvalue.TaggedOutput('last_revision_output', json.dumps(last_revision_to_save))
-    if not(error_encountered):
-       logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' %(page_id, last_revision))
+    assert(last_page_state and not(last_page_state == []))
+    assert(not(last_revision_to_save == []))
+    yield beam.pvalue.TaggedOutput('page_states', json.dumps(last_page_state))
+    yield beam.pvalue.TaggedOutput('last_revision_output', json.dumps(last_revision_to_save))
+    logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' %(page_id, last_revision))
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)

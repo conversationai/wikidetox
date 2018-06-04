@@ -102,6 +102,7 @@ class WriteToStorage(beam.DoFn):
     self.outputfile = None
     self.week = None
     self.year = None
+
   def process(self, element):
       (key, val) = element
       week, year = [int(x) for x in key.split('at')]
@@ -124,6 +125,7 @@ class WriteToStorage(beam.DoFn):
           self.df_writer.append(output)
           filecnts += 1 
       logging.info('Number of records %d written to %s.'%(filecnts, self.path))
+
   def finish_bundle(self):
       if not(self.outputfile == None):
          self.df_writer.close()
