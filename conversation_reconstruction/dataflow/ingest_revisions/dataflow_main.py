@@ -40,7 +40,7 @@ import zlib
 import copy
 import bz2
 from os import path
-from ingest_utils.wikipedia_revisions_ingester import parse_stream 
+from ingest_utils.wikipedia_revisions_ingester import parse_stream
 import math
 import os
 import time
@@ -54,6 +54,9 @@ from HTMLParser import HTMLParser
 import re
 import argparse
 import boto
+import gcs_oauth2_boto_plugin
+# boto needs to be configured, see here:
+# https://cloud.google.com/storage/docs/boto-plugin#setup-python
 
 import apache_beam as beam
 from apache_beam.metrics.metric import Metrics
@@ -138,7 +141,7 @@ class WriteDecompressedFile(beam.DoFn):
       content['year'] = year
       content['week'] = week
       last_revision = content['rev_id']
-      yield json.dumps(content)
+      yield content
       logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=last_revision, time=time.time() - last_completed))
       last_completed = time.time()
     os.system("rm %s"%chunk_name)
