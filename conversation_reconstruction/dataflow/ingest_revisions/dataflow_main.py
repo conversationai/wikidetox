@@ -24,9 +24,25 @@ python dataflow_main.py --setup_file ./setup.py
 
 Args:
 
+ingestFrom: choose from the three options : {wikipedia, local, cloud}:
+  - wikipedia: performs the downloading job from Wikipedia, run with:
+               [python dataflow_main.py --setup_file ./setup.py\
+               --ingestFrom=wikipedia --download --language=YourLanguage --dumpdate=YourDumpdate --cloudBucket=YourCloudBucket]
+  - local: Tests the pipeline locally, run the code with
+           [python dataflow_main.py --setup_file ./setup.py\
+            --ingestFrom=local --localStorage=YourLocalStorage --testmode --output=YourOutputStorage]
+  - cloud: Reads from downloaded bz2 files on cloud, performs the ingestion job,
+    run the code with
+           [python dataflow_main.py --setup_file ./setup.py\
+           [--ingestFrom=cloud --output=YourOutputStorage --cloudBucket=YourCloudBucket]
+
 output: the data storage where you want to store the ingested results
 language: the language of the wikipedia data you want to extract, e.g. en, fr, zh
 dumpdate: the dumpdate of the wikipedia data, e.g. latest
+testmode: if turned on, the pipeline runs on DirectRunner.
+localStorage: the location of the local test file.
+download: if turned on, the pipeline only performs downloading job from Wikipedia.
+cloudBucket: the cloud bucket where the ingestion reads from or the download stores to.
 """
 
 from __future__ import absolute_import
@@ -144,7 +160,7 @@ class WriteDecompressedFile(beam.DoFn):
       yield content
       logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=last_revision, time=time.time() - last_completed))
       last_completed = time.time()
-    os.system("rm %s"%chunk_name)
+    if not(ingestFrom == 'local'): os.system("rm %s"%chunk_name)
     logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, last_revision %s' % (chunk_name, i, last_revision))
 
 class WriteToStorage(beam.DoFn):
