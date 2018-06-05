@@ -41,10 +41,10 @@ from ingest_utils import wikipedia_revisions_ingester as wiki_ingester
 import resource
 import math
 import os
-test_length = 100000
+test_length = 10000
 text_length = 10000
 memory_boundary = 40000#in KB
-time_limit = 20 #seconds
+time_limit = 2 #seconds
 
 with open("ingest_utils/testdata/mediawiki_header.xml", "r") as f:
      mediawiki_header = ""
@@ -96,7 +96,7 @@ class TestWikiIngester(unittest.TestCase):
     costed_time = time.time() - start
     self.assertLessEqual(costed_time, time_limit)
     print("Time spent on parsing: ", costed_time)
-  #  os.system("rm ingest_utils/testdata/gigantic_xml.xml")
+    os.system("rm ingest_utils/testdata/gigantic_xml.xml")
 
 if __name__ == '__main__':
   unittest.main()
