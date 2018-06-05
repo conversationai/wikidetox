@@ -97,7 +97,7 @@ class TestParDo(unittest.TestCase):
       self.assertEqual(len(results), 5)
     def test_full(self):
       # Test Full Pipeline
-      os.system('python dataflow_main.py --ingestFrom=local --localStorage=ingest_utils/testdata/test_wiki_dump1.xml.bz2 --testmode --output gs://wikidetox-viz-dataflow/test/')
+      os.system('python dataflow_main.py --ingestFrom=local --localStorage=ingest_utils/testdata/test_wiki_dump.xml.bz2 --testmode --output gs://wikidetox-viz-dataflow/test/')
 
 if __name__ == '__main__':
    logging.getLogger().setLevel(logging.INFO)
