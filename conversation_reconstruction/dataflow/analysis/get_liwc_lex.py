@@ -1,6 +1,8 @@
 import json
 from collections import defaultdict
 cats = [10, 12, 18, 16, 3, 9, 17, 20]
+# category numbers to select conversational markers from LIWC
+
 dat = defaultdict(list)
 cnts = 0
 with open("data/LIWC2007_English080730.dic", "r") as f:

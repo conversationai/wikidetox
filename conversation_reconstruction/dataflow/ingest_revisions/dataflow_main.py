@@ -24,9 +24,25 @@ python dataflow_main.py --setup_file ./setup.py
 
 Args:
 
+ingestFrom: choose from the three options : {wikipedia, local, cloud}:
+  - wikipedia: performs the downloading job from Wikipedia, run with:
+               [python dataflow_main.py --setup_file ./setup.py\
+               --ingestFrom=wikipedia --download --language=YourLanguage --dumpdate=YourDumpdate --cloudBucket=YourCloudBucket]
+  - local: Tests the pipeline locally, run the code with
+           [python dataflow_main.py --setup_file ./setup.py\
+            --ingestFrom=local --localStorage=YourLocalStorage --testmode --output=YourOutputStorage]
+  - cloud: Reads from downloaded bz2 files on cloud, performs the ingestion job,
+    run the code with
+           [python dataflow_main.py --setup_file ./setup.py\
+           [--ingestFrom=cloud --output=YourOutputStorage --cloudBucket=YourCloudBucket]
+
 output: the data storage where you want to store the ingested results
 language: the language of the wikipedia data you want to extract, e.g. en, fr, zh
 dumpdate: the dumpdate of the wikipedia data, e.g. latest
+testmode: if turned on, the pipeline runs on DirectRunner.
+localStorage: the location of the local test file.
+download: if turned on, the pipeline only performs downloading job from Wikipedia.
+cloudBucket: the cloud bucket where the ingestion reads from or the download stores to.
 """
 
 from __future__ import absolute_import
@@ -38,10 +54,10 @@ import json
 import sys
 import zlib
 import copy
-from os import path
-from ingest_utils.wikipedia_revisions_ingester import parse_stream 
-import math
 import bz2
+from os import path
+from ingest_utils.wikipedia_revisions_ingester import parse_stream
+import math
 import os
 import time
 import urllib
@@ -54,6 +70,9 @@ from HTMLParser import HTMLParser
 import re
 import argparse
 import boto
+import gcs_oauth2_boto_plugin
+# boto needs to be configured, see here:
+# https://cloud.google.com/storage/docs/boto-plugin#setup-python
 
 import apache_beam as beam
 from apache_beam.metrics.metric import Metrics
@@ -88,9 +107,10 @@ def run(known_args, pipeline_args, sections):
   pipeline_options.view_as(SetupOptions).save_main_session = True
   with beam.Pipeline(options=pipeline_options) as p:
     pcoll = (p | "GetDataDumpList" >> beam.Create(sections))
-    if known_args.ingestFrom == 'wikipedia':
+    if known_args.download:
        pcoll = (pcoll | "DownloadDataDumps" >> beam.ParDo(DownloadDataDumps(), known_args.bucket))
-    pcoll = ( pcoll | "Ingestion" >> beam.ParDo(WriteDecompressedFile(), known_args.bucket, known_args.ingestFrom)
+    else:
+       pcoll = ( pcoll | "Ingestion" >> beam.ParDo(WriteDecompressedFile(), known_args.bucket, known_args.ingestFrom)
             | "AddGroupByKey" >> beam.Map(lambda x: ('{week}at{year}'.format(week=x['week'], year=x['year']), x))
             | "ShardByWeek" >>beam.GroupByKey()
             | "WriteToStorage" >> beam.ParDo(WriteToStorage(), known_args.output, known_args.dumpdate, known_args.language))
@@ -101,23 +121,15 @@ class DownloadDataDumps(beam.DoFn):
        Returns the cloud storage location.
     """
     mirror, chunk_name =  element
-    print("CHUNK ", chunk_name)
     logging.info('USERLOG: Download data dump %s to store in cloud storage.' % chunk_name)
     # Download data dump from Wikipedia and upload to cloud storage.
     url = mirror + "/" + chunk_name
-    filename = chunk_name[:-4]
-    decompressor = bz2.BZ2Decompressor()
-    dwd_stream = urllib.urlopen(url)
-    CHUNK = 16 * 1024 * 1024
-    write_path = path.join('gs://', bucket, filename)
-    outputfile = filesystems.FileSystems.create(write_path)
-    while True:
-       chunk = dwd_stream.read(CHUNK)
-       if not chunk: break
-       outputfile.write(decompressor.decompress(chunk))
-    dwd_stream.close()
-    outputfile.close()
-    yield filename
+    write_path = path.join('gs://', bucket, chunk_name)
+    urllib.urlretrieve(url, chunk_name)
+    os.system("gsutil cp %s %s" % (chunk_name, write_path))
+    os.system("rm %s"%chunk_name)
+    yield chunk_name
+    return
 
 class WriteDecompressedFile(beam.DoFn):
   def __init__(self):
@@ -132,11 +144,12 @@ class WriteDecompressedFile(beam.DoFn):
     if ingestFrom == 'local':
        input_stream = chunk_name
     else:
-       input_stream = filesystems.FileSystems.open(path.join('gs://', bucket, chunk_name))
+       os.system("gsutil -m cp %s %s"%(path.join('gs://', bucket, chunk_name), chunk_name))
+       input_stream = chunk_name
     # Running ingestion on the xml file
     last_revision = 'None'
     last_completed = time.time()
-    for i, content in enumerate(parse_stream(input_stream)):
+    for i, content in enumerate(parse_stream(bz2.BZ2File(chunk_name))):
       self.processed_revisions.inc()
       # Add the week and year field for sharding
       dt = datetime.strptime(content['timestamp'], "%Y-%m-%dT%H:%M:%SZ")
@@ -147,7 +160,7 @@ class WriteDecompressedFile(beam.DoFn):
       yield content
       logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=last_revision, time=time.time() - last_completed))
       last_completed = time.time()
-    input_stream.close()
+    if ingestFrom != 'local': os.system("rm %s"%chunk_name)
     logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, last_revision %s' % (chunk_name, i, last_revision))
 
 class WriteToStorage(beam.DoFn):
@@ -196,9 +209,13 @@ if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
   # Define parameters
   parser = argparse.ArgumentParser()
-  # Options: local, wikipedia, cloud
+  # Options: local, cloud
   parser.add_argument('--ingestFrom',
-                      dest='ingestFrom')
+                      dest='ingestFrom',
+                      default='none')
+  parser.add_argument('--download',
+                      dest='download',
+                      action='store_true')
   parser.add_argument('--output',
                       dest='output',
                       default='gs://wikidetox-viz-dataflow/ingested',
@@ -217,13 +234,13 @@ if __name__ == '__main__':
                       help='Specify the date of the Wikipedia data dump.')
   parser.add_argument('--localStorage',
                       dest='localStorage',
-                      default='ingest_utils/testdata/test_wiki_dump.xml',
+                      default='ingest_utils/testdata/test_wiki_dump.xml.bz2',
                       help='If ingest from local storage, please specify the location of the input file.')
   parser.add_argument('--testmode',
                       dest='testmode',
                       action='store_true')
   known_args, pipeline_args = parser.parse_known_args()
-  if known_args.ingestFrom == 'wikipedia':
+  if known_args.download:
      # If specified downloading from Wikipedia
      dumpstatus_url = 'https://dumps.wikimedia.org/{lan}wiki/{date}/dumpstatus.json'.format(lan=known_args.language, date=known_args.dumpdate)
      try:
@@ -236,14 +253,12 @@ if __name__ == '__main__':
         # latest version.
         mirror = 'http://dumps.wikimedia.your.org/{lan}wiki/latest'.format(lan=known_args.language)
         sections = directory(mirror)
-  else:
+  if known_args.ingestFrom == "cloud":
      sections = []
      uri = boto.storage_uri(known_args.bucket, GOOGLE_STORAGE)
      prefix = known_args.bucket[known_args.bucket.find('/')+1:]
-     #known_args.bucket
      for obj in uri.list_bucket(prefix=prefix):
         sections.append(obj.name[obj.name.rfind('/') + 1:])
   if known_args.ingestFrom == 'local':
      sections = [known_args.localStorage]
   run(known_args, pipeline_args, sections)
- 
