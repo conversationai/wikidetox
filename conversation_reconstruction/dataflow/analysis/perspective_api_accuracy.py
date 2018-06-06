@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 import private
 import sklearn
+import logging
 
 attributes = ['identity_hate', 'insult', 'obscene', 'threat']
 
@@ -10,15 +11,18 @@ def call_perspective_api(text):
     path = ' https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze?key=%s' % PERSPECTIVE_KEY
     request = {
         'comment' : {'text' : text},
-        'spanAnnotations': True, 
+        'spanAnnotations': True,
         'requestedAttributes' : {'TOXICITY_'+a.upper():{} for a in attributes},
-        'doNotStore' : True, 
+        'doNotStore' : True,
     }
-    response = requests.post(path, json=request)
+
+    while True:
+        response = requests.post(path, json=request)
+        if response.status_code != 429:
+           break
+        time.sleep(10)
+
     prob = {}
-    if response.status_code == 429:
-       time.sleep(10)
-       return call_perspective_api(text) 
     if response.status_code == 200:
         data = json.loads(response.text)
         scores_simplified = {}
@@ -30,8 +34,7 @@ def call_perspective_api(text):
        return None
 
 def retrieve_scores():
-    with open("train.csv", "r") as f:
-         df = pd.read_csv(f, index_col=0)
+    df = pd.read_csv("train.csv", index_col=0)
     data = df.T.to_dict().values()
     labels = {a.lower():[] for a in attributes}
     scores = {a.lower():[] for a in attributes}
@@ -47,12 +50,13 @@ def retrieve_scores():
             scores[l].append(score['toxicity_'+l])
         cnt += 1
         if cnt % 500 == 0:
-           print("%d/%d finished."%(cnt, length))
+           logging.info("PROGRESS LOG: %d/%d finished." % (cnt, length))
     with open("tmp1.json", "w") as f:
          f.write(json.dumps(labels) + '\n')
          f.write(json.dumps(scores) + '\n')
 
 eps = 1e-10
+logging.getLogger.setLevel(logging.INFO)
 
 def compute_p_r(pred):
     true_positive = sum([int(arg[0] == arg[1] and arg[0] == 1) for arg in pred])
