@@ -126,7 +126,7 @@ class DownloadDataDumps(beam.DoFn):
     url = mirror + "/" + chunk_name
     write_path = path.join('gs://', bucket, chunk_name)
     urllib.urlretrieve(url, chunk_name)
-    os.system("gsutil cp %s %s"%(chunk_name, write_path))
+    os.system("gsutil cp %s %s" % (chunk_name, write_path))
     os.system("rm %s"%chunk_name)
     yield chunk_name
     return
@@ -160,7 +160,7 @@ class WriteDecompressedFile(beam.DoFn):
       yield content
       logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=last_revision, time=time.time() - last_completed))
       last_completed = time.time()
-    if not(ingestFrom == 'local'): os.system("rm %s"%chunk_name)
+    if ingestFrom != 'local': os.system("rm %s"%chunk_name)
     logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, last_revision %s' % (chunk_name, i, last_revision))
 
 class WriteToStorage(beam.DoFn):
