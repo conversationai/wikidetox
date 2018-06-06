@@ -38,18 +38,18 @@ from .utils.insert_utils import *
 from .utils.actions import *
 
 def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
-    """    
+    """
        Given the current revision, page state and previously deleted comments.
        This function compares the latest processed revision with the input revision 
        and determine what kind of conversation actions were done to the page. 
        It returns the list of actions and the updated page state.
-       
+
        One main component here is the page state -- page['actions'],
        it's a dictionary with the key as an offset on the page representing a starting position 
        of an action, and the value is a tuple (action_id, indentation).
        The endding offset is also included in the list, with (-1, -1) denoting the boundary of 
        the page.
-    """ 
+    """
     comment_removals = []
     tmp_rmvs = []
     comment_additions = []
@@ -81,7 +81,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
                 old_action_start = get_action_start(old_actions, op['a1'])
                 # Find the corresponding existed comment and set a flag
                 modification_actions[old_action_start] = True
-                
+
 
         if op['name'] == 'delete':
             # Deletions may remove multiple comments at the same time
