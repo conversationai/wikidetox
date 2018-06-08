@@ -30,6 +30,8 @@ import sys
 import traceback
 import atexit
 import os
+import logging
+import resource
 from .utils.third_party.deltas.tokenizers import text_split
 from .utils.third_party.rev_clean import clean
 from .utils.diff import diff_tuning
@@ -37,7 +39,7 @@ from .utils.third_party.deltas.algorithms import sequence_matcher
 from .utils.insert_utils import *
 from .utils.actions import *
 
-def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
+def insert(rev, page, previous_comments):
     """
        Given the current revision, page state and previously deleted comments.
        This function compares the latest processed revision with the input revision 
@@ -59,9 +61,8 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
     rev_text = text_split.tokenize(rev['text'])
     # Process each operation in the diff
     for op in rev['diff']:
-        if DEBUGGING_MODE : 
-           print(op['name'], op['a1'], op['a2'], op['b1'], op['b2'])
-           if 'tokens' in op: print((''.join(op['tokens'])).encode('utf-8'))
+        logging.debug("DIFFs GENERATED: %s %d %d %d %d" % \
+                     (op['name'], op['a1'], op['a2'], op['b1'], op['b2']))
         # Ignore parts that remain the same
         if op['name'] == 'equal':
             continue
@@ -74,8 +75,8 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
                     for c in divide_into_section_headings_and_contents(op, content):
                         # Divide the newly added content into headings and contents
                         comment_additions.append(c)
-                        if DEBUGGING_MODE:
-                           print('COMMENT ADDITIONS:', c['a1'], c['a2'], c['b1'], c['b2'], (''.join(c['tokens'])).encode("utf-8"), len(c['tokens']))
+                        logging.debug("ADDITION Added: Offset (%d, %d, %d, %d) Length (%d)" \
+                                      % (c['a1'], c['a2'], c['b1'], c['b2'], len(c['tokens'])))
             else:
                 # If the current insertion is modifying an existed comment
                 old_action_start = get_action_start(old_actions, op['a1'])
@@ -141,8 +142,7 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
                 end_tok = start_tok + len(removal[1]['tokens'])
                 end_tokens.append((start_tok + insert['b1'], end_tok + insert['b1']))
                 rearrangement[removal[1]['a1']] = start_tok + insert['b1']
-                if DEBUGGING_MODE: 
-                   print('REARRANGEMENT: ', removal[1]['a1'], start_tok + insert['b1'])
+                logging.debug('REARRANGEMENT FOUND: Offset (%d, %d).' % (removal[1]['a1'], start_tok + insert['b1']))
                 tmp_ins = []
                 # Divide the comment addition
                 if not(start_tok == 0):
@@ -181,16 +181,20 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
     updated_page['page_title'] = rev['page_title']
     for act in old_actions:
         if not(act in modification_actions or act in removed_actions):
-            # If an action is modified, we locate it later
-            # If an action is removed, we ignore it in the updated page state
+            # If an action is modified, we locate it later.
+            # If an action is removed, we ignore it in the updated page state.
             new_pos = locate_new_token_pos(act, rev['diff'])
-            # Otherwise we try to locate its updated offset position in the current revision 
-            if DEBUGGING_MODE and page['actions'][act] == (-1, -1): print(act, new_pos)
+            # Otherwise we try to locate its updated offset position in the
+            # current revision.
+            if page['actions'][act] == (-1, -1): 
+               logging.debug("DOCUMENT END: %d -> %d." % (act, new_pos))
             updated_page['actions'][new_pos] = page['actions'][act]
-        # If an action is in rearrangement(it will also be in the removed action set) 
-        # The updated action should be registered into its newly rearranged location
+        # If an action is in rearrangement(it will also be in the removed action
+        # set).
+        # The updated action should be registered into its newly rearranged
+        # location.
         if act in rearrangement:
-               updated_page['actions'][rearrangement[act]] = page['actions'][act]
+           updated_page['actions'][rearrangement[act]] = page['actions'][act]
 
     
     # Locate the updated offset of existed actions that were modified in the current revision
@@ -238,16 +242,13 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
             end_tokens.append((k1_tok + insert_op['b1'], k2_tok + insert_op['b1']))
             last_tok = k2_tok
             last_pos = k2
-            if DEBUGGING_MODE:
-               print('restoration:', tokens[k1_tok:k2_tok], k1_tok + insert_op['b1'], k2_tok + insert_op['b1'])
-
+            logging.debug('RESTORATION: Content (%s), Offest (%d, %d).' %\
+                          (tokens[k1_tok:k2_tok], k1_tok + insert_op['b1'], k2_tok + insert_op['b1']))
         last_op = {}
         last_op['a1'] = insert_op['a1']
         last_op['a2'] = insert_op['a2']
         last_op['b1'] = last_tok + insert_op['b1']
         last_op['b2'] = insert_op['b2']
-        if DEBUGGING_MODE:
-           print(last_op, insert_op['b2'])
 
         if last_op['b2'] - last_op['b1'] > 0:
             last_op['tokens'] = insert_op['tokens'][last_tok:]
@@ -265,74 +266,49 @@ def insert(rev, page, previous_comments, DEBUGGING_MODE = False):
         if not(end_tok in updated_page['actions']):
             tmp_lst = sorted(list(updated_page['actions'].keys()))
             last_rev = tmp_lst[find_pos(start_tok, tmp_lst) - 1]
-            if DEBUGGING_MODE:
-               print(start_tok, end_tok)
+            logging.debug("ACTION OFFSETS: (%d, %d)" % (start_tok, end_tok))
             updated_page['actions'][end_tok] = updated_page['actions'][last_rev]
-    if DEBUGGING_MODE:
-       print(updated_page['actions'])
-    
-    if DEBUGGING_MODE:
-        print([(action['type'] , action['id'])for action in updated_actions])
-                  
-    # Sanity checks 
+    logging.debug("ACTIONS FOUND : %s." % (','.join([action['type'] for action in updated_actions])))
+    # Sanity checks
     # The page states must start with 0 and end with the last token as a boundary
     # The value of the page boundary must be (-1, -1)
-    # (-1, -1) denotes the page boundary, thus no other positions should have the same value. 
+    # (-1, -1) denotes the page boundary, thus no other positions should have the same value.
     assert (0 in updated_page['actions'])
     eof = max(list(updated_page['actions'].keys()))
-    if DEBUGGING_MODE:
-       print(eof)
     for action, val in updated_page['actions'].items():
         if not(action == eof):
-           assert not(val == (-1, -1)) 
+           assert not(val == (-1, -1))
     assert updated_page['actions'][eof] == (-1, -1)
-    
     updated_actions = sorted(updated_actions, key = lambda k: int(k['id'].split('.')[1]))
     return updated_actions, updated_page
 
 
 class Conversation_Constructor:
     def __init__(self):
-        self.page = {}
-        self.THERESHOLD = 10 
-        # Deleted comments with less than this number of tokens will not be recorded 
+        self.COMMENT_LOWERBOUND = 10
+        self.COMMENT_UPPERBOUND = 1000
+        # Deleted comments with less than this number of tokens will not be recorded
         # thus not considered in comment restoration actions to reduce confusion.
-        self.conversation_ids = {}
-        self.authorship = {}
-        self.deleted_comments = []
         self.deleted_records = {}
-        self.latest_content = ""
-        self.revids = []
-        self.NOT_EXISTED = True
-           
+
     def page_creation(self, rev):
         page = {}
         page['page_id'] = rev['page_id']
         page['actions'] = {}
         page['page_title'] = rev['page_title']
-        page['actions'][0] = (-1, -1) 
-        self.NOT_EXISTED = False 
-        return page        
+        page['actions'][0] = (-1, -1)
+        return page
 
-    def load(self, page_state, deleted_comments, conversation_ids, authorship, latest_content):
+    def load(self, deleted_comments):
         """
           Load the previous page state, deleted comments and other information
         """
-        self.page = json.loads(page_state)
-        self.page['actions'] = {int(key): tuple(val) for key, val in self.page['actions'].items()}
-        self.conversation_ids = json.loads(conversation_ids) 
-        self.authorship = {action: set([tuple(p) for p in x]) for action, x in json.loads(authorship).items()}
-        self.deleted_comments = []
         self.deleted_records = {}
-        self.latest_content = clean(latest_content)
         self.previous_comments = NoAho()
-        for pair in json.loads(deleted_comments):
+        for pair in deleted_comments:
             self.previous_comments.add(pair[0], (pair[1], int(pair[2])))
             self.deleted_records[pair[1]] = True
-        self.NOT_EXISTED = False 
-        return 
-
-
+        return
 
     def convert_diff_format(self, x, a, b):
         ret = {}
@@ -347,7 +323,7 @@ class Conversation_Constructor:
            ret['tokens'] = a[x.a1:x.a2]
         return ret 
    
-    def clean_dict(self, the_dict):
+    def clean_dict(self, page, the_dict):
         """
           We only store the information of currently 'alive' actions.
           Definition of alive: 
@@ -356,81 +332,89 @@ class Conversation_Constructor:
         """
         keylist = the_dict.keys()
         ret = the_dict
-        alive_actions = set([action[0] for action in self.page['actions'].values()])
+        alive_actions = set([action[0] for action in page['actions'].values()])
         for action in keylist:
             if not(action in alive_actions or action in self.deleted_records):
                del ret[action]
         return ret
-        
-    def process(self, rev, DEBUGGING_MODE = False):
-        if DEBUGGING_MODE:
-           print('REVISION %s'%rev['rev_id'])
-        self.revids.append(int(rev['rev_id'])) 
+
+    def process(self, page_state, latest_content, rev):
+        logging.debug("DEBUGGING MODE on REVISION %s" % rev['rev_id'])
         # Clean the HTML format of the revision
         rev['text'] = clean(rev['text'])
         # Compute the diff between the latest processed revision and the current one
-        a = text_split.tokenize(self.latest_content)
+        a = text_split.tokenize(latest_content)
         b = text_split.tokenize(rev['text']) 
         rev['diff'] = sorted([self.convert_diff_format(x, a, b) for x in list(sequence_matcher.diff(a, b))], key=lambda k: k['a1'])
         rev['diff'] = diff_tuning(rev['diff'], a, b)
         rev['diff'] = sorted(rev['diff'], key=lambda k: k['a1'])
         # Create a new page if this page was not processed at all before
-        if self.NOT_EXISTED:
+        if not(page_state):
             self.previous_comments = NoAho()
             old_page = self.page_creation(rev)
-        else:    
-            old_page = self.page
-        self.latest_content = rev['text']
-    
+            page_state = {'rev_id': int(rev['rev_id']), \
+                          'timestamp': rev['timestamp'], \
+                          'page_id': rev['page_id'], \
+                          'deleted_comments': [], \
+                          'conversation_id': {}, \
+                          'authors': {}}
+        else:
+            page_state['rev_id'] = int(rev['rev_id'])
+            page_state['timestamp'] = rev['timestamp']
+            old_page = page_state['page_state']
+
         # Process the revision to get the actions and update page state
-        actions, updated_page = insert(rev, old_page, self.previous_comments, DEBUGGING_MODE)
-        self.page = updated_page
+        actions, updated_page = insert(rev, old_page, self.previous_comments)
+        page_state['page_state'] = updated_page
         # Post process of the actions: 
         for action in actions:
             # If the action is adding new content
             # - locate which conversation does it belong to
             # - record the name of the author into the author list of the comment
-            if action['type'] == 'COMMENT_ADDING' or action['type'] == 'COMMENT_MODIFICATION' \
-               or action['type'] == 'SECTION_CREATION':
+            if action['type'] == 'ADDITION' or action['type'] == 'MODIFICATION' \
+               or action['type'] == 'CREATION':
                if action['replyTo_id'] == None:
-                  self.conversation_ids[action['id']] = action['id']
+                  page_state['conversation_id'][action['id']] = action['id']
                else:
-                  self.conversation_ids[action['id']] = self.conversation_ids[action['replyTo_id']]
-               if action['type'] == 'COMMENT_MODIFICATION':
-                  self.authorship[action['id']] = set(self.authorship[action['parent_id']])
-                  self.authorship[action['id']].add((action['user_id'], action['user_text']))
+                  page_state['conversation_id'][action['id']] = \
+                      page_state['conversation_id'][action['replyTo_id']]
+               if action['type'] == 'MODIFICATION':
+                  page_state['authors'][action['id']] = \
+                      set(page_state['authors'][action['parent_id']])
+                  page_state['authors'][action['id']].add((action['user_id'], action['user_text']))
                else:
-                  self.authorship[action['id']] = set([(action['user_id'], action['user_text'])])
+                  page_state['authors'][action['id']] = set([(action['user_id'], action['user_text'])])
             else:
-               self.authorship[action['id']] = set(self.authorship[action['parent_id']])  
+                page_state['authors'][action['id']] = \
+                    set(page_state['authors'][action['parent_id']])
             # If a comment was rearranged in an action, the conversation it belongs to might as well get changed.
-            if action['type'] == 'COMMENT_REARRANGEMENT':
+            if action['type'] == 'REARRANGEMENT':
                if action['replyTo_id'] == None:
-                  self.conversation_ids[action['id']] = action['id']
+                  page_state['conversation_id'][action['id']] = action['id']
                else:
-                  self.conversation_ids[action['id']] = self.conversation_ids[action['replyTo_id']]
+                  page_state['conversation_id'][action['id']] = \
+                        page_state['conversation_id'][action['replyTo_id']]
             # If a comment is removed or restored, we consider it belongs to the same conversation as its original version.
-            if action['type'] == 'COMMENT_REMOVAL':
-               self.conversation_ids[action['id']] = self.conversation_ids[action['parent_id']]
-            if action['type'] == 'COMMENT_RESTORATION':
-               self.conversation_ids[action['id']] = self.conversation_ids[action['parent_id']]
-            action['conversation_id'] = self.conversation_ids[action['id']]
-            action['authors'] = json.dumps(list(self.authorship[action['id']]))
+            if action['type'] == 'DELETION':
+               page_state['conversation_id'][action['id']] = \
+                        page_state['conversation_id'][action['parent_id']]
+            if action['type'] == 'RESTORATION':
+               page_state['conversation_id'][action['id']] = \
+                        page_state['conversation_id'][action['parent_id']]
+            action['conversation_id'] = page_state['conversation_id'][action['id']]
+            action['authors'] = list(page_state['authors'][action['id']])
             action['page_id'] = rev['page_id']
-            action['page_title'] = rev['page_title'] 
+            action['page_title'] = rev['page_title']
             # If a comment is deleted, we add it to the recently deleted set for identifying restoration actions later. Note that recently means a time span of at least a week, it can be longer if you have enough memory.
-            if action['type'] == 'COMMENT_REMOVAL' and len(action['content']) > self.THERESHOLD:
-                self.deleted_comments.append((''.join(action['content']), action['parent_id'], action['indentation']))
+            if action['type'] == 'DELETION' and\
+                len(action['content']) > self.COMMENT_LOWERBOUND and\
+                len(action['content']) < self.COMMENT_UPPERBOUND:
+                page_state['deleted_comments'].append((''.join(action['content']), action['parent_id'], action['indentation']))
                 self.deleted_records[action['parent_id']] = True
                 self.previous_comments.add(''.join(action['content']), (action['parent_id'], action['indentation']))
-        self.conversation_ids = self.clean_dict(self.conversation_ids)
-        self.authorship = self.clean_dict(self.authorship)
-        # Update the page state
-        page_state = {'rev_id': int(rev['rev_id']), \
-                      'timestamp': rev['timestamp'], \
-                      'page_id': rev['page_id'], \
-                      'page_state': json.dumps(self.page), \
-                      'deleted_comments': json.dumps(self.deleted_comments), \
-                      'conversation_id': json.dumps(self.conversation_ids), \
-                      'authors': json.dumps({action_id: list(authors) for action_id, authors in self.authorship.items()})}
-        return page_state, actions
+
+        page_state['conversation_id'] = self.clean_dict(updated_page, page_state['conversation_id'])
+        page_state['authors'] = self.clean_dict(updated_page, page_state['authors'])
+        # Set is not JSON serializable.
+        page_state['authors'] = {action_id: list(authors) for action_id, authors in page_state['authors'].items()}
+        return page_state, actions, rev['text']
