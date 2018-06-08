@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 """
 Copyright 2017 Google Inc.
@@ -74,7 +73,7 @@ def run(known_args, pipeline_args):
                    = ({'to_be_processed': to_be_processed, 'last_revision': last_revision, 'page_state': page_state}
                    # Join information based on page_id.
                    | beam.CoGroupByKey()
-                   | beam.ParDo(ReconstructConversation()).with_outputs('page_states','last_revision_output', main = 'reconstruction_results'))
+                   | beam.ParDo(ReconstructConversation()).with_outputs('page_states','last_revision', main = 'reconstruction_results'))
                    # Reconstruct the conversations.
     # Saving page states and latest processed revisionn to cloud for future
     # processing.
@@ -85,27 +84,27 @@ def run(known_args, pipeline_args):
 class ReconstructConversation(beam.DoFn):
   def merge(self, ps1, ps2):
        # Merge two page states, ps1 is the later one
-       deleted_ids_ps2 = {d[1]:d for d in json.loads(ps2['deleted_comments'])}
-       deleted_ids_ps1 = {d[1]:d for d in json.loads(ps1['deleted_comments'])}
+       deleted_ids_ps2 = {d[1]:d for d in ps2['deleted_comments']}
+       deleted_ids_ps1 = {d[1]:d for d in ps1['deleted_comments']}
        deleted_ids_ps2.update(deleted_ids_ps1)
        extra_ids = [key for key in deleted_ids_ps2.keys() if not(key in deleted_ids_ps1)]
        ret_p = copy.deepcopy(ps1)
-       ret_p['deleted_comments'] = json.dumps(list(deleted_ids_ps2.values()))
-       conv_ids = json.loads(ps2['conversation_id'])
-       auth = json.loads(ps2['authors'])
-       ret_p['conversation_id'] = json.loads(ret_p['conversation_id'])
-       ret_p['authors'] = json.loads(ret_p['authors'])
+       ret_p['deleted_comments'] = list(deleted_ids_ps2.values())
+       conv_ids = ps2['conversation_id']
+       auth = ps2['authors']
+       ret_p['conversation_id'] = ret_p['conversation_id']
+       ret_p['authors'] = ret_p['authors']
        for i in extra_ids:
-           ret_p['conversation_id'][i] = conv_ids[i] 
+           ret_p['conversation_id'][i] = conv_ids[i]
            ret_p['authors'][i] = auth[i]
-       ret_p['conversation_id'] = json.dumps(ret_p['conversation_id'])
-       ret_p['authors'] = json.dumps(ret_p['authors'])
+       ret_p['conversation_id'] = ret_p['conversation_id']
+       ret_p['authors'] = ret_p['authors']
        return ret_p
 
   def process(self, info):
     (page_id, data) = info
+    if (page_id == None): return
     logging.info('USERLOG: Reconstruction work start on page: %s' % page_id)
-    if (page_id == None) or (page_id == "34948919") or (page_id == "15854766") or (page_id == "32094486"): return
 
     # Load input from cloud
     rows = data['to_be_processed']
@@ -115,72 +114,64 @@ class ReconstructConversation(beam.DoFn):
     if not(last_revision == []):
        assert(len(last_revision) == 1)
        last_revision = last_revision[0]
-       last_revision['rev_id'] = int(last_revision['rev_id'])
     else:
        last_revision = None
     if not(page_state == []):
        assert(len(page_state) == 1)
        page_state = page_state[0]
-       page_state['rev_id'] = int(page_state['rev_id'])
     else:
        page_state = None
-
     for r in rows:
         r['rev_id'] = int(r['rev_id'])
 
     # Return when the page doesn't have updates to be processed
     if rows == []:
-       if not(last_revision == None):
+       assert((last_revision and page_state) or \
+              ((last_revision == None) and (page_state == None)))
+       if last_revision:
           yield beam.pvalue.TaggedOutput('last_revision_output', json.dumps(last_revision))
-       if not(page_state == None):
           yield beam.pvalue.TaggedOutput('page_states', json.dumps(page_state))
        return
 
     processor = Conversation_Constructor()
-    last_revision_to_save = last_revision
-    if not(page_state == None):
-       logging.info('Page %s existed: loading page state, last revision: %s' % (page_id, last_revision['rev_id'])) 
+    if page_state:
+       logging.info('Page %s existed: loading page state.' % (page_id))
        # Load previous page state.
-       processor.load(page_state['page_state'], page_state['deleted_comments'], page_state['conversation_id'], page_state['authors'], last_revision['text'])
+       processor.load(page_state['deleted_comments'])
+       latest_content = last_revision['text']
 
     # Initialize
     revision = {}
-    last_revision = 'None'
-    second_last_page_state = page_state
+    last_revision_id = 'None'
+    page_state_bak = None
     cnt = 0
     # Sort revisions by temporal order.
     revision_lst = sorted([r for r in rows], key=lambda k: (k['timestamp'], k['rev_id']))
     last_loading = 0
-    last_page_state = page_state
-    for cur_revision in revision_lst:
+    for revision in revision_lst:
         # Process revision by revision.
-        if not('rev_id' in cur_revision): continue
-        revision = cur_revision
+        if not('rev_id' in revision): continue
         cnt += 1
-        last_revision = revision['rev_id']
-        last_revision_to_save = copy.deepcopy(revision)
-        text = revision['text']
-        page_state, actions = processor.process(revision, DEBUGGING_MODE = False)
-        last_page_state = copy.deepcopy(page_state)
+        last_revision_id = revision['rev_id']
+        page_state, actions, latest_content = processor.process(page_state, latest_content, revision)
         for action in actions:
             yield json.dumps(action)
         if cnt % LOG_INTERVAL == 0 and cnt and not(page_state == []):
           # Reload after every LOG_INTERVAL revisions to keep the low memory
           # usage.
            processor = Conversation_Constructor()
-           second_last_page_state = copy.deepcopy(page_state)
+           page_state_bak = copy.deepcopy(page_state)
            last_loading = cnt
-           processor.load(page_state['page_state'], page_state['deleted_comments'], page_state['conversation_id'], page_state['authors'], text)
-    if second_last_page_state and not(cnt == last_loading):
+           processor.load(page_state['deleted_comments'])
+    if page_state_bak and not(cnt == last_loading):
        # Merge the last two page states if a reload happens while processing,
        # otherwise in a situation where a week's data contains LOG_INTERVAL + 1
        # revisions, the page state may only contain data from one revision.
-       last_page_state = self.merge(last_page_state, second_last_page_state)
-    assert(last_page_state and not(last_page_state == []))
-    assert(not(last_revision_to_save == []))
-    yield beam.pvalue.TaggedOutput('page_states', json.dumps(last_page_state))
-    yield beam.pvalue.TaggedOutput('last_revision_output', json.dumps(last_revision_to_save))
-    logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' % (page_id, last_revision))
+       page_state = self.merge(page_state, second_last_page_state)
+    assert(page_state and not(page_state == None))
+    yield beam.pvalue.TaggedOutput('page_states', json.dumps(page_state))
+    yield beam.pvalue.TaggedOutput('last_revision', json.dumps({'page_id': page_id, 'text': latest_content}))
+    logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' % (page_id, last_revision_id))
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
