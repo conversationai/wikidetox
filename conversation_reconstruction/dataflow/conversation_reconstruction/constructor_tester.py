@@ -44,7 +44,7 @@ import argparse
 import copy
 from construct_utils.conversation_constructor import Conversation_Constructor
 
-default_page_ids = [9373474]
+default_page_ids = [34948919]
 # PAGE 34948919: testing on memory usage and page state loading functionality
 # PAGE 9373473: REVISION 479969745, test on reconstruction correctness
 # SUGGESTED TESTs: 15854766, 32094486, 43758735, 22811813, 28031 
@@ -82,44 +82,39 @@ class TestReconstruction(unittest.TestCase):
         last_revision_to_save = None
         last_loading = 0
         latest_content = ""
-        with open("construct_utils/testdata/page_state_%d.json" % p, "w") as w:
-             with open("construct_utils/testdata/reversed_page_%d.json" % p, "r") as f:
-                for line in f:
-                    revision = json.loads(line)
-                    cnt += 1
-                    last_revision = revision['rev_id']
-                    if revision['rev_id'] in LOADING_TEST: 
-                       if second_last_page_state:
-                          page_state_test = merge(page_state, second_last_page_state)
-                       else:
-                          page_state_test = copy.deepcopy(page_state)
-                       processor_test = Conversation_Constructor()
-                       processor_test.load(page_state_test['deleted_comments'])
-                       _, actions_test, _ = \
-                          processor.process(page_state_test, latest_content, revision)
+        with open("construct_utils/testdata/reversed_page_%d.json" % p, "r") as f:
+           for line in f:
+               revision = json.loads(line)
+               cnt += 1
+               last_revision = revision['rev_id']
+               if revision['rev_id'] in LOADING_TEST: 
+                  if second_last_page_state:
+                     page_state_test = merge(page_state, second_last_page_state)
+                  else:
+                     page_state_test = copy.deepcopy(page_state)
+                  processor_test = Conversation_Constructor()
+                  processor_test.load(page_state_test['deleted_comments'])
+                  _, actions_test, _ = \
+                     processor.process(page_state_test, latest_content, revision)
 
-                    page_state, actions, latest_content = \
-                        processor.process(page_state, latest_content, revision)
-                    memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-                    self.assertLessEqual(memory_usage, memory_boundary)
-                    if revision['rev_id'] in LOADING_TEST:
-                       self.assertEqual(json.dumps(actions), json.dumps(actions_test))
+               page_state, actions, latest_content = \
+                   processor.process(page_state, latest_content, revision)
+               memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+               self.assertLessEqual(memory_usage, memory_boundary)
+               if revision['rev_id'] in LOADING_TEST:
+                  self.assertEqual(json.dumps(actions), json.dumps(actions_test))
 
-                    if second_last_page_state:
-                       w.write(json.dumps(merge(page_state, second_last_page_state)) + '\n')
-                    else:
-                       w.write(json.dumps(page_state) + '\n')
-                    for action in actions:
-                       pass
-                    if revision['rev_id'] == 479969745:
-                       self.assertEqual(len(actions), 2)
-                    logging.info("USRLOG: revision %d processed." % revision['rev_id'])
-                    if cnt % LOG_INTERVAL == 0 and cnt and not(page_state == None):
-                      # Reload after every LOG_INTERVAL revisions to keep the low memory
-                      # usage.
-                       processor = Conversation_Constructor()
-                       second_last_page_state = copy.deepcopy(page_state)
-                       processor.load(page_state['deleted_comments'])
+               for action in actions:
+                  pass
+               if revision['rev_id'] == 479969745:
+                  self.assertEqual(len(actions), 2)
+               logging.info("USRLOG: revision %d processed." % revision['rev_id'])
+               if cnt % LOG_INTERVAL == 0 and cnt and not(page_state == None):
+                 # Reload after every LOG_INTERVAL revisions to keep the low memory
+                 # usage.
+                  processor = Conversation_Constructor()
+                  second_last_page_state = copy.deepcopy(page_state)
+                  processor.load(page_state['deleted_comments'])
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.DEBUG)
