@@ -21,7 +21,7 @@ Run with default setting:
   python conversation_tester.py
 
 Optional:
-  -p [--page_lists] PAGE_ID_LIST
+  -p [--page_ids] PAGE_ID_LIST
 
 This tests the functionality on chosen pages, note that you need to download these pages first using fetch_testdata.py in construct_utils.
 
@@ -44,10 +44,11 @@ import argparse
 import copy
 from construct_utils.conversation_constructor import Conversation_Constructor
 
-default_page_ids = [34948919]
-# PAGE 34948919: testing on memory usage and page state loading functionality
+default_page_ids = []
+# PAGE 34948919, 15854766, 32094486, 43758735, 22811813: testing on memory usage
 # PAGE 9373473: REVISION 479969745, test on reconstruction correctness
-# SUGGESTED TESTs: 15854766, 32094486, 43758735, 22811813, 28031 
+# PAGE 476334: REVISION 74126950, error reconstruction
+# SUGGESTED TESTs: 28031
 default_load_test = [493084502, 305838972]
 
 def merge(ps1, ps2):
@@ -73,7 +74,7 @@ def merge(ps1, ps2):
 class TestReconstruction(unittest.TestCase):
   def test_reconstruction(self):
      for p in PAGES:
-        logging.info("TEST LOG: testing starts on page %d" % p)
+        logging.info("TEST LOG: testing starts on page %s" % str(p))
         processor = Conversation_Constructor()
         cnt = 0
         last_revision = "None"
@@ -82,8 +83,13 @@ class TestReconstruction(unittest.TestCase):
         last_revision_to_save = None
         last_loading = 0
         latest_content = ""
-        with open("construct_utils/testdata/reversed_page_%d.json" % p, "r") as f:
-           for line in f:
+        ans = []
+        if not(p == "dummy_test"):
+           filename = "construct_utils/testdata/reversed_page_%d.json" % p
+        else:
+           filename = "construct_utils/testdata/%s.json" % p
+        with open(filename, "r") as f:
+          for ind, line in enumerate(f):
                revision = json.loads(line)
                cnt += 1
                last_revision = revision['rev_id']
@@ -103,18 +109,25 @@ class TestReconstruction(unittest.TestCase):
                self.assertLessEqual(memory_usage, memory_boundary)
                if revision['rev_id'] in LOADING_TEST:
                   self.assertEqual(json.dumps(actions), json.dumps(actions_test))
-
+               ids = []
                for action in actions:
-                  pass
+                  ids.append(action['id'])
+                  ans.append("ID %s, TYPE %s, CONTENT: %s" % (action['id'], action['type'], action['content']))
+                  logging.debug("ID %s, TYPE %s, CONTENT: %s" % (action['id'], action['type'], action['content']))
+               assert(len(set(ids)) == len(actions))
                if revision['rev_id'] == 479969745:
                   self.assertEqual(len(actions), 2)
-               logging.info("USRLOG: revision %d processed." % revision['rev_id'])
+               logging.info("USRLOG: revision %d processed, number %d." % (revision['rev_id'], ind))
                if cnt % LOG_INTERVAL == 0 and cnt and not(page_state == None):
                  # Reload after every LOG_INTERVAL revisions to keep the low memory
                  # usage.
                   processor = Conversation_Constructor()
                   second_last_page_state = copy.deepcopy(page_state)
                   processor.load(page_state['deleted_comments'])
+        if p == "dummy_test":
+           with open("construct_utils/testdata/%s_ans.json" % p, "r") as f:
+              standard_ans = json.load(f)
+           self.assertEqual(''.join(ans), standard_ans)
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.DEBUG)
@@ -124,7 +137,8 @@ if __name__ == '__main__':
   parser.add_argument('-l', '--test_loading_on', dest='load_test',\
                       nargs='+', default=default_load_test, type=int)
   PAGES = parser.parse_args().page_ids
+  PAGES.append("dummy_test")
   LOADING_TEST = parser.parse_args().load_test
   LOG_INTERVAL = 100
-  memory_boundary = 40000 # in KB
+  memory_boundary = 1000000 # in KB
   unittest.main()

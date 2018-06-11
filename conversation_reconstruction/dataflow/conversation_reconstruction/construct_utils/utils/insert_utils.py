@@ -144,7 +144,7 @@ def locate_new_token_pos(old_pos, ops, errorchoice='raise_error'):
     new_pos = 0
     for op in ops:
         if op['name'] == 'equal':
-            if is_in_boundary(old_pos, op['a1'], op['a2']):
+           if is_in_boundary(old_pos, op['a1'], op['a2']) and not(new_pos):
                 new_pos = op['b1'] + old_pos - op['a1']
         else:
             if op['name'] == 'delete':
@@ -157,7 +157,7 @@ def locate_new_token_pos(old_pos, ops, errorchoice='raise_error'):
                         else:
                             new_pos = op['b1']
             if old_pos == op['a2']:
-                if errorchoice == 'left_bound':# and not(op['tokens'][-1].type == 'break' and op['name'] == 'insert'):
+                if errorchoice == 'left_bound':
                    new_pos = op['b1']
                 else:
                    new_pos = max(new_pos, op['b2'])
