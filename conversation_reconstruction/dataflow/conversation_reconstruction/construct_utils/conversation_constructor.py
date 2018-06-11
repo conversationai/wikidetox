@@ -33,7 +33,7 @@ import os
 import logging
 import resource
 from .utils.third_party.deltas.tokenizers import text_split
-from .utils.third_party.rev_clean import clean
+from .utils.third_party.rev_clean import clean, clean_html
 from .utils.diff import diff_tuning
 from .utils.third_party.deltas.algorithms import sequence_matcher
 from .utils.insert_utils import *
@@ -341,7 +341,7 @@ class Conversation_Constructor:
     def process(self, page_state, latest_content, rev):
         logging.debug("DEBUGGING MODE on REVISION %s" % rev['rev_id'])
         # Clean the HTML format of the revision
-        rev['text'] = clean(rev['text'])
+        rev['text'] = clean_html(rev['text'])
         # Compute the diff between the latest processed revision and the current one
         a = text_split.tokenize(latest_content)
         b = text_split.tokenize(rev['text']) 
@@ -405,6 +405,7 @@ class Conversation_Constructor:
             action['authors'] = list(page_state['authors'][action['id']])
             action['page_id'] = rev['page_id']
             action['page_title'] = rev['page_title']
+            action['cleaned_content'] = clean(action['content'])
             # If a comment is deleted, we add it to the recently deleted set for identifying restoration actions later. Note that recently means a time span of at least a week, it can be longer if you have enough memory.
             if action['type'] == 'DELETION' and\
                 len(action['content']) > self.COMMENT_LOWERBOUND and\

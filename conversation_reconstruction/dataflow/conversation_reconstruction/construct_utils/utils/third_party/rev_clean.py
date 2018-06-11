@@ -8,7 +8,6 @@ from builtins import (
          filter, map, zip)
 
 from bs4 import BeautifulSoup
-import mwparserfromhell
 import re
 import resource
 import logging
@@ -66,32 +65,26 @@ post_sub_patterns = [
 		    ('—Preceding .* comment added by   •', "")
                     ]
 
-def clean(rev):
+def clean_html(rev):
     ret = rev
-    # Remove timestmp.
-    #ret = re.sub(date_p , lambda x: "", rev)
-    #for p, r in pre_sub_patterns:
-    #    ret = re.sub(p, r, str(ret))
-    # Strip media wiki format.
-
-#    memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-#    logging.debug("MEMORY USAGE: %d KB before mw." % memory_usage)
-#
-#    ret = mwparserfromhell.parse(ret, skip_style_tags=True).strip_code()
-#    memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-#    logging.debug("MEMORY USAGE: %d KB after mw." % memory_usage)
-#    assert(memory_usage <= 100000)
-
-
     # Strip HTML format.
     try:
         ret = beautifulsoup(ret, 'html.parser').get_text()
     except:
         pass
-
-    #for p, r in post_sub_patterns:
-    #    ret = re.sub(p, r, str(ret))
-    #ret = re.sub('[\n]+', '\n', str(ret))
+    # Change format for better diff
     ret = '\n'.join([x.strip() for x in ret.splitlines() if not(x.strip() == "")]) + '\n'
     if ret == '\n': return ""
+    return ret
+
+def clean(rev):
+    ret = rev
+    # Remove timestmp.
+    ret = re.sub(date_p , lambda x: "", rev)
+    for p, r in pre_sub_patterns:
+        ret = re.sub(p, r, str(ret))
+    # Strip media wiki format.
+    for p, r in post_sub_patterns:
+        ret = re.sub(p, r, str(ret))
+    ret = re.sub('[\n]+', '\n', str(ret))
     return ret
