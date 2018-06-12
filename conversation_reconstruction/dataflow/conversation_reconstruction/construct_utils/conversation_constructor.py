@@ -32,7 +32,7 @@ import atexit
 import os
 import logging
 import resource
-from .utils.third_party.deltas.tokenizers import text_split
+from .utils.third_party import diff_match_patch as dmp_module
 from .utils.third_party.rev_clean import clean, clean_html
 from .utils.diff import diff_tuning
 from .utils.third_party.deltas.algorithms import sequence_matcher
@@ -58,7 +58,7 @@ def insert(rev, page, previous_comments, COMMENT_LOWERBOUND):
     removed_actions = {}
     old_actions = sorted(page['actions'].keys())
     modification_actions = defaultdict(int)
-    rev_text = text_split.tokenize(rev['text'])
+    rev_text = rev['text']
     # Process each operation in the diff
     modification_diffs = []
     for op in rev['diff']:
@@ -68,9 +68,12 @@ def insert(rev, page, previous_comments, COMMENT_LOWERBOUND):
             continue
         if op['name'] == 'insert':
             content = ''.join(op['tokens'])
-            if (op['tokens'][0].type == 'break' or op['b1'] == 0 or\
-               (op['b1'] > 0 and rev_text[op['b1'] - 1].type == 'break')) and\
-               (op['b2'] == len(rev_text) or op['tokens'][-1].type == 'break'):
+            if content == '':
+               continue
+            logging.debug("INSERT %s OFFSET (%d, %d)" % (content, op['b1'], op['b2']))
+            if (op['tokens'][0] == '\n' or op['b1'] == 0 or\
+               (op['b1'] > 0 and rev_text[op['b1'] - 1] == '\n')) and\
+               (op['b2'] == len(rev_text) or op['tokens'][-1] == '\n'):
                # Identify replies inline.
                if not(op['a1'] in old_actions):
                    old_actions.append(op['a1'])
@@ -80,8 +83,6 @@ def insert(rev, page, previous_comments, COMMENT_LOWERBOUND):
                for c in divide_into_section_headings_and_contents(op, content):
                    # Divide the newly added content into headings and contents
                    comment_additions.append(c)
-                   logging.debug("ADDITION Added: Offset (%d, %d, %d, %d) Length (%d)" \
-                                 % (c['a1'], c['a2'], c['b1'], c['b2'], len(c['tokens'])))
             else:
               modification_diffs.append(op)
     old_actions = sorted(old_actions)
@@ -111,6 +112,7 @@ def insert(rev, page, previous_comments, COMMENT_LOWERBOUND):
                 # Determine if the subset of the deletion is a comment removal
                 # or modification.
                 if delete_start > act or act == old_actions[deleted_action_end - 1]:
+                    logging.debug("MODIFICATION ON %d" %act)
                     modification_actions[act] = True
                     modification_diffs.append(op)
                 else:
@@ -119,11 +121,22 @@ def insert(rev, page, previous_comments, COMMENT_LOWERBOUND):
     for op in modification_diffs:
       if op['name'] == 'insert':
          content = ''.join(op['tokens'])
-         logging.debug("MODIFICATION INSERT %s" % content)
+         logging.debug("MODIFICATION INSERT CONTENT : %s, OFFSET (%d, %d)" % (content, op['b1'], op['b2']))
          # If the current insertion is modifying an existed comment
          old_action_start = get_action_start(old_actions, op['a1'])
-         # Find the corresponding existed comment and set a flag
-         modification_actions[old_action_start] = True
+         for ind, x in enumerate(old_actions):
+             if x == op['a1']: break
+         while (old_action_start in removed_actions and ind < len(old_actions)):
+           old_action_start = old_actions[ind]
+           ind += 1
+         if ind >= len(old_actions):
+            for c in divide_into_section_headings_and_contents(op, content):
+                # Divide the newly added content into headings and contents
+                comment_additions.append(c)
+            del op
+         else:
+            # Find the corresponding existed comment and set a flag
+            modification_actions[old_action_start] = True
     modification_diffs = sorted(modification_diffs, key=lambda k: k['a1'])
     rearrangement = {}
     updated_removals = []
@@ -146,7 +159,7 @@ def insert(rev, page, previous_comments, COMMENT_LOWERBOUND):
             if removed in inserted:
                 # Update the rearranagement action
                 start_pos = inserted.find(removed)
-                start_tok = len(text_split.tokenize(inserted[:start_pos]))
+                start_tok = len(inserted[:start_pos])
                 end_tok = start_tok + len(removal[1]['tokens'])
                 end_tokens.append((start_tok + insert['b1'], end_tok + insert['b1']))
                 rearrangement[removal[1]['a1']] = start_tok + insert['b1']
@@ -207,8 +220,9 @@ def insert(rev, page, previous_comments, COMMENT_LOWERBOUND):
         new_action_start = locate_new_token_pos(old_action_start, modification_diffs, 'left_bound')
         new_action_end = locate_new_token_pos(old_action_end, modification_diffs, 'right_bound')
         logging.debug("OLD %d -> %d" % (old_action_end, new_action_end))
+        logging.debug("OLD %d -> %d" % (old_action_start, new_action_start))
         # Get the updated text
-        tokens = text_split.tokenize(rev['text'])[new_action_start : new_action_end]
+        tokens = rev['text'][new_action_start : new_action_end]
         # Create the action modification object and register the new action
         new_action, new_pos, new_id, new_ind = comment_modification(old_action, tokens, new_action_start, new_action_end, rev, updated_page['actions'], old_action_start)
         updated_actions.append(new_action)
@@ -220,44 +234,34 @@ def insert(rev, page, previous_comments, COMMENT_LOWERBOUND):
     for insert_op in comment_additions:
         tokens = insert_op['tokens']
         text = ''.join(tokens)
-        last_tok = 0
         last_pos = 0
         # Using a trie package to locate substrings of previously deleted
         # comments present in the current addition action.
         for k1, k2, val in previous_comments.findall_long(text):
             # If a valid match was found, the addition content will be
             # decomposed.
-            k1_tok = len(text_split.tokenize(text[last_pos:k1])) + last_tok
-            last_pos = k2
-            k2_tok = min(len(tokens), len(text_split.tokenize(text[k1:k2])) + k1_tok)
-            if k1_tok >= k2_tok:
-               continue
             last_op = {}
-            last_op['tokens'] = tokens[last_tok:k1_tok]
+            last_op['tokens'] = tokens[last_pos:k1]
             # For parts that are not a restoration, it will be added back to the
             # addition list.
-            if not(last_op['tokens'] == []):
+            if not(last_op['tokens'] == ''):
                 last_op['a1'] = insert_op['a1']
                 last_op['a2'] = insert_op['a2']
-                last_op['b1'] = last_tok + insert_op['b1']
-                last_op['b2'] = k1_tok + insert_op['b1']
+                last_op['b1'] = last_pos + insert_op['b1']
+                last_op['b2'] = k1 + insert_op['b1']
                 updated_additions.append(last_op)
             # Create the restoration object and update its offset on page state.
-            updated_actions.append(comment_restoration(val[0], tokens[k1_tok:k2_tok], k1_tok + insert_op['b1'], rev, insert_op['a1']))
-            updated_page['actions'][k1_tok + insert_op['b1']] = val
-            end_tokens.append((k1_tok + insert_op['b1'], k2_tok + insert_op['b1']))
-            last_tok = k2_tok
+            updated_actions.append(comment_restoration(val[0], tokens[k1:k2], k1 + insert_op['b1'], rev, insert_op['a1']))
+            updated_page['actions'][k1 + insert_op['b1']] = val
+            end_tokens.append((k1 + insert_op['b1'], k2 + insert_op['b1']))
             last_pos = k2
-            logging.debug('RESTORATION: Content (%s), Offset (%d, %d).' %\
-                          (tokens[k1_tok:k2_tok], k1_tok + insert_op['b1'], k2_tok + insert_op['b1']))
         last_op = {}
         last_op['a1'] = insert_op['a1']
         last_op['a2'] = insert_op['a2']
-        last_op['b1'] = last_tok + insert_op['b1']
+        last_op['b1'] = last_pos + insert_op['b1']
         last_op['b2'] = insert_op['b2']
-
         if last_op['b2'] - last_op['b1'] > 0:
-            last_op['tokens'] = insert_op['tokens'][last_tok:]
+            last_op['tokens'] = insert_op['tokens'][last_pos:]
             updated_additions.append(last_op)
     comment_additions = updated_additions
     # Create the addition object and update the offsets on page state.
@@ -316,16 +320,11 @@ class Conversation_Constructor:
         return
 
     def convert_diff_format(self, x, a, b):
-        ret = {}
-        ret['name'] = x.name
-        ret['a1'] = x.a1
-        ret['a2'] = x.a2
-        ret['b1'] = x.b1
-        ret['b2'] = x.b2
-        if x.name == 'insert':
-           ret['tokens'] = b[x.b1:x.b2]
-        if x.name == 'delete':
-           ret['tokens'] = a[x.a1:x.a2]
+        ret = x
+        if x['name'] == 'insert':
+            ret['tokens'] = b[x['b1']:x['b2']]
+        if x['name'] == 'delete':
+           ret['tokens'] = a[x['a1']:x['a2']]
         return ret
 
     def clean_dict(self, page, the_dict):
@@ -351,11 +350,14 @@ class Conversation_Constructor:
         rev['text'] = clean_html(rev['text'])
         # Compute the diff between the latest processed revision and the current
         # one.
-        a = text_split.tokenize(latest_content)
-        b = text_split.tokenize(rev['text'])
-        rev['diff'] = sorted([self.convert_diff_format(x, a, b) for x in list(sequence_matcher.diff(a, b))], key=lambda k: k['a1'])
-        rev['diff'] = diff_tuning(rev['diff'], a, b)
-        rev['diff'] = sorted(rev['diff'], key=lambda k: k['a1'])
+        dmp = dmp_module.diff_match_patch()
+        diff = dmp.diff_main(latest_content, rev['text'])
+        dmp.diff_cleanupSemantic(diff)
+        delta = dmp.mydiff_toDelta(diff)
+        rev['diff'] = sorted([self.convert_diff_format(x, latest_content, rev['text']) \
+                              for x in dmp.mydiff_toDelta(diff)], key=lambda k: k['a1'])
+        #rev['diff'] = diff_tuning(rev['diff'], a, b)
+        #rev['diff'] = sorted(rev['diff'], key=lambda k: k['a1'])
         # Create a new page if this page was never processed before.
         if not(page_state):
             self.previous_comments = NoAho()
