@@ -44,7 +44,7 @@ import argparse
 import copy
 from construct_utils.conversation_constructor import Conversation_Constructor
 
-default_page_ids = []
+default_page_ids = [34948919, 15854766, 32094486, 43758735, 9373473, 476334, 28031]
 # PAGE 34948919, 15854766, 32094486, 43758735, 22811813: testing on memory usage
 # PAGE 9373473: REVISION 479969745, test on reconstruction correctness
 # PAGE 476334: REVISION 74126950, error reconstruction
@@ -130,7 +130,7 @@ class TestReconstruction(unittest.TestCase):
            self.assertEqual(''.join(ans), standard_ans)
 
 if __name__ == '__main__':
-  logging.getLogger().setLevel(logging.DEBUG)
+  logging.getLogger().setLevel(logging.INFO)
   parser = argparse.ArgumentParser()
   parser.add_argument('-p', '--page_ids', dest='page_ids',\
                       nargs='+', default=default_page_ids, type=int)

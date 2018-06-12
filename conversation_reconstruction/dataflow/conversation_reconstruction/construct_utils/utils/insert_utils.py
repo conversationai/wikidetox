@@ -16,10 +16,7 @@ limitations under the License.
 -------------------------------------------------------------------------------
 """
 
-
-
 from __future__ import absolute_import, division, print_function
-from .third_party.deltas.tokenizers import text_split
 import re
 import copy
 from collections import defaultdict
@@ -39,15 +36,13 @@ def isheading(line):
     for x in line:
         if x == '=':
            front_cnt += 1
-    for x in line[::-1]: 
+    for x in line[::-1]:
         if x == '=':
            back_cnt += 1
     if front_cnt == back_cnt and front_cnt > 0:
        return True
-   
 
 def divide_into_section_headings_and_contents(op, content):
-    assert len(text_split.tokenize(content)) == op['b2'] - op['b1']
     content += '==LASTLINESYMBOL==\n'
     lines = content.splitlines()
     comments = []
@@ -55,14 +50,14 @@ def divide_into_section_headings_and_contents(op, content):
     last_tok = 0
     for line in lines:
         if isheading(line):
-            cur_pos = content.find(line) 
-            cur_tok = last_tok + len(text_split.tokenize(content[:cur_pos]))
+            cur_pos = content.find(line)
+            cur_tok = last_tok + len(content[:cur_pos])
             comments.append([content[:cur_pos], last_tok, cur_tok])
             last_tok = cur_tok
-            cur_tok = cur_tok + len(text_split.tokenize(line)) + 1
+            cur_tok = cur_tok + len(line) + 1
             comments.append([line, last_tok, cur_tok])
             content = content[cur_pos + len(line) + 1:]
-            last_tok = cur_tok 
+            last_tok = cur_tok
     for tokens, b1, b2 in comments[:-1]:
         if b2 > b1:
             comment_op = copy.deepcopy(op)
@@ -128,11 +123,11 @@ def get_firstline(tokens):
 
 def get_indentation(tokens):
     cnt = 0
-    # if this is a creation of a section
+    # If this is a creation of a section.
     firstline = get_firstline(tokens)
-    if firstline[:2] == "==" and firstline[-2:] == "==":
+    if firstline[:1] == "=" and firstline[-1:] == "=":
         return -1
-    # if this is a normal section
+    # If this is a normal section.
     for t in firstline:
         if t == ':' or t == '*':
             cnt += 1
@@ -142,9 +137,13 @@ def get_indentation(tokens):
 
 def locate_new_token_pos(old_pos, ops, errorchoice='raise_error'):
     new_pos = 0
+    ops = sorted(ops, key=lambda k: (not(k['name'] == 'equal'), k['a1']))
     for op in ops:
         if op['name'] == 'equal':
-           if is_in_boundary(old_pos, op['a1'], op['a2']) and not(new_pos):
+          if is_in_boundary(old_pos, op['a1'], op['a2']):
+             if errorchoice == 'left_bound':
+                new_pos = op['b1'] + old_pos - op['a1']
+             elif not(new_pos):
                 new_pos = op['b1'] + old_pos - op['a1']
         else:
             if op['name'] == 'delete':
@@ -157,8 +156,8 @@ def locate_new_token_pos(old_pos, ops, errorchoice='raise_error'):
                         else:
                             new_pos = op['b1']
             if old_pos == op['a2']:
-                if errorchoice == 'left_bound':
+              if errorchoice == 'left_bound' and op['name'] == 'insert':
                    new_pos = op['b1']
-                else:
-                   new_pos = max(new_pos, op['b2'])
+              if not(errorchoice == 'left_bound'):
+                   new_pos = op['b2']
     return new_pos
