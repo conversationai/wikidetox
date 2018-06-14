@@ -85,8 +85,9 @@ def insert(rev, page, previous_comments, COMMENT_LOWERBOUND):
                    comment_additions.append(c)
             else:
               modification_diffs.append(op)
-    old_actions = sorted(old_actions)
     logging.debug("OLD ACTIONS: %s" % json.dumps(old_actions))
+    logging.debug("OLD ACTION LENGTH: %d" % len(old_actions))
+    old_actions = sorted(old_actions)
     for op in rev['diff']:
         if op['name'] == 'delete':
             content = ''.join(op['tokens'])
@@ -97,6 +98,8 @@ def insert(rev, page, previous_comments, COMMENT_LOWERBOUND):
             deleted_action_start = find_pos(delete_start, old_actions)
             deleted_action_end = find_pos(delete_end, old_actions)
             deleted_action_end = deleted_action_end + 1
+            logging.debug("DELETE %d %d" % (op['a1'], op['a2']))
+            logging.debug("DELETED ACTION : (%d, %d)" % (deleted_action_start, deleted_action_end))
             start_token = 0
             # If the deletion removes/modifies multiple coments,
             # divide the deletion into parts.
@@ -286,6 +289,7 @@ def insert(rev, page, previous_comments, COMMENT_LOWERBOUND):
     for action, val in updated_page['actions'].items():
         if not(action == eof):
            assert not(val == (-1, -1))
+    assert eof == len(rev['text'])
     # The page state value of the page boundary must be (-1, -1).
     assert updated_page['actions'][eof] == (-1, -1)
     updated_actions = sorted(updated_actions, key = lambda k: int(k['id'].split('.')[1]))
@@ -351,6 +355,7 @@ class Conversation_Constructor:
         # Compute the diff between the latest processed revision and the current
         # one.
         dmp = dmp_module.diff_match_patch()
+        logging.debug("LENGTH : %d -> %d" % (len(latest_content), len(rev['text'])))
         diff = dmp.diff_main(latest_content, rev['text'])
         dmp.diff_cleanupSemantic(diff)
         delta = dmp.mydiff_toDelta(diff)

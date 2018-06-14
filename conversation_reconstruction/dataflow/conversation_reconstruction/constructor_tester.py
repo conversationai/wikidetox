@@ -43,11 +43,14 @@ import resource
 import argparse
 import copy
 from construct_utils.conversation_constructor import Conversation_Constructor
+from construct_utils.utils.third_party.rev_clean import clean_html
 
-default_page_ids = [34948919, 15854766, 32094486, 43758735, 9373473, 476334, 28031]
+default_page_ids = [32094486] #[43758735, 9373473, 476334, 28031]
 # PAGE 34948919, 15854766, 32094486, 43758735, 22811813: testing on memory usage
 # PAGE 9373473: REVISION 479969745, test on reconstruction correctness
 # PAGE 476334: REVISION 74126950, error reconstruction
+
+# PAGE 32094486: DIFF ERROR ON REVISION 438455007
 # SUGGESTED TESTs: 28031
 default_load_test = [493084502, 305838972]
 
@@ -102,7 +105,8 @@ class TestReconstruction(unittest.TestCase):
                   processor_test.load(page_state_test['deleted_comments'])
                   _, actions_test, _ = \
                      processor.process(page_state_test, latest_content, revision)
-
+               json.dump(latest_content, open("diff_test_document_0.json", "w"))
+               json.dump(clean_html(revision['text']), open("diff_test_document_1.json", "w"))
                page_state, actions, latest_content = \
                    processor.process(page_state, latest_content, revision)
                memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
@@ -117,7 +121,7 @@ class TestReconstruction(unittest.TestCase):
                assert(len(set(ids)) == len(actions))
                if revision['rev_id'] == 479969745:
                   self.assertEqual(len(actions), 2)
-               logging.info("USRLOG: revision %d processed, number %d." % (revision['rev_id'], ind))
+               logging.info("USRLOG: revision %d processed, number %d on page %s." % (revision['rev_id'], ind, p))
                if cnt % LOG_INTERVAL == 0 and cnt and not(page_state == None):
                  # Reload after every LOG_INTERVAL revisions to keep the low memory
                  # usage.
@@ -130,7 +134,7 @@ class TestReconstruction(unittest.TestCase):
            self.assertEqual(''.join(ans), standard_ans)
 
 if __name__ == '__main__':
-  logging.getLogger().setLevel(logging.INFO)
+  logging.getLogger().setLevel(logging.DEBUG)
   parser = argparse.ArgumentParser()
   parser.add_argument('-p', '--page_ids', dest='page_ids',\
                       nargs='+', default=default_page_ids, type=int)

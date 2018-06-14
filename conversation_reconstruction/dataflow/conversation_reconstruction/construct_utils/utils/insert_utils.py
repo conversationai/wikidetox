@@ -31,14 +31,8 @@ def get_section_tokens(tokens, line):
             sofar += tok
 
 def isheading(line):
-    front_cnt = 0
-    back_cnt = 0
-    for x in line:
-        if x == '=':
-           front_cnt += 1
-    for x in line[::-1]:
-        if x == '=':
-           back_cnt += 1
+    front_cnt = re.serach("^=+", x).group(0)
+    back_cnt = re.search("^=+", x[::-1]).group(0)
     if front_cnt == back_cnt and front_cnt > 0:
        return True
 
@@ -125,7 +119,7 @@ def get_indentation(tokens):
     cnt = 0
     # If this is a creation of a section.
     firstline = get_firstline(tokens)
-    if firstline[:1] == "=" and firstline[-1:] == "=":
+    if isheading(firstline):
         return -1
     # If this is a normal section.
     for t in firstline:
@@ -158,6 +152,6 @@ def locate_new_token_pos(old_pos, ops, errorchoice='raise_error'):
             if old_pos == op['a2']:
               if errorchoice == 'left_bound' and op['name'] == 'insert':
                    new_pos = op['b1']
-              if not(errorchoice == 'left_bound'):
+              if errorchoice != 'left_bound':
                    new_pos = op['b2']
     return new_pos
