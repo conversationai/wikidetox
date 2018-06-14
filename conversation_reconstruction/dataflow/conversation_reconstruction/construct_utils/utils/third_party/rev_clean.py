@@ -66,7 +66,6 @@ post_sub_patterns = [
                     ]
 
 def clean_html(rev):
-    ret = rev
     # Remove timestmp.
     ret = re.sub(date_p , lambda x: "", rev)
 
@@ -82,10 +81,10 @@ def clean_html(rev):
     return ret
 
 def clean(rev):
-    ret = rev
+    ret = str(rev)
     for p, r in pre_sub_patterns:
-        ret = re.sub(p, r, str(ret))
+        ret = re.sub(p, r, ret)
     # Strip media wiki format.
     for p, r in post_sub_patterns:
-        ret = re.sub(p, r, str(ret))
+        ret = re.sub(p, r, ret)
     return ret

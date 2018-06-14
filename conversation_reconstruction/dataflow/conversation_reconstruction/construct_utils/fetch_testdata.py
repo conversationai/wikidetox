@@ -77,14 +77,14 @@ def get_revision(page_id):
      time.sleep(10)
   data = response.json()
   cnt = 0
-  for page, val in data['query']['pages'].items():
+  for page, val in data['query']['pages'].iteritems():
       for rev in val['revisions']:
           try:
              # In the case that some revisions are hidden in the API, the
              # collection process skips the revision.
              yield rename(rev, page_id)
              cnt += 1
-          except:
+          except ValueError:
              pass
   while ('continue' in data and 'rvcontinue' in data['continue']):
       logging.info("PROGRESS LOG: fetching page %d: %d revisions fetched." % (page_id, cnt))
