@@ -1169,6 +1169,8 @@ class diff_match_patch:
         a += len(data)
         b += len(data)
 
+
+
   def diff_toDelta(self, diffs):
     """Crush the diff into an encoded string which describes the operations
     required to transform text1 into text2.
@@ -1192,8 +1194,6 @@ class diff_match_patch:
       elif op == self.DIFF_EQUAL:
         text.append("=%d" % len(data))
     return "\t".join(text)
-
-
 
   def diff_fromDelta(self, text1, delta):
     """Given the original text1, and an encoded string which describes the
