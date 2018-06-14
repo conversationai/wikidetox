@@ -39,11 +39,10 @@ def comment_adding(insert_op, rev, page_actions):
     action['timestamp'] = rev['timestamp']
     action['parent_id'] = None
     if action['indentation'] == -1:
-        action['type'] = 'SECTION_CREATION'
+        action['type'] = 'CREATION'
     else:
-        action['type'] = 'COMMENT_ADDING'
+        action['type'] = 'ADDITION'
     action['replyTo_id'] = locate_replyTo_id(page_actions, insert_op['b1'], indentation)
-    
     return action, insert_op['b1'], action['id'], action['indentation']
 
 def comment_removal(removal_info, rev):
@@ -58,7 +57,7 @@ def comment_removal(removal_info, rev):
     action['user_text'] = rev['user_text']
     action['timestamp'] = rev['timestamp']
     action['parent_id'] = None
-    action['type'] = 'COMMENT_REMOVAL'
+    action['type'] = 'DELETION'
     action['parent_id'] = removed_action[0]
     action['replyTo_id'] = None
     return action
@@ -78,10 +77,8 @@ def comment_modification(prev_id, tokens, new_action_start, new_action_end, rev,
     action['user_id'] = rev['user_id']
     action['user_text'] = rev['user_text']
     action['timestamp'] = rev['timestamp']
-    action['type'] = 'COMMENT_MODIFICATION'
-    
+    action['type'] = 'MODIFICATION'
     action['replyTo_id'] = locate_replyTo_id(page_actions, new_action_start, indentation)
-    
     return action, new_action_start, action['id'], action['indentation']
 
 def comment_rearrangement(prev_id, tokens, new_action_start, rev, old_action_start):
@@ -95,7 +92,7 @@ def comment_rearrangement(prev_id, tokens, new_action_start, rev, old_action_sta
     action['user_id'] = rev['user_id']
     action['user_text'] = rev['user_text']
     action['timestamp'] = rev['timestamp']
-    action['type'] = 'COMMENT_REARRANGEMENT'
+    action['type'] = 'REARRANGEMENT'
     
     action['replyTo_id'] = None
     
@@ -111,7 +108,7 @@ def comment_restoration(prev_id, tokens, new_action_start, rev, old_action_start
     action['user_id'] = rev['user_id']
     action['user_text'] = rev['user_text']
     action['timestamp'] = rev['timestamp']
-    action['type'] = 'COMMENT_RESTORATION'
+    action['type'] = 'RESTORATION'
     
     action['replyTo_id'] = None
     

@@ -8,8 +8,9 @@ from builtins import (
          filter, map, zip)
 
 from bs4 import BeautifulSoup
-import mwparserfromhell
 import re
+import resource
+import logging
 import copy
 import time
 
@@ -42,10 +43,6 @@ months = ['January',
 
 month_or = '|'.join(months)
 date_p = re.compile('\d\d:\d\d,( \d?\d)? (%s)( \d?\d)?,? \d\d\d\d (\(UTC\))?' % month_or)
-    
-def remove_date(comment):
-    return re.sub(date_p , lambda x: "", comment)
-
 pre_sub_patterns = [
                     ('\[\[Image:.*?\]\]', ""), 
                     ('<!-- {{blocked}} -->', "[BLOCKING_ACTION]"), 
@@ -68,29 +65,26 @@ post_sub_patterns = [
 		    ('—Preceding .* comment added by   •', "")
                     ]
 
-def substitute_patterns(s, sub_patterns):
-    for p, r in sub_patterns:
-        s = re.sub(p, r, str(s))
-    return s
+def clean_html(rev):
+    # Remove timestmp.
+    ret = re.sub(date_p , lambda x: "", rev)
 
-def strip_html(s):
+    # Strip HTML format.
     try:
-        s = BeautifulSoup(s, 'html.parser').get_text()
+        ret = beautifulsoup(ret, 'html.parser').get_text()
     except:
         pass
-    return s
-
-def strip_mw(s):
-    parsed = mwparserfromhell.parse(s, skip_style_tags=True).strip_code()
-    return parsed
-
-def clean(rev):
-    ret = remove_date(rev)
-    ret = substitute_patterns(ret, pre_sub_patterns)
-    ret = strip_mw(ret)
-    ret = strip_html(ret)
-    ret = substitute_patterns(ret, post_sub_patterns)
+    # Change format for better diff
     ret = re.sub('[\n]+', '\n', str(ret))
     ret = '\n'.join([x.strip() for x in ret.splitlines() if not(x.strip() == "")]) + '\n'
     if ret == '\n': return ""
+    return ret
+
+def clean(rev):
+    ret = str(rev)
+    for p, r in pre_sub_patterns:
+        ret = re.sub(p, r, ret)
+    # Strip media wiki format.
+    for p, r in post_sub_patterns:
+        ret = re.sub(p, r, ret)
     return ret

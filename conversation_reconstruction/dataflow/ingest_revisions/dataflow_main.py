@@ -127,7 +127,7 @@ class DownloadDataDumps(beam.DoFn):
     write_path = path.join('gs://', bucket, chunk_name)
     urllib.urlretrieve(url, chunk_name)
     os.system("gsutil cp %s %s" % (chunk_name, write_path))
-    os.system("rm %s"%chunk_name)
+    os.system("rm %s" % chunk_name)
     yield chunk_name
     return
 
@@ -144,7 +144,7 @@ class WriteDecompressedFile(beam.DoFn):
     if ingestFrom == 'local':
        input_stream = chunk_name
     else:
-       os.system("gsutil -m cp %s %s"%(path.join('gs://', bucket, chunk_name), chunk_name))
+       os.system("gsutil -m cp %s %s" % (path.join('gs://', bucket, chunk_name), chunk_name))
        input_stream = chunk_name
     # Running ingestion on the xml file
     last_revision = 'None'
@@ -160,7 +160,7 @@ class WriteDecompressedFile(beam.DoFn):
       yield content
       logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=last_revision, time=time.time() - last_completed))
       last_completed = time.time()
-    if ingestFrom != 'local': os.system("rm %s"%chunk_name)
+    if ingestFrom != 'local': os.system("rm %s" % chunk_name)
     logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, last_revision %s' % (chunk_name, i, last_revision))
 
 class WriteToStorage(beam.DoFn):
@@ -176,7 +176,7 @@ class WriteToStorage(beam.DoFn):
          cnt += 1
          write_path = path.join(date_path, file_path.format(cnt=cnt))
       # Writes to storage
-      logging.info('USERLOG: Write to path %s.'%write_path)
+      logging.info('USERLOG: Write to path %s.' % write_path)
       outputfile = filesystems.FileSystems.create(write_path)
       for output in val:
           outputfile.write(json.dumps(output) + '\n')

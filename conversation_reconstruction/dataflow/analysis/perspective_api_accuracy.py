@@ -56,7 +56,6 @@ def retrieve_scores():
          f.write(json.dumps(scores) + '\n')
 
 eps = 1e-10
-logging.getLogger.setLevel(logging.INFO)
 
 def compute_p_r(pred):
     true_positive = sum([int(arg[0] == arg[1] and arg[0] == 1) for arg in pred])
