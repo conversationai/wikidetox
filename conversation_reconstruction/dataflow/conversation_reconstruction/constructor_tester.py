@@ -45,13 +45,16 @@ import copy
 from construct_utils.conversation_constructor import Conversation_Constructor
 from construct_utils.utils.third_party.rev_clean import clean_html
 
-default_page_ids = [32094486] #[43758735, 9373473, 476334, 28031]
-# PAGE 34948919, 15854766, 32094486, 43758735, 22811813: testing on memory usage
-# PAGE 9373473: REVISION 479969745, test on reconstruction correctness
-# PAGE 476334: REVISION 74126950, error reconstruction
-
-# PAGE 32094486: DIFF ERROR ON REVISION 438455007
-# SUGGESTED TESTs: 28031
+default_page_ids = [9373474]
+# Suggestion on test pages:
+# PAGE 32094486: Formatted in tables, mostly in Spanish, suggested to test
+# diff algorithm, encodings.
+# PAGE 34948919, 15854766, 43758735, 22811813, 28031: Long pages with long deletions,
+# suggested to test on memory usage.
+# PAGE 9373474: REVISION 479969745, test on reconstruction correctness.
+# PAGE 476334: REVISION 74126950, error reconstruction.
+# PAGE 32094486: diff testing on REVISION 438455007.
+# DEFAULT TEST: dummy_test, test on reconstruction correctness.
 default_load_test = [493084502, 305838972]
 
 def merge(ps1, ps2):
@@ -105,8 +108,6 @@ class TestReconstruction(unittest.TestCase):
                   processor_test.load(page_state_test['deleted_comments'])
                   _, actions_test, _ = \
                      processor.process(page_state_test, latest_content, revision)
-               json.dump(latest_content, open("diff_test_document_0.json", "w"))
-               json.dump(clean_html(revision['text']), open("diff_test_document_1.json", "w"))
                page_state, actions, latest_content = \
                    processor.process(page_state, latest_content, revision)
                memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
@@ -134,7 +135,7 @@ class TestReconstruction(unittest.TestCase):
            self.assertEqual(''.join(ans), standard_ans)
 
 if __name__ == '__main__':
-  logging.getLogger().setLevel(logging.DEBUG)
+  logging.getLogger().setLevel(logging.INFO)
   parser = argparse.ArgumentParser()
   parser.add_argument('-p', '--page_ids', dest='page_ids',\
                       nargs='+', default=default_page_ids, type=int)
@@ -144,5 +145,5 @@ if __name__ == '__main__':
   PAGES.append("dummy_test")
   LOADING_TEST = parser.parse_args().load_test
   LOG_INTERVAL = 100
-  memory_boundary = 1000000 # in KB
+  memory_boundary = 2000000 # in KB
   unittest.main()

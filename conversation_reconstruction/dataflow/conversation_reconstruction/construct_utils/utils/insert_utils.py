@@ -31,9 +31,9 @@ def get_section_tokens(tokens, line):
             sofar += tok
 
 def isheading(line):
-    front_cnt = re.serach("^=+", x).group(0)
-    back_cnt = re.search("^=+", x[::-1]).group(0)
-    if front_cnt == back_cnt and front_cnt > 0:
+    front_cnt = re.search("^=+", line)
+    back_cnt = re.search("^=+", line[::-1])
+    if front_cnt and back_cnt and len(front_cnt.group(0)) == len(back_cnt.group(0)):
        return True
 
 def divide_into_section_headings_and_contents(op, content):

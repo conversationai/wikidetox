@@ -84,7 +84,7 @@ def get_revision(page_id):
              # collection process skips the revision.
              yield rename(rev, page_id)
              cnt += 1
-          except ValueError:
+          except KeyError:
              pass
   while ('continue' in data and 'rvcontinue' in data['continue']):
       logging.info("PROGRESS LOG: fetching page %d: %d revisions fetched." % (page_id, cnt))
@@ -100,7 +100,7 @@ def get_revision(page_id):
               try:
                  yield rename(rev, page_id)
                  cnt += 1
-              except:
+              except KeyError:
                  pass
 
 if __name__ == '__main__':
