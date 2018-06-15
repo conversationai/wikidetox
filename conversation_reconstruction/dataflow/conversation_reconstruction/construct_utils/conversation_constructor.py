@@ -34,8 +34,6 @@ import logging
 import resource
 from .utils.third_party import diff_match_patch as dmp_module
 from .utils.third_party.rev_clean import clean, clean_html
-from .utils.diff import diff_tuning
-from .utils.third_party.deltas.algorithms import sequence_matcher
 from .utils.insert_utils import *
 from .utils.actions import *
 
@@ -331,6 +329,36 @@ class Conversation_Constructor:
            ret['tokens'] = a[x['a1']:x['a2']]
         return ret
 
+    def mydiff_toDelta(self, diffs):
+         """Crush the diff into a list of dictionary indicating changes
+         from one document to another. Operations are dictionary record
+         with name (insert, delete, equal) and offsets (in original text
+         and resulted text).
+
+         Args:
+           diffs: Array of diff tuples.
+         Returns:
+           Deltas.
+         """
+         text = []
+         a = 0
+         b = 0
+         DIFF_DELETE = -1
+         DIFF_INSERT = 1
+         DIFF_EQUAL = 0
+
+         for (op, data) in diffs:
+           if op == DIFF_INSERT:
+             yield({"name": "insert", "a1": a, "a2": a, "b1": b, "b2": b + len(data)})
+             b += len(data)
+           elif op == DIFF_DELETE:
+             yield({"name": "delete", "a1": a, "a2": a + len(data), "b1": b, "b2": b})
+             a += len(data)
+           elif op == DIFF_EQUAL:
+             yield({"name": "equal", "a1": a, "a2": a + len(data), "b1": b, "b2": b + len(data)})
+             a += len(data)
+             b += len(data)
+
     def clean_dict(self, page, the_dict):
         """
           We only store the information of currently 'alive' actions.
@@ -356,13 +384,11 @@ class Conversation_Constructor:
         # one.
         dmp = dmp_module.diff_match_patch()
         logging.debug("LENGTH : %d -> %d" % (len(latest_content), len(rev['text'])))
-        diff = dmp.diff_main(latest_content, rev['text'])
+        diff = dmp.diff_main(latest_content, rev['text'], False)
         dmp.diff_cleanupSemantic(diff)
-        delta = dmp.mydiff_toDelta(diff)
+        delta = self.mydiff_toDelta(diff)
         rev['diff'] = sorted([self.convert_diff_format(x, latest_content, rev['text']) \
-                              for x in dmp.mydiff_toDelta(diff)], key=lambda k: k['a1'])
-        #rev['diff'] = diff_tuning(rev['diff'], a, b)
-        #rev['diff'] = sorted(rev['diff'], key=lambda k: k['a1'])
+                              for x in delta], key=lambda k: k['a1'])
         # Create a new page if this page was never processed before.
         if not(page_state):
             self.previous_comments = NoAho()
@@ -372,7 +398,8 @@ class Conversation_Constructor:
                           'page_id': rev['page_id'], \
                           'deleted_comments': [], \
                           'conversation_id': {}, \
-                          'authors': {}}
+                          'authors': {},
+                          'ancestor_id': {}}
         else:
             page_state['rev_id'] = int(rev['rev_id'])
             page_state['timestamp'] = rev['timestamp']
@@ -398,11 +425,18 @@ class Conversation_Constructor:
                   page_state['authors'][action['id']] = \
                       set(page_state['authors'][action['parent_id']])
                   page_state['authors'][action['id']].add((action['user_id'], action['user_text']))
+                  page_state['ancestor_id'][action['id']] = \
+                      page_state['ancestor_id'][action['parent_id']]
                else:
-                  page_state['authors'][action['id']] = set([(action['user_id'], action['user_text'])])
+                  page_state['authors'][action['id']] = \
+                      set([(action['user_id'], action['user_text'])])
+                  page_state['ancestor_id'][action['id']] = action['id']
             else:
                 page_state['authors'][action['id']] = \
                     set(page_state['authors'][action['parent_id']])
+                page_state['ancestor_id'][action['id']] = \
+                    page_state['ancestor_id'][action['parent_id']]
+
             # Removed and restored comments are considered
             # belonging to the same conversation as its original version.
             if action['type'] == 'DELETION':
@@ -416,6 +450,7 @@ class Conversation_Constructor:
             action['page_id'] = rev['page_id']
             action['page_title'] = rev['page_title']
             action['cleaned_content'] = clean(action['content'])
+            action['ancestor_id'] = page_state['ancestor_id'][action['id']]
             # If a comment is deleted, it will be added to a list used for
             # identifying restoration actions later. Note that comments that
             # deleted two weeks ago will be removed from the list to ensure
