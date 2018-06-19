@@ -25,11 +25,11 @@ reconstruct*.sh in helper_shell
 from __future__ import absolute_import
 import argparse
 import logging
+import traceback
 import subprocess
 import json
 from os import path
 import urllib2
-import traceback
 import ast
 import copy
 import sys
@@ -75,7 +75,7 @@ def run(known_args, pipeline_args):
                        | 'LASTREV_assign_page_id_as_key' >> beam.Map(json_mapping))
     page_state = (p | 'Retrieve_page_state' >> beam.io.ReadFromText(page_state_location)
                     | 'PAGESTATE_assign_page_id_as_key' >> beam.Map(json_mapping))
-    error_log = (p | 'Retrieve_error_log' >> beam.io.ReadFromText(page_state_location)
+    error_log = (p | 'Retrieve_error_log' >> beam.io.ReadFromText(error_log_location)
                     | 'ERRORLOG_assign_page_id_as_key' >> beam.Map(json_mapping))
 
     # Main Pipeline
@@ -87,7 +87,7 @@ def run(known_args, pipeline_args):
                    | beam.ParDo(ReconstructConversation()).with_outputs('page_states',\
                                'last_revision','error_log',  main = 'reconstruction_results'))
     # Main Result
-    reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/reconstructed_res/%s" % jobname)
+    reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/reconstructed_res/%s/revisions-*.json" % jobname)
 
     # Saving intermediate results to separate locations.
     folder = "gs://wikidetox-viz-dataflow/process_tmp/next_stage/%s"
@@ -101,7 +101,7 @@ class ReconstructConversation(beam.DoFn):
        deleted_ids_ps2 = {d[1]:d for d in ps2['deleted_comments']}
        deleted_ids_ps1 = {d[1]:d for d in ps1['deleted_comments']}
        deleted_ids_ps2.update(deleted_ids_ps1)
-       extra_ids = [key for key in deleted_ids_ps2.keys() if not(key in deleted_ids_ps1)]
+       extra_ids = [key for key in deleted_ids_ps2.keys() if key not in deleted_ids_ps1]
        ret_p = copy.deepcopy(ps1)
        ret_p['deleted_comments'] = list(deleted_ids_ps2.values())
        conv_ids = ps2['conversation_id']
@@ -119,34 +119,44 @@ class ReconstructConversation(beam.DoFn):
     (page_id, data) = info
     if (page_id == None): return
     logging.info('USERLOG: Reconstruction work start on page: %s' % page_id)
-
     # Load input from cloud
     rows = data['to_be_processed']
     last_revision = data['last_revision']
     page_state = data['page_state']
     error_log = data['error_log']
     # Clean type formatting
-    if not(last_revision == []):
+    if last_revision != []:
        assert(len(last_revision) == 1)
        last_revision = last_revision[0]
     else:
        last_revision = None
-    if not(page_state == []):
+    if page_state != []:
        assert(len(page_state) == 1)
        page_state = page_state[0]
+       page_state['page_state']['actions'] = \
+           {int(pos) : tuple(val) for pos, val in page_state['page_state']['actions'].iteritems()}
+       page_state['authors'] = \
+           {action_id: [tuple(author) for author in authors] \
+            for action_id, authors in page_state['authors'].iteritems()}
     else:
        page_state = None
+    if error_log != []:
+       assert(len(error_log) == 1)
+       error_log = error_log[0]
+    else:
+       error_log = None
     for r in rows:
         r['rev_id'] = int(r['rev_id'])
 
     # Return when the page doesn't have updates to be processed
-    if rows == [] or (error_log != [] and \
+    if rows == [] or (error_log and \
                       error_log['rev_id'] <= min([r['rev_id'] for r in rows])):
        assert((last_revision and page_state) or \
               ((last_revision == None) and (page_state == None)))
        if last_revision:
-          yield beam.pvalue.TaggedOutput('last_revision_output', json.dumps(last_revision))
+          yield beam.pvalue.TaggedOutput('last_revision', json.dumps(last_revision))
           yield beam.pvalue.TaggedOutput('page_states', json.dumps(page_state))
+       if error_log:
           yield beam.pvalue.TaggedOutput('error_log', json.dumps(error_log))
        return
 
@@ -158,20 +168,22 @@ class ReconstructConversation(beam.DoFn):
        latest_content = last_revision['text']
     else:
        latest_content = ""
-
+    
     # Initialize
-    revision = {}
     last_revision_id = 'None'
     page_state_bak = None
     cnt = 0
     # Sort revisions by temporal order.
     revision_lst = sorted([r for r in rows], key=lambda k: (k['timestamp'], k['rev_id']))
     last_loading = 0
+    logging.info('Reconstruction on page %s started.' % (page_id))
     for revision in revision_lst:
         # Process revision by revision.
-        if not('rev_id' in revision): continue
+        if 'rev_id' not in revision: continue
         cnt += 1
         last_revision_id = revision['rev_id']
+        if revision['text'] == None: revision['text'] = ""
+        logging.debug("REVISION CONTENT: %s" % revision['text'])
         try:
            page_state, actions, latest_content = \
                processor.process(page_state, latest_content, revision)
@@ -179,26 +191,29 @@ class ReconstructConversation(beam.DoFn):
            yield beam.pvalue.TaggedOutput('error_log', \
                       json.dumps({'page_id': page_id, 'rev_id': last_revision_id}))
            break
+
         for action in actions:
             yield json.dumps(action)
-        if cnt % LOG_INTERVAL == 0 and cnt and not(page_state == []):
+        if cnt % LOG_INTERVAL == 0 and cnt and page_state:
           # Reload after every LOG_INTERVAL revisions to keep the low memory
           # usage.
            processor = Conversation_Constructor()
            page_state_bak = copy.deepcopy(page_state)
            last_loading = cnt
            processor.load(page_state['deleted_comments'])
-    if page_state_bak and not(cnt == last_loading):
+    if page_state_bak and cnt != last_loading:
        # Merge the last two page states if a reload happens while processing,
        # otherwise in a situation where a week's data contains LOG_INTERVAL + 1
        # revisions, the page state may only contain data from one revision.
        page_state = self.merge(page_state, second_last_page_state)
-    assert(page_state and not(page_state == None))
+    if error_log:
+       yield beam.pvalue.TaggedOutput('error_log', json.dumps(error_log))
     yield beam.pvalue.TaggedOutput('page_states', json.dumps(page_state))
     yield beam.pvalue.TaggedOutput('last_revision', json.dumps({'page_id': page_id, 'text': latest_content}))
     logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' % (page_id, last_revision_id))
 
 if __name__ == '__main__':
+  logging.basicConfig(filename="debug.log", level=logging.INFO)
   logging.getLogger().setLevel(logging.INFO)
   parser = argparse.ArgumentParser()
   # Input/Output parameters.
