@@ -87,7 +87,7 @@ def run(known_args, pipeline_args):
                    | beam.ParDo(ReconstructConversation()).with_outputs('page_states',\
                                'last_revision','error_log',  main = 'reconstruction_results'))
     # Main Result
-    reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/reconstructed_res/%s/revisions-*.json" % jobname)
+    reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/reconstructed_res/%s/revisions-" % jobname)
 
     # Saving intermediate results to separate locations.
     folder = "gs://wikidetox-viz-dataflow/process_tmp/next_stage/%s"
