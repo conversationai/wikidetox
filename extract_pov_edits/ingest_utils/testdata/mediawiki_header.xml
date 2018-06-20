@@ -1,0 +1,25 @@
+<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/"
+           xmlns:xsi="http://www.w3.org/2001/xmlschema-instance"
+           xsi:schemalocation="http://www.mediawiki.org/xml/export-0.10/ http://www.mediawiki.org/xml/export-0.10.xsd"
+           version="0.10" xml:lang="en">
+  <siteinfo>
+    <sitename>wikipedia</sitename>
+    <dbname>enwiki</dbname>
+    <base>https://en.wikipedia.org/wiki/main_page</base>
+    <generator>mediawiki 1.30.0-wmf.1</generator>
+    <case>first-letter</case>
+    <namespaces>
+      <namespace key="-2" case="first-letter">media</namespace>
+      <namespace key="-1" case="first-letter">special</namespace>
+      <namespace key="0" case="first-letter"></namespace>
+      <namespace key="1" case="first-letter">talk</namespace>
+      <namespace key="2" case="first-letter">user</namespace>
+      <namespace key="3" case="first-letter">user talk</namespace>
+      <namespace key="4" case="first-letter">wikipedia</namespace>
+      <namespace key="5" case="first-letter">wikipedia talk</namespace>
+    </namespaces>
+  </siteinfo>
+  <page>
+    <title>Infinited Page (namespace 1)</title>
+    <ns>1</ns>
+    <id>123456789</id>
