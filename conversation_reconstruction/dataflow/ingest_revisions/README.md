@@ -1,6 +1,7 @@
 # Wikipedia Talk Page Ingestion
 
-This folder contains tools for ingesting revisions from a Wikipedia into BigQuery records. 
+This folder contains tools for ingesting revisions from a Wikipedia into cloud
+storage in json format.
 
 ## Prerequisites
 
@@ -27,8 +28,5 @@ will test a wikipedia revision in xml format from ingest_utils package for inges
 
 ### Dataflow Pipeline for Ingesting Revisions into BigQuery Records 
 
-In order to ingest talk page revisions into BigQeury records, use:
-```
-python dataflow_main.py --setup_file ./setup.py
-```
-Detailed information about arguments can be seen in dataflow_main.py. This code is used to run on Google DataFlow pipeline.
+In order to ingest talk page revisions into json format, use dataflow_main.py.
+Detailed information about arguments can be seen in dataflow_main.py.
