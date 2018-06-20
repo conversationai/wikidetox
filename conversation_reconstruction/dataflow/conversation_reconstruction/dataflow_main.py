@@ -205,7 +205,7 @@ class ReconstructConversation(beam.DoFn):
        # Merge the last two page states if a reload happens while processing,
        # otherwise in a situation where a week's data contains LOG_INTERVAL + 1
        # revisions, the page state may only contain data from one revision.
-       page_state = self.merge(page_state, second_last_page_state)
+       page_state = self.merge(page_state, page_state_bak)
     if error_log:
        yield beam.pvalue.TaggedOutput('error_log', json.dumps(error_log))
     yield beam.pvalue.TaggedOutput('page_states', json.dumps(page_state))
@@ -216,10 +216,10 @@ if __name__ == '__main__':
   logging.basicConfig(filename="debug.log", level=logging.INFO)
   logging.getLogger().setLevel(logging.INFO)
   parser = argparse.ArgumentParser()
-  # Input/Output parameters.
+  # input/output parameters.
   parser.add_argument('--input',
                       dest='input',
-                      help='Input storage.')
+                      help='input storage.')
   parser.add_argument('--week',
                       dest='week',
                       default=1,
