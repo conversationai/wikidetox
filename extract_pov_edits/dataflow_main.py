@@ -18,6 +18,10 @@ Dataflow Main
 
 A dataflow pipeline to ingest the Wikipedia dump from 7zipped xml files to json.
 
+To configure with boto:
+
+  Run gsutil config -e
+
 Run with:
 
 python dataflow_main.py --setup_file ./setup.py
@@ -35,7 +39,7 @@ ingestFrom: choose from the three options : {wikipedia, local, cloud}:
   - cloud: Reads from downloaded bz2 files on cloud, performs the ingestion job,
     run the code with
            [python dataflow_main.py --setup_file ./setup.py
-           [--ingestFrom=cloud --cloudBucket=YourCloudBucket]
+           --ingestFrom=cloud --cloudBucket=YourCloudBucket(without gs:// prefix)]
 
 language: the language of the wikipedia data you want to extract, e.g. en, fr, zh
 dumpdate: the dumpdate of the wikipedia data, e.g. latest
