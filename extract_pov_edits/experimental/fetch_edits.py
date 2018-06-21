@@ -65,7 +65,7 @@ def get_revision(title):
           pass
 
 
-def main(args):
+def run(args):
   for r in get_revision(args.title):
     with open(os.path.join(args.output_path, 'test',
                            'revision_%d.json' % r['revid']), 'w') as f:

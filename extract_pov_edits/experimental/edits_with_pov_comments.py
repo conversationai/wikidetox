@@ -97,7 +97,7 @@ def run(args):
   author_pov_revs = defaultdict(dict)
   author_pov_comments = defaultdict(dict)
   author_revs = defaultdict(dict)
-  for r in rev_ids:
+  for ind, r in enumerate(rev_ids):
     with open(os.path.join(path, "revision_%d.json" % r), "r") as f:
       rev = json.load(f)
     authors[r] = rev["user"]
@@ -106,6 +106,8 @@ def run(args):
     context_equals, _, deletes, cur_sents = diff(sents, cur_sents, r)
     author_revs[rev["user"]][r] = 1
     if "comment" in rev and "POV" in rev["comment"]:
+      if ind > 0:
+        print(rev_ids[ind-1])
       for d in deletes:
         pov_sents.append(d[0])
         revid = d[1]
