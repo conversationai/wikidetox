@@ -42,7 +42,7 @@ import resource
 import math
 import os
 test_length = 10000
-text_length = 10000
+text_length = 20000
 memory_boundary = 40000#in KB
 time_limit = 2 #seconds
 

@@ -57,7 +57,6 @@ import copy
 import bz2
 from os import path
 from ingest_utils.wikipedia_revisions_ingester import parse_stream
-import math
 import os
 import time
 import urllib
@@ -65,7 +64,6 @@ import urllib2
 import subprocess
 import StringIO
 import mwparserfromhell
-from nltk import sent_tokenize
 
 from HTMLParser import HTMLParser
 import re
@@ -88,6 +86,7 @@ import nltk
 GOOGLE_STORAGE = 'gs'
 LOCAL_STORAGE = 'file'
 CONTEXT_RANGE = 3
+LINE_THERESHOLD = 10000
 
 def run(known_args, pipeline_args, sections):
   """Main entry point; defines and runs the ingestion pipeline."""
@@ -99,9 +98,9 @@ def run(known_args, pipeline_args, sections):
     pipeline_args.append('--runner=DataflowRunner')
 
   pipeline_args.extend([
-    '--project=wikidetox-viz',
-    '--staging_location=gs://wikidetox-viz-dataflow/staging',
-    '--temp_location=gs://wikidetox-viz-dataflow/tmp',
+    '--project=wikidetox',
+    '--staging_location=gs://wikidetox-dataflow/staging',
+    '--temp_location=gs://wikidetox-dataflow/tmp',
     '--job_name=extract-wiki-edits',
     '--num_workers=30',
   ])
@@ -110,18 +109,18 @@ def run(known_args, pipeline_args, sections):
   pipeline_options.view_as(SetupOptions).save_main_session = True
   with beam.Pipeline(options=pipeline_options) as p:
     pcoll = (p | "GetDataDumpList" >> beam.Create(sections))
-    cloud_storage = ("gs://wikidetox-viz-dataflow/article_edits/{lan}-{date}".
+    cloud_storage = ("gs://wikidetox-dataflow/article_edits/{lan}-{date}".
                      format(lan=known_args.language, date=known_args.dumpdate))
     if known_args.download:
        pcoll = (pcoll |
                 "DownloadDataDumps" >> beam.ParDo(DownloadDataDumps(), known_args.bucket))
     else:
-       edits, pov_rejections, pov_rejects, npov_improvements, pov_non_rejects = ( pcoll |
+       edits, pov_rejections, pov_rejects, npov_improvements, pov_non_rejects, error_log = ( pcoll |
            "Ingestion" >>
           beam.ParDo(WriteDecompressedFile(),
                     known_args.bucket, known_args.ingestFrom).with_outputs(
                     'pov_rejections', 'pov_rejects',
-                    'npov_improvements', 'pov_non_rejects',
+                    'npov_improvements', 'pov_non_rejects', 'error_log',
                     main = 'edits'))
        (edits | "WriteToStorage" >>
         beam.io.WriteToText(path.join(cloud_storage, 'revisions')))
@@ -133,6 +132,8 @@ def run(known_args, pipeline_args, sections):
         beam.io.WriteToText(path.join(cloud_storage, 'npov_improved')))
        (pov_non_rejects | "NPOVToStorage" >>
         beam.io.WriteToText(path.join(cloud_storage, 'non_pov_rejected')))
+       (error_log | "ERRORlog" >>
+        beam.io.WriteToText(path.join(cloud_storage, 'error_log')))
 
 
 class DownloadDataDumps(beam.DoFn):
@@ -245,7 +246,11 @@ class WriteDecompressedFile(beam.DoFn):
         content['text'] = ""
       content['text'] = self.format_clean(content['text'])
       last_revision = content['rev_id']
-      sents = sent_tokenize(content['text'])
+      for line in content['text'].split('\n'):
+        if len(line) <= LINE_THERESHOLD:
+           sents = nltk.sent_tokenize(line)
+        else:
+           beam.pvalue.TaggedOutput('error_log', json.dumps(content['rev_id']))
       context_equals, inserts, deletes, cur_sents = self.diff(sents, cur_sents, content['rev_id'])
       metadata = {f : content[f] for f in ['comment', 'user_id', 'user_text',
                                            'user_ip', 'page_id', 'page_title']}
@@ -307,7 +312,7 @@ if __name__ == '__main__':
                       action='store_true')
   parser.add_argument('--cloudBucket',
                       dest='bucket',
-                      default='wikidetox-viz-dataflow/raw-downloads/en-20180501/',
+                      default='wikidetox-dataflow/raw-downloads/en-20180601/',
                       help='Specify the cloud storage location to store/stores the raw downloads.')
   parser.add_argument('--language',
                       dest='language',
@@ -324,10 +329,16 @@ if __name__ == '__main__':
   parser.add_argument('--testmode',
                       dest='testmode',
                       action='store_true')
+  parser.add_argument('--cloudlist',
+                      dest='cloudlist',
+                      default=None,
+                      help='Provide a list of dumps (separated by line break)
+                      in a local file you want to process from the cloudBucket.')
   known_args, pipeline_args = parser.parse_known_args()
   if known_args.download:
      # If specified downloading from Wikipedia
      dumpstatus_url = 'https://dumps.wikimedia.org/{lan}wiki/{date}/dumpstatus.json'.format(lan=known_args.language, date=known_args.dumpdate)
+     response = urllib2.urlopen(dumpstatus_url)
      try:
         response = urllib2.urlopen(dumpstatus_url)
         dumpstatus = json.loads(response.read())
@@ -339,11 +350,17 @@ if __name__ == '__main__':
         mirror = 'http://dumps.wikimedia.your.org/{lan}wiki/latest'.format(lan=known_args.language)
         sections = directory(mirror)
   if known_args.ingestFrom == "cloud":
-     sections = []
-     uri = boto.storage_uri(known_args.bucket, GOOGLE_STORAGE)
-     prefix = known_args.bucket[known_args.bucket.find('/')+1:]
-     for obj in uri.list_bucket(prefix=prefix):
-        sections.append(obj.name[obj.name.rfind('/') + 1:])
+     if known_args.cloudlist is not None:
+       sections = []
+       with open(known_args.cloudlist) as f:
+         for line in f:
+             sections.append(line[:-1])
+     else:
+        sections = []
+        uri = boto.storage_uri(known_args.bucket, GOOGLE_STORAGE)
+        prefix = known_args.bucket[known_args.bucket.find('/')+1:]
+        for obj in uri.list_bucket(prefix=prefix):
+           sections.append(obj.name[obj.name.rfind('/') + 1:])
   if known_args.ingestFrom == 'local':
      sections = [known_args.localStorage]
   run(known_args, pipeline_args, sections)
