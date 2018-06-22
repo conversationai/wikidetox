@@ -106,11 +106,11 @@ def split(text):
   start = 0
   for ind, ch in enumerate(text):
     if (ind == length - 1) or (ch in sentence_break
-                               and (text[ind+1] not in sentence_break)):
+                               and (text[ind + 1] not in sentence_break)):
        ret = text[start:ind + 1].strip()
        if ret:
           yield ret
-       start = ind+1
+       start = ind + 1
 
 
 def process(content, cur_sents):
