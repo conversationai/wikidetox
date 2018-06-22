@@ -178,8 +178,9 @@ class WriteDecompressedFile(beam.DoFn):
        input_stream = chunk_name
     else:
        cmd = "gsutil -m cp %s %s" % (path.join('gs://', bucket, chunk_name), chunk_name)
-       if WEXITSTATUS(os.system()) != 0:
-         raise Excetion("GSUTIL COPY Error")
+       status = os.WEXITSTATUS(os.system(cmd))
+       if status  != 0:
+         raise Exception("GSUTIL COPY Error, exited with status %d" % status)
        input_stream = chunk_name
     # Running ingestion on the xml file
     last_revision = 'None'
