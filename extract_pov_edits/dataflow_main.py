@@ -39,7 +39,10 @@ ingestFrom: choose from the three options : {wikipedia, local, cloud}:
   - cloud: Reads from downloaded bz2 files on cloud, performs the ingestion job,
     run the code with
            [python dataflow_main.py --setup_file ./setup.py
-           --ingestFrom=cloud --cloudBucket=YourCloudBucket(without gs:// prefix)]
+           --ingestFrom=cloud --cloudBucket=YourCloudBucket(without gs:// prefix)
+           (Optional) --cloudlist=YourInputListLocation
+           (Optional) --cloudlistStartFrom=startProcessingPointInTheList
+           (Optional) --cloudlistEnd=endProcessingPointInTheList]
 
 language: the language of the wikipedia data you want to extract, e.g. en, fr, zh
 dumpdate: the dumpdate of the wikipedia data, e.g. latest
@@ -61,6 +64,7 @@ import copy
 import bz2
 from os import path
 from ingest_utils.wikipedia_revisions_ingester import parse_stream
+from ingest_utils.process import process
 import os
 import time
 import urllib
@@ -91,8 +95,9 @@ GOOGLE_STORAGE = 'gs'
 LOCAL_STORAGE = 'file'
 CONTEXT_RANGE = 3
 LINE_THERESHOLD = 10000
+INTERVAL = 20
 
-def run(known_args, pipeline_args, sections):
+def run(known_args, pipeline_args, sections, jobname):
   """Main entry point; defines and runs the ingestion pipeline."""
 
   if known_args.testmode:
@@ -105,8 +110,8 @@ def run(known_args, pipeline_args, sections):
     '--project=wikidetox',
     '--staging_location=gs://wikidetox-dataflow/staging',
     '--temp_location=gs://wikidetox-dataflow/tmp',
-    '--job_name=extract-wiki-edits',
-    '--num_workers=30',
+    '--job_name=extract-wiki-edits-{}'.format(jobname),
+    '--max_num_workers=20',
   ])
 
   pipeline_options = PipelineOptions(pipeline_args)
@@ -127,17 +132,17 @@ def run(known_args, pipeline_args, sections):
                     'npov_improvements', 'pov_non_rejects', 'error_log',
                     main = 'edits'))
        (edits | "WriteToStorage" >>
-        beam.io.WriteToText(path.join(cloud_storage, 'revisions')))
+        beam.io.WriteToText(path.join(cloud_storage, 'revisions-{}'.format(jobname))))
        (pov_rejections | "RejectionsToStorage" >>
-        beam.io.WriteToText(path.join(cloud_storage, 'pov_rejections')))
+        beam.io.WriteToText(path.join(cloud_storage, 'pov_rejections-{}'.format(jobname))))
        (pov_rejects | "RejectedToStorage" >>
-        beam.io.WriteToText(path.join(cloud_storage, 'pov_rejected')))
+        beam.io.WriteToText(path.join(cloud_storage, 'pov_rejected-{}'.format(jobname))))
        (npov_improvements | "NPOVinsertsToStorage" >>
-        beam.io.WriteToText(path.join(cloud_storage, 'npov_improved')))
+        beam.io.WriteToText(path.join(cloud_storage, 'npov_improved-{}'.format(jobname))))
        (pov_non_rejects | "NPOVToStorage" >>
-        beam.io.WriteToText(path.join(cloud_storage, 'non_pov_rejected')))
+        beam.io.WriteToText(path.join(cloud_storage, 'non_pov_rejected-{}'.format(jobname))))
        (error_log | "ERRORlog" >>
-        beam.io.WriteToText(path.join(cloud_storage, 'error_log')))
+        beam.io.WriteToText(path.join(cloud_storage, 'error_log-{}'.format(jobname))))
 
 
 class DownloadDataDumps(beam.DoFn):
@@ -159,71 +164,7 @@ class DownloadDataDumps(beam.DoFn):
 class WriteDecompressedFile(beam.DoFn):
   def __init__(self):
       self.processed_revisions = Metrics.counter(self.__class__, 'processed_revisions')
-
-  def change_close_by(self, CONTEXT_RANGE, ind, changes):
-    length = len(changes) - 1
-    for inc in range(1, CONTEXT_RANGE+1):
-      if inc + ind < length and changes[inc + ind]:
-        return True
-      if ind - inc >= 0 and changes[ind - inc]:
-        return True
-    return False
-
-
-  def diff(self, sents, cur_sents, rev_id):
-    """Computes diff at sentence level."""
-    sents_old = [s for s in cur_sents.keys()]
-    new_seq = {}
-    equals = []
-    inserts = []
-    deletes = []
-    change_in_new = []
-    for s in sents:
-      if s in sents_old:
-        new_seq[s] = cur_sents[s]
-        equals.append((s, cur_sents[s]))
-        change_in_new.append(False)
-      else:
-        new_seq[s] = rev_id
-        inserts.append((s, rev_id))
-        change_in_new.append(True)
-    change_in_old = []
-    for s in sents_old:
-      if s not in sents:
-        change_in_old.append(True)
-        deletes.append((s, cur_sents[s]))
-      else:
-        change_in_old.append(False)
-    # Locate context sentences that are unchanged near the inseted/deleted
-    # sentences.
-    context_equals = []
-    for ind, s in enumerate(sents):
-      if (not change_in_new[ind] and
-          self.change_close_by(CONTEXT_RANGE, ind, change_in_new)):
-          context_equals.append(s)
-    for ind, s in enumerate(sents_old):
-      if (not change_in_old[ind] and
-          self.change_close_by(CONTEXT_RANGE, ind, change_in_old)):
-          context_equals.append(s)
-    # Dedeuplicate sentences.
-    context_equals = list(set(context_equals))
-    return context_equals, inserts, deletes, new_seq
-
-
-  def format_clean(self, s):
-    """Clean MediaWiki format."""
-    # Clean titles
-    ret = []
-    for line in s.splitlines():
-      front_cnt = re.search("^=+", line)
-      back_cnt = re.search("^=+", line[::-1])
-      if (front_cnt is None or back_cnt is None
-          or len(front_cnt.group(0)) != len(back_cnt.group(0))):
-        ret.append(line)
-    s = "\n".join(ret)
-    # mwparserfromhell clean.
-    s = mwparserfromhell.parse(s).strip_code()
-    return s
+      self.long_sentences = Metrics.counter(self.__class__, 'long_sentences')
 
 
   def process(self, element, bucket, ingestFrom):
@@ -236,7 +177,9 @@ class WriteDecompressedFile(beam.DoFn):
     if ingestFrom == 'local':
        input_stream = chunk_name
     else:
-       os.system("gsutil -m cp %s %s" % (path.join('gs://', bucket, chunk_name), chunk_name))
+       cmd = "gsutil -m cp %s %s" % (path.join('gs://', bucket, chunk_name), chunk_name)
+       if WEXITSTATUS(os.system()) != 0:
+         raise Excetion("GSUTIL COPY Error")
        input_stream = chunk_name
     # Running ingestion on the xml file
     last_revision = 'None'
@@ -245,20 +188,17 @@ class WriteDecompressedFile(beam.DoFn):
     i = 0
     for i, content in enumerate(parse_stream(bz2.BZ2File(chunk_name))):
       self.processed_revisions.inc()
+      last_revision = content['rev_id']
       # Add the week and year field for sharding
       if content['text'] is None:
         content['text'] = ""
-      content['text'] = self.format_clean(content['text'])
-      last_revision = content['rev_id']
-      for line in content['text'].split('\n'):
-        if len(line) <= LINE_THERESHOLD:
-           sents = nltk.sent_tokenize(line)
-        else:
-           beam.pvalue.TaggedOutput('error_log', json.dumps(content['rev_id']))
-      context_equals, inserts, deletes, cur_sents = self.diff(sents, cur_sents, content['rev_id'])
+      yield content
+      (context_equals, inserts, deletes, cur_sents), error = process(content,cur_sents)
+      if error:
+        yield beam.pvalue.TaggedOutput('error_log', json.dumps(content['rev_id']))
+        self.long_sentences.inc()
       metadata = {f : content[f] for f in ['comment', 'user_id', 'user_text',
                                            'user_ip', 'page_id', 'page_title']}
-      yield content
       if content["comment"] is not None and "POV" in content["comment"]:
         rejections = {"rejecter" : content['rev_id'],
                       "rejectee" : [d[1] for d in deletes]}
@@ -336,8 +276,17 @@ if __name__ == '__main__':
   parser.add_argument('--cloudlist',
                       dest='cloudlist',
                       default=None,
-                      help='Provide a list of dumps (separated by line break)
-                      in a local file you want to process from the cloudBucket.')
+                      help='Provide a list of dumps (separated by line break) in a local file you want to process from the cloudbucket.')
+  parser.add_argument('--cloudlistStartFrom',
+                      type=int,
+                      dest='start',
+                      default=None,
+                      help='(Optional) start processing from any point in the cloudlist.')
+  parser.add_argument('--cloudlistEnd',
+                      type=int,
+                      dest='end',
+                      default=None,
+                      help='(Optional) end processing from any point in the cloudlist.')
   known_args, pipeline_args = parser.parse_known_args()
   if known_args.download:
      # If specified downloading from Wikipedia
@@ -367,4 +316,14 @@ if __name__ == '__main__':
            sections.append(obj.name[obj.name.rfind('/') + 1:])
   if known_args.ingestFrom == 'local':
      sections = [known_args.localStorage]
-  run(known_args, pipeline_args, sections)
+  if known_args.start is not None:
+     start = known_args.start
+  else:
+     start = 0
+  if known_args.end is not None:
+     end = known_args.end
+  else:
+     end = 0
+  run(known_args, pipeline_args,
+      sections[start:end],
+      "{fr}-{to}".format(fr=start, to=end))
