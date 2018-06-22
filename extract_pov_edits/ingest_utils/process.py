@@ -45,7 +45,7 @@ def change_close_by(CONTEXT_RANGE, ind, changes):
 
 def diff(sents, cur_sents, rev_id):
   """Computes diff at sentence level."""
-  sents_old = [s for s in cur_sents.keys()]
+  sents_old = cur_sents.keys()
   new_seq = {}
   equals = []
   inserts = []
@@ -107,17 +107,17 @@ def split(text):
   for ind, ch in enumerate(text):
     if (ind == length - 1) or (ch in sentence_break
                                and (text[ind+1] not in sentence_break)):
-       if text[start:ind+1].strip() != '':
-          yield text[start:ind+1].strip()
+       ret = text[start:ind + 1].strip()
+       if ret:
+          yield ret
        start = ind+1
 
 
 def process(content, cur_sents):
   """Main Processing Point."""
-  content['text'] = format_clean(content['text'])
   sents = []
   error = False
-  for component in split(content['text']):
+  for component in split(format_clean(content['text'])):
     if len(component) < COMPONENT_THERESHOLD:
       # Prevents nltk from sentence tokenizing over-long paragraphs which might
       # result in endless execution and memory leak.
