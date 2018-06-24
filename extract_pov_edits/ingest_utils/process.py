@@ -28,8 +28,10 @@ from __future__ import print_function
 import re
 import nltk
 import mwparserfromhell
+import multiprocessing
 
 COMPONENT_THERESHOLD = 10000
+TIMEOUT = 2
 CONTEXT_RANGE = 3
 
 
@@ -113,8 +115,29 @@ def split(text):
        start = ind + 1
 
 
+def _process(args):
+  """Dry run to test if the revision will break the pipeline."""
+  (content, cur_sents) = args
+  sents = []
+  for component in split(format_clean(content['text'])):
+    if len(component) < COMPONENT_THERESHOLD:
+      # Prevents nltk from sentence tokenizing over-long paragraphs which might
+      # result in endless execution and memory leak.
+      sents.extend(nltk.sent_tokenize(component))
+  _ = diff(sents, cur_sents, content['rev_id'])
+
+
 def process(content, cur_sents):
   """Main Processing Point."""
+  p = multiprocessing.Process(target = _process, name = "subprocess",
+                              args=((content, cur_sents), ))
+  p.start()
+  p.join(TIMEOUT)
+  if p.is_alive():
+    error = True
+    p.terminate()
+    p.join()
+    return diff(cur_sents, cur_sents, content['rev_id']), True
   sents = []
   error = False
   for component in split(format_clean(content['text'])):
