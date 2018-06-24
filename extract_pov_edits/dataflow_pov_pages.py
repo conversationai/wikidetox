@@ -111,7 +111,7 @@ def run(known_args, pipeline_args, sections, jobname):
     '--staging_location=gs://wikidetox-dataflow/staging',
     '--temp_location=gs://wikidetox-dataflow/tmp',
     '--job_name=extract-wiki-edits-{}'.format(jobname),
-    '--num_workers=20',
+    '--max_num_workers=20',
   ])
 
   pipeline_options = PipelineOptions(pipeline_args)
@@ -124,19 +124,12 @@ def run(known_args, pipeline_args, sections, jobname):
        pcoll = (pcoll |
                 "DownloadDataDumps" >> beam.ParDo(DownloadDataDumps(), known_args.bucket))
     else:
-       error_log, pov_rejects, npov_improvements, pov_non_rejects = ( pcoll |
-           "Ingestion" >> beam.ParDo(WriteDecompressedFile(),
-                    known_args.bucket, known_args.ingestFrom).with_outputs(
-                    'pov_rejects', 'npov_improvements', 'pov_non_rejects',
-                    main = 'error_log'))
-       (pov_rejects | "RejectedToStorage" >>
-        beam.io.WriteToText(path.join(cloud_storage, 'pov_rejected-{}'.format(jobname))))
-       (npov_improvements | "NPOVinsertsToStorage" >>
-        beam.io.WriteToText(path.join(cloud_storage, 'npov_improved-{}'.format(jobname))))
-       (pov_non_rejects | "NPOVToStorage" >>
-        beam.io.WriteToText(path.join(cloud_storage, 'non_pov_rejected-{}'.format(jobname))))
-       (error_log | "ERRORlog" >>
-        beam.io.WriteToText(path.join(cloud_storage, 'error_log-{}'.format(jobname))))
+       pcoll = ( pcoll |
+           "Ingestion" >>
+          beam.ParDo(WriteDecompressedFile(),
+                    known_args.bucket, known_args.ingestFrom)
+                | "WriteToStorage" >>
+                beam.io.WriteToText(path.join(cloud_storage, 'pages_with_pov_edits')))
 
 
 class DownloadDataDumps(beam.DoFn):
@@ -155,15 +148,14 @@ class DownloadDataDumps(beam.DoFn):
     yield chunk_name
     return
 
-
 class WriteDecompressedFile(beam.DoFn):
   def __init__(self):
       self.processed_revisions = Metrics.counter(self.__class__, 'processed_revisions')
-      self.errors = Metrics.counter(self.__class__, 'errors')
+      self.pov_pages = Metrics.counter(self.__class__, 'pov_pages')
 
 
   def process(self, element, bucket, ingestFrom):
-    """Ingests the xml dump into json, returns the josn records
+    """Ingests the xml dump into json, returns the json records
     """
     nltk.download('punkt')
     # Decompress the data dump
@@ -180,42 +172,19 @@ class WriteDecompressedFile(beam.DoFn):
     # Running ingestion on the xml file
     last_revision = 'None'
     last_completed = time.time()
-    cur_sents = {}
     i = 0
     for i, content in enumerate(parse_stream(bz2.BZ2File(chunk_name))):
       # List of X on Wikipedia includes long tables, might be the reason that
       # mwparser crushes
-      if 'list' in content['page_title'].lower():
-        continue
       self.processed_revisions.inc()
       last_revision = content['rev_id']
       # Add the week and year field for sharding
-      if content['text'] is None:
-        content['text'] = ""
-      yield content
-      (context_equals, inserts, deletes, cur_sents), error = process(content,cur_sents)
-      if error:
-        yield beam.pvalue.TaggedOutput('error_log', json.dumps(content['rev_id']))
-        self.errors.inc()
-      metadata = {f : content[f] for f in ['comment', 'user_id', 'user_text',
+      metadata = {f : content[f] for f in ['comment', 'user_id', 'user_text', 'rev_id',
                                            'user_ip', 'page_id', 'page_title']}
+      metadata['chunk_name'] = chunk_name
       if content["comment"] is not None and "POV" in content["comment"]:
-        rejections = {"rejecter" : content['rev_id'],
-                      "rejectee" : [d[1] for d in deletes]}
-        rejections.update(metadata)
-        yield beam.pvalue.TaggedOutput('pov_rejections', json.dumps(rejections))
-        ret = {"rejecter" : content['rev_id']}
-        ret.update(metadata)
-        for d in deletes:
-          ret['content'] = d[0]
-          ret['rejectee'] = d[1]
-          yield beam.pvalue.TaggedOutput('pov_rejects', json.dumps(ret))
-        for sent in inserts:
-          ret['content'] = sent[0]
-          yield beam.pvalue.TaggedOutput('npov_improvements', json.dumps(ret))
-        for sent in context_equals:
-          ret['content'] = sent
-          yield beam.pvalue.TaggedOutput('pov_non_rejects', json.dumps(ret))
+        self.pov_pages.inc()
+        yield metadata
       logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=last_revision, time=time.time() - last_completed))
       last_completed = time.time()
     if ingestFrom != 'local': os.system("rm %s" % chunk_name)
@@ -327,4 +296,4 @@ if __name__ == '__main__':
      end = len(sections)
   run(known_args, pipeline_args,
       sections[start:end],
-      "{fr}-{to}".format(fr=start, to=end))
+      'find-pov-pages')
