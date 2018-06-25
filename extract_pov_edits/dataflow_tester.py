@@ -51,8 +51,8 @@ class TestParDo(unittest.TestCase):
         pipeline_args = [
             '--runner=DirectRunner',
             '--project=wikidetox-viz',
-            '--staging_location=gs://wikidetox-viz-dataflow/staging',
-            '--temp_location=gs://wikidetox-viz-dataflow/tmp',
+            '--staging_location=gs://wikidetox-dataflow/staging',
+            '--temp_location=gs://wikidetox-dataflow/tmp',
             '--job_name=test-ingestion-pipeline', 
             '--num_workers=30',
         ]
@@ -72,7 +72,7 @@ class TestParDo(unittest.TestCase):
       # Test Download
       with TestPipeline(options=pipeline_options) as p:
         p = (p | beam.Create(test_url)
-             | beam.ParDo(DownloadDataDumps(), 'wikidetox-viz-dataflow/test_ingestion/')
+             | beam.ParDo(DownloadDataDumps(), 'wikidetox-dataflow/test_ingestion/')
                | beam.io.WriteToText("%s"%temp_path, num_shards=1))
       results = []
       with open("%s-00000-of-00001"%temp_path) as result_file:
