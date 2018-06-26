@@ -147,14 +147,23 @@ class ReconstructConversation(beam.DoFn):
        error_log = error_log[0]
     else:
        error_log = None
+    rev_ids = []
+    min_rev_id = None
     for r in rows:
-        r['rev_id'] = int(r['rev_id'])
+      rid = int(r['rev_id'])
+      if min_rev_id is None:
+        min_rev_id = rid
+      else:
+        min_rev_id = min(min_rev_id, rid)
+      with open("/tmp/%d" % (rid), "w") as w:
+        json.dump(r, w)
+      rev_ids.append((r['timestamp'], rid))
 
     # Return when the page doesn't have updates to be processed
-    if rows == [] or (error_log and \
-                      error_log['rev_id'] <= min([r['rev_id'] for r in rows])):
+    if min_rev_id is None  or (error_log and
+                               error_log['rev_id'] <= min_rev_id):
        assert((last_revision and page_state) or \
-              ((last_revision == None) and (page_state == None)))
+              ((last_revision is None) and (page_state is None)))
        if last_revision:
           yield beam.pvalue.TaggedOutput('last_revision', json.dumps(last_revision))
           yield beam.pvalue.TaggedOutput('page_states', json.dumps(page_state))
@@ -176,10 +185,14 @@ class ReconstructConversation(beam.DoFn):
     page_state_bak = None
     cnt = 0
     # Sort revisions by temporal order.
-    revision_lst = sorted([r for r in rows], key=lambda k: (k['timestamp'], k['rev_id']))
+    revision_lst = sorted(rev_ids)
     last_loading = 0
     logging.info('Reconstruction on page %s started.' % (page_id))
-    for revision in revision_lst:
+    for key in revision_lst:
+        (_, rev_id) = key
+        with open("/tmp/%d" % rev_id, "r") as f:
+          revision = json.load(f)
+        revision['rev_id'] = int(revision['rev_id'])
         # Process revision by revision.
         if 'rev_id' not in revision: continue
         cnt += 1
