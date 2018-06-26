@@ -57,15 +57,25 @@ def run(known_args, pipeline_args):
   with beam.Pipeline(options=pipeline_options) as p:
     # Main Pipeline
     p = (p | beam.io.ReadFromText(known_args.input_storage)
-         | beam.ParDo(WriteToSpanner(), known_args.spanner_instance, known_args.spanner_database,
-                      known_args.spanner_table, known_args.spanner_table_columns))
+         | beam.ParDo(WriteToSpanner(known_args.spanner_instance, known_args.spanner_database,
+                                     known_args.spanner_table, known_args.spanner_table_columns)))
 
 class WriteToSpanner(beam.DoFn):
-  def __init__(self):
+  def __init__(self, instance_id, database_id, table_id, table_columns):
     self.inserted_record = Metrics.counter(self.__class__, 'inserted_record')
-    self.retry_error = Metrics.counter(self.__class__, 'retry_error')
+    self.already_exists = Metrics.counter(self.__class__, 'already_exists')
+    self.instance_id = instance_id
+    self.database_id = database_id
+    self.table_id = table_id
+    self.table_columns = table_columns
 
-  def process(self, element, instance_id, database_id, table_id, table_columns):
+
+  def start_bundle():
+    self.writer = SpannerWriter(self.instance_id, self.database_id)
+    self.writer.create_table(self.table_id, self.table_columns)
+
+
+  def process(self, element):
     element = json.loads(element)
     logging.info("RECORD PAGE %s INSERTED." % element['page_id'])
     if table_columns is None:
@@ -73,14 +83,12 @@ class WriteToSpanner(beam.DoFn):
     else:
       table_columns = sorted(table_columns)
     table_columns = tuple(table_columns)
-    writer = SpannerWriter(instance_id, database_id)
-    writer.create_table(table_id, table_columns)
     try:
-       writer.insert_data(table_id, [(element[key] for key in table_columns)])
+       self.writer.insert_data(table_id, [(element[key] for key in table_columns)])
        self.inserted_record.inc()
     except Exception as e:
       if 'StatusCode.ALREADY_EXISTS' in str(e):
-         self.retry_error.inc()
+         self.already_exists.inc()
          pass
       else:
         raise Exception(e)
