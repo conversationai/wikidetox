@@ -122,7 +122,6 @@ class ReconstructConversation(beam.DoFn):
     if (page_id == None): return
     logging.info('USERLOG: Reconstruction work start on page: %s' % page_id)
     # Load input from cloud
-    rows = data['to_be_processed']
     last_revision = data['last_revision']
     page_state = data['page_state']
     error_log = data['error_log']
@@ -149,7 +148,7 @@ class ReconstructConversation(beam.DoFn):
        error_log = None
     rev_ids = []
     min_rev_id = None
-    for r in rows:
+    for r in data['to_be_processed']:
       rid = int(r['rev_id'])
       if min_rev_id is None:
         min_rev_id = rid
@@ -158,6 +157,7 @@ class ReconstructConversation(beam.DoFn):
       with open("/tmp/%d" % (rid), "w") as w:
         json.dump(r, w)
       rev_ids.append((r['timestamp'], rid))
+    del data['to_be_processed']
 
     # Return when the page doesn't have updates to be processed
     if min_rev_id is None  or (error_log and
