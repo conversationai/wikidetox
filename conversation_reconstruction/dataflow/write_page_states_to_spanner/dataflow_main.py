@@ -63,6 +63,7 @@ def run(known_args, pipeline_args):
 class WriteToSpanner(beam.DoFn):
   def __init__(self):
     self.inserted_record = Metrics.counter(self.__class__, 'inserted_record')
+    self.retry_error = Metrics.counter(self.__class__, 'retry_error')
 
   def process(self, element, instance_id, database_id, table_id, table_columns):
     element = json.loads(element)
@@ -74,8 +75,15 @@ class WriteToSpanner(beam.DoFn):
     table_columns = tuple(table_columns)
     writer = SpannerWriter(instance_id, database_id)
     writer.create_table(table_id, table_columns)
-    writer.insert_data(table_id, [(element[key] for key in table_columns)])
-    self.inserted_record.inc()
+    try:
+       writer.insert_data(table_id, [(element[key] for key in table_columns)])
+       self.inserted_record.inc()
+    except Exception as e:
+      if 'StatusCode.ALREADY_EXISTS' in str(e):
+         self.retry_error.inc()
+         pass
+      else:
+        raise Exception(e)
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
