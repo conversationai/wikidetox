@@ -76,6 +76,9 @@ def merge(ps1, ps2):
 class TestReconstruction(unittest.TestCase):
   def test_reconstruction(self):
      for p in PAGES:
+        with open("page_states.json", "r") as w:
+          (page_state, latest_content, last_rev_id) = json.load(w)
+
         logging.info("TEST LOG: testing starts on page %s" % str(p))
         processor = Conversation_Constructor()
         cnt = 0
@@ -94,21 +97,28 @@ class TestReconstruction(unittest.TestCase):
           last_week = -1
           for ind, line in enumerate(f):
                revision = json.loads(line)
-               cnt += 1
                last_revision = revision['rev_id']
                week = datetime.datetime.strptime(revision['timestamp'], TIMESTAMP_FORMAT).isocalendar()[1]
                year = datetime.datetime.strptime(revision['timestamp'], TIMESTAMP_FORMAT).year
+               if revision['rev_id'] < last_rev_id:
+                 print(week, year)
+                 continue
+               cnt += 1
                if ((cnt % LOG_INTERVAL == 0 and cnt) \
                    or (last_week >= 0 and last_week != week))\
                   and not(page_state == None):
                  # Reload after every LOG_INTERVAL revisions to keep the low memory
                  # usage.
+                  memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                  logging.info("MENMORY BEFORE RELOADING : %d KB" % memory_usage)
                   processor = Conversation_Constructor()
-                  second_last_page_state = copy.deepcopy(page_state)
+                  #second_last_page_state = copy.deepcopy(page_state)
                   processor.load(page_state['deleted_comments'])
-                  with open("page_states.json", "w") as w:
-                    json.dump((page_state, latest_content, revision['rev_id']), w)
+                  del page_state['deleted_comments']
+                  page_state['deleted_comments'] = []
                   print(year, week)
+                  memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                  logging.info("MENMORY AFTER RELOADING : %d KB" % memory_usage)
 
                if revision['rev_id'] in LOADING_TEST: 
                   if second_last_page_state:
