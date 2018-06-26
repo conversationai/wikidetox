@@ -42,7 +42,7 @@ from construct_utils.conversation_constructor import Conversation_Constructor
 
 
 LOG_INTERVAL = 100
-MENMORY_THERESHOLD = 1500000
+MENMORY_THERESHOLD = 1000000
 
 def run(known_args, pipeline_args):
   """Main entry point; defines and runs the reconstruction pipeline."""
@@ -170,7 +170,7 @@ class ReconstructConversation(beam.DoFn):
        latest_content = last_revision['text']
     else:
        latest_content = ""
-    
+
     # Initialize
     last_revision_id = 'None'
     page_state_bak = None
@@ -197,6 +197,8 @@ class ReconstructConversation(beam.DoFn):
         for action in actions:
             yield json.dumps(action)
         memory_used = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        if memory_used >= MENMORY_THERESHOLD:
+          logging.info("MENMORY USED MORE THAN THERESHOLD in PAGE %s REVISION %d : %d KB" % (revision['page_id'], revision['rev_id'], memory_used))
         if ((cnt % LOG_INTERVAL == 0 and cnt)
             or memory_used >= MENMORY_THERESHOLD) and page_state:
           # Reload after every LOG_INTERVAL revisions to keep the low memory
@@ -205,6 +207,8 @@ class ReconstructConversation(beam.DoFn):
            page_state_bak = copy.deepcopy(page_state)
            last_loading = cnt
            processor.load(page_state['deleted_comments'])
+           page_state['deleted_comments'] = []
+        revision = None
     if page_state_bak and cnt != last_loading:
        # Merge the last two page states if a reload happens while processing,
        # otherwise in a situation where a week's data contains LOG_INTERVAL + 1

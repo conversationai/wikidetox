@@ -67,7 +67,6 @@ class WriteToSpanner(beam.DoFn):
   def process(self, element, instance_id, database_id, table_id, table_columns):
     element = json.loads(element)
     logging.info("RECORD PAGE %s INSERTED." % element['page_id'])
-    return
     if table_columns is None:
       table_columns = sorted(element.keys())
     else:
