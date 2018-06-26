@@ -39,7 +39,7 @@ import copy
 from construct_utils.conversation_constructor import Conversation_Constructor
 from construct_utils.utils.third_party.rev_clean import clean_html
 
-default_page_ids = [23031, 23715982] #26647, 10555, 21533114, 23715934, 476334, 14496]
+default_page_ids = [2609426] #23031, 23715982, 26647, 10555, 21533114, 23715934, 476334, 14496]
 # Suggestion on test pages:
 # PAGE 32094486: Formatted in tables, mostly in Spanish, suggested to test
 # diff algorithm, encodings.
@@ -97,6 +97,7 @@ class TestReconstruction(unittest.TestCase):
                cnt += 1
                last_revision = revision['rev_id']
                week = datetime.datetime.strptime(revision['timestamp'], TIMESTAMP_FORMAT).isocalendar()[1]
+               year = datetime.datetime.strptime(revision['timestamp'], TIMESTAMP_FORMAT).year
                if ((cnt % LOG_INTERVAL == 0 and cnt) \
                    or (last_week >= 0 and last_week != week))\
                   and not(page_state == None):
@@ -105,8 +106,9 @@ class TestReconstruction(unittest.TestCase):
                   processor = Conversation_Constructor()
                   second_last_page_state = copy.deepcopy(page_state)
                   processor.load(page_state['deleted_comments'])
-                  print(latest_content)
-                  print(page_state)
+                  with open("page_states.json", "w") as w:
+                    json.dump((page_state, latest_content, revision['rev_id']), w)
+                  print(year, week)
 
                if revision['rev_id'] in LOADING_TEST: 
                   if second_last_page_state:

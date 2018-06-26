@@ -27,6 +27,7 @@ import argparse
 import logging
 import traceback
 import subprocess
+import resource
 import json
 from os import path
 import urllib2
@@ -41,6 +42,7 @@ from construct_utils.conversation_constructor import Conversation_Constructor
 
 
 LOG_INTERVAL = 100
+MENMORY_THERESHOLD = 1500000
 
 def run(known_args, pipeline_args):
   """Main entry point; defines and runs the reconstruction pipeline."""
@@ -54,7 +56,7 @@ def run(known_args, pipeline_args):
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
     '--job_name=reconstruction-week{lw}year{ly}'.format(lw=known_args.week, ly=known_args.year),
-    '--num_workers=30'
+    '--max_num_workers=80'
   ])
   pipeline_options = PipelineOptions(pipeline_args)
   pipeline_options.view_as(SetupOptions).save_main_session = True
@@ -194,7 +196,9 @@ class ReconstructConversation(beam.DoFn):
 
         for action in actions:
             yield json.dumps(action)
-        if cnt % LOG_INTERVAL == 0 and cnt and page_state:
+        memory_used = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        if ((cnt % LOG_INTERVAL == 0 and cnt)
+            or memory_used >= MENMORY_THERESHOLD) and page_state:
           # Reload after every LOG_INTERVAL revisions to keep the low memory
           # usage.
            processor = Conversation_Constructor()
