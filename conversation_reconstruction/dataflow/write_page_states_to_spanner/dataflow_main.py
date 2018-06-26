@@ -70,7 +70,7 @@ class WriteToSpanner(beam.DoFn):
     self.table_columns = table_columns
 
 
-  def start_bundle():
+  def start_bundle(self):
     self.writer = SpannerWriter(self.instance_id, self.database_id)
     self.writer.create_table(self.table_id, self.table_columns)
 
