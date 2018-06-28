@@ -39,7 +39,7 @@ import copy
 from construct_utils.conversation_constructor import Conversation_Constructor
 from construct_utils.utils.third_party.rev_clean import clean_html
 
-default_page_ids = [2609426] #23031, 23715982, 26647, 10555, 21533114, 23715934, 476334, 14496]
+default_page_ids = [14677358] #23031, 23715982, 26647, 10555, 21533114, 23715934, 476334, 14496]
 # Suggestion on test pages:
 # PAGE 32094486: Formatted in tables, mostly in Spanish, suggested to test
 # diff algorithm, encodings.
@@ -76,9 +76,6 @@ def merge(ps1, ps2):
 class TestReconstruction(unittest.TestCase):
   def test_reconstruction(self):
      for p in PAGES:
-        with open("page_states.json", "r") as w:
-          (page_state, latest_content, last_rev_id) = json.load(w)
-
         logging.info("TEST LOG: testing starts on page %s" % str(p))
         processor = Conversation_Constructor()
         cnt = 0
@@ -100,9 +97,6 @@ class TestReconstruction(unittest.TestCase):
                last_revision = revision['rev_id']
                week = datetime.datetime.strptime(revision['timestamp'], TIMESTAMP_FORMAT).isocalendar()[1]
                year = datetime.datetime.strptime(revision['timestamp'], TIMESTAMP_FORMAT).year
-               if revision['rev_id'] < last_rev_id:
-                 print(week, year)
-                 continue
                cnt += 1
                if ((cnt % LOG_INTERVAL == 0 and cnt) \
                    or (last_week >= 0 and last_week != week))\
