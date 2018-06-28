@@ -1,4 +1,5 @@
 cd ..
+gsutil -m rm -r gs://wikidetox-viz-dataflow/process_tmp/revs
 gsutil -m mv -p gs://wikidetox-viz-dataflow/process_tmp/current/* gs://wikidetox-viz-dataflow/process_tmp/bakup/
 gsutil -m mv -p gs://wikidetox-viz-dataflow/process_tmp/next_stage/* gs://wikidetox-viz-dataflow/process_tmp/current/
 echo "start job on week $i $y"

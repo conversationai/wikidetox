@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Copyright 2017 Google Inc.
+Copyright 2018 Google Inc.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -15,11 +15,12 @@ limitations under the License.
 
 -------------------------------------------------------------------------------
 
-A dataflow pipeline to reconstruct conversations on Wikipedia talk pages from ingested json files.
+A dataflow pipeline to collect statistics on Wikipedia talk pages including number of revisions and their sizes..
 
 Run with:
 
-reconstruct*.sh in helper_shell
+  python dataflow_metadata.py --input [YourIngestedFiles] --output [IntendedOutputStorage] --setup_file ./setup.py
+         [Optional] --testmode (runnning locally for test)
 
 """
 from __future__ import absolute_import
@@ -42,8 +43,12 @@ from apache_beam.options.pipeline_options import SetupOptions
 from construct_utils.conversation_constructor import Conversation_Constructor
 
 
-LOG_INTERVAL = 100
-MENMORY_THERESHOLD = 1000000
+def get_metadata(x):
+  record_size = len(x)
+  record = json.loads(x)
+  return json.dumps({'page_id': record['page_id'], 'rev_id': record['rev_id'],
+                     'timestamp': record['timestamp'], 'record_size': record_size})
+
 
 def run(known_args, pipeline_args):
   """Main entry point; defines and runs the reconstruction pipeline."""
@@ -56,7 +61,7 @@ def run(known_args, pipeline_args):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=reshard-input',
+    '--job_name=get-metadata',
     '--max_num_workers=80'
   ])
   pipeline_options = PipelineOptions(pipeline_args)
@@ -64,22 +69,8 @@ def run(known_args, pipeline_args):
 
   with beam.Pipeline(options=pipeline_options) as p:
     p = (p | 'Read_to_be_processed' >> beam.io.ReadFromText(known_args.input)
-         | 'WriteToStorage' >> beam.ParDo(WriteToStorage(), known_args.outputdir)
-         | 'WriteList' >> beam.io.WriteToText(known_args.outputlist))
-
-class WriteToStorage(beam.DoFn):
-  def process(self, element, outputdir):
-      element = json.loads(element)
-      page_id = element['page_id']
-      rev_id = element['rev_id']
-      # Creates writing path given the week, year pair
-      write_path = path.join(outputdir, page_id, rev_id)
-      # Writes to storage
-      logging.info('USERLOG: Write to path %s.' % write_path)
-      outputfile = filesystems.FileSystems.create(write_path)
-      outputfile.write(json.dumps(element) + '\n')
-      outputfile.close()
-      yield json.dumps({'page_id': page_id, 'rev_id': int(rev_id)})
+         | 'Map_to_meatadata' >> beam.Map(lambda x : get_metadata(x))
+         | 'WriteToFile' >> beam.io.WriteToText(known_args.output))
 
 
 if __name__ == '__main__':
@@ -90,13 +81,8 @@ if __name__ == '__main__':
   parser.add_argument('--input',
                       dest='input',
                       help='input storage.')
-  parser.add_argument('--outputdir',
-                      dest='outputdir',
-                      default='gs://wikidetox-viz-dataflow/resharded-en-20180501/',
-                      help='The output directory')
-  parser.add_argument('--outputlist',
-                      dest='outputlist',
-                      default='gs://wikidetox-viz-dataflow/resharded-en-20180501/resharded-list.json',
+  parser.add_argument('--output',
+                      dest='output',
                       help='The output directory')
   parser.add_argument('--testmode',
                       dest='testmode',
