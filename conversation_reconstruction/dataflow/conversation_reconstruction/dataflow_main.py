@@ -45,7 +45,7 @@ from construct_utils.conversation_constructor import Conversation_Constructor
 
 LOG_INTERVAL = 100
 MEMORY_THERESHOLD = 1000000
-REVISION_THERESHOLD = 100
+REVISION_THERESHOLD = 0
 SAVE_TO_MEMORY = 0
 SAVE_TO_STORAGE = 1
 
@@ -241,7 +241,7 @@ class ReconstructConversation(beam.DoFn):
     last_loading = 0
     logging.info('Reconstruction on page %s started.' % (page_id))
     if 'text' not in revision_lst[0]:
-      os.system("gsutil -m cp -r %s %s" % (path.join(tmp_input, page_id), path.join('/tmp', page_id)))
+      os.system("gsutil -m cp -r %s %s" % (path.join(tmp_input, page_id), path.join('/tmp/')))
     for key in revision_lst:
         if 'text' not in key:
            with open(path.join('/tmp/', page_id, str(key['rev_id']))) as f:
