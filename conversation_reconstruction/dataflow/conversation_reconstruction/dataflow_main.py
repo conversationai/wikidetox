@@ -29,6 +29,7 @@ import traceback
 import subprocess
 import resource
 import json
+import os
 from os import path
 import urllib2
 import ast
@@ -43,7 +44,18 @@ from construct_utils.conversation_constructor import Conversation_Constructor
 
 
 LOG_INTERVAL = 100
-MENMORY_THERESHOLD = 1000000
+MEMORY_THERESHOLD = 1000000
+REVISION_THERESHOLD = 100
+SAVE_TO_MEMORY = 0
+SAVE_TO_STORAGE = 1
+
+
+def get_metadata(x):
+  record_size = len(x)
+  record = json.loads(x)
+  return (record['page_id'], {'page_id': record['page_id'], 'rev_id': record['rev_id'],
+                              'timestamp': record['timestamp'], 'record_size': record_size})
+
 
 def run(known_args, pipeline_args):
   """Main entry point; defines and runs the reconstruction pipeline."""
@@ -73,8 +85,16 @@ def run(known_args, pipeline_args):
     error_log_location = "gs://wikidetox-viz-dataflow/%s/current/error_log*" % known_args.process_file
 
     # Read from Cloud Storage
-    to_be_processed = (p | 'Read_to_be_processed' >> beam.io.ReadFromText(revision_location)
+    revision_metadata = (p | 'ReadRevisionMetadata' >> beam.io.ReadFromText(revision_location)
+                         | 'MapToMetaData' >> beam.Map(lambda x: get_metadata(x))
+                         | beam.GroupByKey()
+                         | beam.ParDo(Count()))
+    raw_revisions = (p | 'ReadRawRevisions' >> beam.io.ReadFromText(revision_location)
+                       | 'assign_rev_id_as_key' >>beam.Map(lambda x: (json.loads(x)['rev_id'], x)))
+    to_be_processed = ({'metadata': revision_metadata, 'raw': raw_revisions}
+                       | 'GroupbyRevID' >> beam.CoGroupByKey()
                        | 'WriteToStroage' >> beam.ParDo(WriteToStorage(), tmp_input))
+
     last_revision = (p | 'Retrieve_last_revision' >> beam.io.ReadFromText(last_revision_location)
                        | 'LASTREV_assign_page_id_as_key' >> beam.Map(json_mapping))
     page_state = (p | 'Retrieve_page_state' >> beam.io.ReadFromText(page_state_location)
@@ -87,7 +107,7 @@ def run(known_args, pipeline_args):
                    = ({'to_be_processed': to_be_processed, 'last_revision': last_revision, \
                        'page_state': page_state, 'error_log': error_log}
                    # Join information based on page_id.
-                   | beam.CoGroupByKey()
+                   | 'GroupBy_page_id' >> beam.CoGroupByKey()
                    | beam.ParDo(ReconstructConversation(), tmp_input).with_outputs('page_states',\
                                'last_revision','error_log',  main = 'reconstruction_results'))
     # Main Result
@@ -100,9 +120,29 @@ def run(known_args, pipeline_args):
     error_log | "WriteErrorLog" >> beam.io.WriteToText(folder + "error_log")
 
 
+class Count(beam.DoFn):
+  def process(self, element):
+    (page_id, metadata) = element
+    flag = SAVE_TO_MEMORY
+    metadata = list(metadata)
+    if len(metadata) > REVISION_THERESHOLD:
+      flag = SAVE_TO_STORAGE
+    for rev in metadata:
+      yield (rev['rev_id'], flag)
+
+
 class WriteToStorage(beam.DoFn):
   def process(self, element, outputdir):
-      element = json.loads(element)
+    (rev_id, data) = element
+    metadata = data['metadata'][0]
+    raw = data['raw'][0]
+    if metadata == SAVE_TO_MEMORY:
+      logging.info("USERLOG: Write to memory.")
+      ret = json.loads(raw)
+      page_id = ret['page_id']
+      ret['rev_id'] = int(ret['rev_id'])
+    else:
+      element = json.loads(raw)
       page_id = element['page_id']
       rev_id = element['rev_id']
       # Creates writing path given the week, year pair
@@ -111,7 +151,8 @@ class WriteToStorage(beam.DoFn):
       logging.info('USERLOG: Write to path %s.' % write_path)
       with filesystems.FileSystems.create(write_path) as outputfile:
          json.dump(element, outputfile)
-      yield (page_id, (element['timestamp'], int(rev_id)))
+      ret = {'timestamp': element['timestamp'], 'rev_id': int(rev_id)}
+    yield (page_id, ret)
 
 
 class ReconstructConversation(beam.DoFn):
@@ -164,15 +205,14 @@ class ReconstructConversation(beam.DoFn):
     else:
        error_log = None
     rev_ids = []
-    min_rev_id = None
     memory_used = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    if memory_used >= MENMORY_THERESHOLD:
-      logging.info("MENMORY USED MORE THAN THERESHOLD in PAGE %s REVISION %d : %d KB" % (revision['page_id'], revision['rev_id'], memory_used))
+    if memory_used >= MEMORY_THERESHOLD:
+      logging.info("MEMORY USED MORE THAN THERESHOLD in PAGE %s REVISION %d : %d KB" % (revision['page_id'], revision['rev_id'], memory_used))
     rev_ids = data['to_be_processed']
 
     # Return when the page doesn't have updates to be processed
     if len(rev_ids) == 0  or (error_log and
-                               error_log['rev_id'] <= min_rev_id):
+                              error_log['rev_id'] <= min(r['rev_id'] for r in rev_ids)):
        assert((last_revision and page_state) or \
               ((last_revision is None) and (page_state is None)))
        if last_revision:
@@ -183,7 +223,6 @@ class ReconstructConversation(beam.DoFn):
        logging.info('Page %s has no sufficient input in this time period.' % (page_id))
        return
 
-    min_rev_id = min(rev_ids)
     processor = Conversation_Constructor()
     if page_state:
        logging.info('Page %s existed: loading page state.' % (page_id))
@@ -198,13 +237,18 @@ class ReconstructConversation(beam.DoFn):
     page_state_bak = None
     cnt = 0
     # Sort revisions by temporal order.
-    revision_lst = sorted(rev_ids)
+    revision_lst = sorted(rev_ids, key=lambda x: (x['timestamp'], x['rev_id']))
     last_loading = 0
     logging.info('Reconstruction on page %s started.' % (page_id))
+    if 'text' not in revision_lst[0]:
+      os.system("gsutil -m cp -r %s %s" % (path.join(tmp_input, page_id), path.join('/tmp', page_id)))
     for key in revision_lst:
-        (_, rev_id) = key
-        with filesystems.FileSystems.open(path.join(tmp_input, page_id, str(rev_id))) as f:
-          revision = json.load(f)
+        if 'text' not in key:
+           with open(path.join('/tmp/', page_id, str(key['rev_id']))) as f:
+              revision = json.load(f)
+           os.system("rm %s" % path.join('/tmp/', page_id, str(key['rev_id'])))
+        else:
+           revision = key
         revision['rev_id'] = int(revision['rev_id'])
         # Process revision by revision.
         if 'rev_id' not in revision: continue
@@ -223,10 +267,9 @@ class ReconstructConversation(beam.DoFn):
         for action in actions:
             yield json.dumps(action)
         memory_used = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        if memory_used >= MENMORY_THERESHOLD:
-          logging.info("MENMORY USED MORE THAN THERESHOLD in PAGE %s REVISION %d : %d KB" % (revision['page_id'], revision['rev_id'], memory_used))
-        if ((cnt % LOG_INTERVAL == 0 and cnt)
-            or memory_used >= MENMORY_THERESHOLD) and page_state:
+        if memory_used >= MEMORY_THERESHOLD:
+          logging.info("MEMORY USED MORE THAN THERESHOLD in PAGE %s REVISION %d : %d KB" % (revision['page_id'], revision['rev_id'], memory_used))
+        if (cnt % LOG_INTERVAL == 0 and cnt) and page_state:
           # Reload after every LOG_INTERVAL revisions to keep the low memory
           # usage.
            processor = Conversation_Constructor()
@@ -247,8 +290,8 @@ class ReconstructConversation(beam.DoFn):
     logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' % (page_id, last_revision_id))
 
 if __name__ == '__main__':
-  logging.basicConfig(filename="debug.log", level=logging.INFO)
-  logging.getLogger().setLevel(logging.DEBUG)
+#  logging.basicConfig(filename="debug.log", level=logging.INFO)
+  logging.getLogger().setLevel(logging.INFO)
   parser = argparse.ArgumentParser()
   # input/output parameters.
   parser.add_argument('--input',
