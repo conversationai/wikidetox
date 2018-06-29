@@ -45,7 +45,7 @@ from construct_utils.conversation_constructor import Conversation_Constructor
 
 LOG_INTERVAL = 100
 MEMORY_THERESHOLD = 1000000
-REVISION_THERESHOLD = 0
+REVISION_THERESHOLD = 100000000
 SAVE_TO_MEMORY = 0
 SAVE_TO_STORAGE = 1
 
@@ -124,9 +124,12 @@ class Count(beam.DoFn):
   def process(self, element):
     (page_id, metadata) = element
     flag = SAVE_TO_MEMORY
-    metadata = list(metadata)
-    if len(metadata) > REVISION_THERESHOLD:
-      flag = SAVE_TO_STORAGE
+    revision_sum = 0
+    for s in metadata:
+      revision_sum += s['record_size']
+      if revision_sum > REVISION_THERESHOLD:
+         flag = SAVE_TO_STORAGE
+         break
     for rev in metadata:
       yield (rev['rev_id'], flag)
 
@@ -205,11 +208,7 @@ class ReconstructConversation(beam.DoFn):
     else:
        error_log = None
     rev_ids = []
-    memory_used = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    if memory_used >= MEMORY_THERESHOLD:
-      logging.info("MEMORY USED MORE THAN THERESHOLD in PAGE %s REVISION %d : %d KB" % (revision['page_id'], revision['rev_id'], memory_used))
     rev_ids = data['to_be_processed']
-
     # Return when the page doesn't have updates to be processed
     if len(rev_ids) == 0  or (error_log and
                               error_log['rev_id'] <= min(r['rev_id'] for r in rev_ids)):
@@ -241,12 +240,12 @@ class ReconstructConversation(beam.DoFn):
     last_loading = 0
     logging.info('Reconstruction on page %s started.' % (page_id))
     if 'text' not in revision_lst[0]:
-      os.system("gsutil -m cp -r %s %s" % (path.join(tmp_input, page_id), path.join('/tmp/')))
+      os.system("gsutil -m cp -r %s %s" % (path.join(tmp_input, page_id), path.join('/var/tmp/')))
     for key in revision_lst:
         if 'text' not in key:
-           with open(path.join('/tmp/', page_id, str(key['rev_id']))) as f:
+           with open(path.join('/var/tmp/', page_id, str(key['rev_id'])), 'r') as f:
               revision = json.load(f)
-           os.system("rm %s" % path.join('/tmp/', page_id, str(key['rev_id'])))
+           os.system("rm %s" % path.join('/var/tmp/', page_id, str(key['rev_id'])))
         else:
            revision = key
         revision['rev_id'] = int(revision['rev_id'])
