@@ -20,13 +20,6 @@ This is a testing framework to test the functionality of conversation constructo
 Run with default setting:
   python conversation_tester.py
 
-Optional:
-  -p [--page_ids] PAGE_ID_LIST
-
-This tests the functionality on chosen pages, note that you need to download these pages first using fetch_testdata.py in construct_utils.
-
-  -l [--test_loading_on] REVISION_LIST
-
 The conversation constructor has the functionality of saving the intermediate page state in order to load and continue on it. This should provide a list of revisions that you want to test the loading functionality on.
 
 """
@@ -36,6 +29,7 @@ from __future__ import division
 from __future__ import print_function
 
 import json
+import datetime
 import copy
 import logging
 import unittest
@@ -45,14 +39,19 @@ import copy
 from construct_utils.conversation_constructor import Conversation_Constructor
 from construct_utils.utils.third_party.rev_clean import clean_html
 
-default_page_ids = [32094486] #[43758735, 9373473, 476334, 28031]
-# PAGE 34948919, 15854766, 32094486, 43758735, 22811813: testing on memory usage
-# PAGE 9373473: REVISION 479969745, test on reconstruction correctness
-# PAGE 476334: REVISION 74126950, error reconstruction
-
-# PAGE 32094486: DIFF ERROR ON REVISION 438455007
-# SUGGESTED TESTs: 28031
+default_page_ids = [14677358] #23031, 23715982, 26647, 10555, 21533114, 23715934, 476334, 14496]
+# Suggestion on test pages:
+# PAGE 32094486: Formatted in tables, mostly in Spanish, suggested to test
+# diff algorithm, encodings.
+# PAGE 34948919, 15854766, 43758735, 22811813, 28031: Long pages with long deletions,
+# suggested to test on memory usage.
+# PAGE 9373474: REVISION 479969745, test on reconstruction correctness.
+# PAGE 476334: REVISION 74126950, error reconstruction.
+# PAGE 32094486: diff testing on REVISION 438455007.
+# DEFAULT TEST: dummy_test, test on reconstruction correctness.
 default_load_test = [493084502, 305838972]
+
+TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 def merge(ps1, ps2):
      # Merge two page states, ps1 is the later one
@@ -92,10 +91,29 @@ class TestReconstruction(unittest.TestCase):
         else:
            filename = "construct_utils/testdata/%s.json" % p
         with open(filename, "r") as f:
+          last_week = -1
           for ind, line in enumerate(f):
                revision = json.loads(line)
-               cnt += 1
                last_revision = revision['rev_id']
+               week = datetime.datetime.strptime(revision['timestamp'], TIMESTAMP_FORMAT).isocalendar()[1]
+               year = datetime.datetime.strptime(revision['timestamp'], TIMESTAMP_FORMAT).year
+               cnt += 1
+               if ((cnt % LOG_INTERVAL == 0 and cnt) \
+                   or (last_week >= 0 and last_week != week))\
+                  and not(page_state == None):
+                 # Reload after every LOG_INTERVAL revisions to keep the low memory
+                 # usage.
+                  memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                  logging.info("MENMORY BEFORE RELOADING : %d KB" % memory_usage)
+                  processor = Conversation_Constructor()
+                  #second_last_page_state = copy.deepcopy(page_state)
+                  processor.load(page_state['deleted_comments'])
+                  del page_state['deleted_comments']
+                  page_state['deleted_comments'] = []
+                  print(year, week)
+                  memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                  logging.info("MENMORY AFTER RELOADING : %d KB" % memory_usage)
+
                if revision['rev_id'] in LOADING_TEST: 
                   if second_last_page_state:
                      page_state_test = merge(page_state, second_last_page_state)
@@ -105,8 +123,6 @@ class TestReconstruction(unittest.TestCase):
                   processor_test.load(page_state_test['deleted_comments'])
                   _, actions_test, _ = \
                      processor.process(page_state_test, latest_content, revision)
-               json.dump(latest_content, open("diff_test_document_0.json", "w"))
-               json.dump(clean_html(revision['text']), open("diff_test_document_1.json", "w"))
                page_state, actions, latest_content = \
                    processor.process(page_state, latest_content, revision)
                memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
@@ -122,18 +138,14 @@ class TestReconstruction(unittest.TestCase):
                if revision['rev_id'] == 479969745:
                   self.assertEqual(len(actions), 2)
                logging.info("USRLOG: revision %d processed, number %d on page %s." % (revision['rev_id'], ind, p))
-               if cnt % LOG_INTERVAL == 0 and cnt and not(page_state == None):
-                 # Reload after every LOG_INTERVAL revisions to keep the low memory
-                 # usage.
-                  processor = Conversation_Constructor()
-                  second_last_page_state = copy.deepcopy(page_state)
-                  processor.load(page_state['deleted_comments'])
+               last_week = week
         if p == "dummy_test":
            with open("construct_utils/testdata/%s_ans.json" % p, "r") as f:
               standard_ans = json.load(f)
            self.assertEqual(''.join(ans), standard_ans)
 
 if __name__ == '__main__':
+  logging.basicConfig(filename="test_debug.log", level=logging.DEBUG)
   logging.getLogger().setLevel(logging.DEBUG)
   parser = argparse.ArgumentParser()
   parser.add_argument('-p', '--page_ids', dest='page_ids',\
@@ -144,5 +156,5 @@ if __name__ == '__main__':
   PAGES.append("dummy_test")
   LOADING_TEST = parser.parse_args().load_test
   LOG_INTERVAL = 100
-  memory_boundary = 1000000 # in KB
+  memory_boundary = 2000000 # in KB
   unittest.main()

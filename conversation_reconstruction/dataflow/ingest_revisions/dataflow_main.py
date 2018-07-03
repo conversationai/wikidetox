@@ -100,7 +100,7 @@ def run(known_args, pipeline_args, sections):
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
     '--job_name=ingest-latest-revisions-{lan}'.format(lan=known_args.language),
-    '--num_workers=30',
+    '--max_num_workers=80',
   ])
 
   pipeline_options = PipelineOptions(pipeline_args)

@@ -88,7 +88,7 @@ def parse_stream(input_file):
          page_title = ele.text
          clearup(ele)
       elif tag == "revision":
-        if page_namespace and page_namespace in TALK_PAGE_NAMESPACE:
+        if page_namespace is not None and page_namespace in TALK_PAGE_NAMESPACE:
            rev_data = process_revision(namespace_length, ele)
            rev_data.update({"page_title": page_title, "page_id": page_id, "page_namespace": page_namespace})
            yield rev_data
