@@ -16,12 +16,15 @@ limitations under the License.
 A utility class to initialize a database object in Spanner and write to it.
 
 """
+# -*- coding: utf-8 -*-
+
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import datetime
 from google.cloud import spanner
+import base64
 
 
 class SpannerWriter():
@@ -49,7 +52,9 @@ class SpannerWriter():
 
     def _convert(self, datatype, data):
         if datatype == 'STRING':
-          return str(data)
+          return data
+        elif datatype == 'BYTES':
+          return base64.b64encode(data.encode('utf-8'))
         elif datatype == 'FLOAT':
           return float(data)
         elif datatype == "INT":

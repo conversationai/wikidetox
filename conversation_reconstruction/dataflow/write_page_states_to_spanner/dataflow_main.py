@@ -27,6 +27,8 @@ Run with:
          (Optional) --testmode
          --setup_file=./setup.py
 """
+# -*- coding: utf-8 -*-
+
 
 from __future__ import absolute_import
 import argparse
@@ -68,12 +70,13 @@ def run(known_args, pipeline_args):
       input_data = (p | beam.io.Read(beam.io.BigQuerySource(
           query="SELECT * FROM %s" % known_args.bigquery_table, use_standard_sql=True)))
     p = (input_data | beam.ParDo(WriteToSpanner(known_args.spanner_instance, known_args.spanner_database,
-                                     known_args.spanner_table, known_args.spanner_table_columns)))
+                                     known_args.spanner_table, known_args.spanner_table_columns), known_args.input_storage))
 
 class WriteToSpanner(beam.DoFn):
   def __init__(self, instance_id, database_id, table_id, table_columns):
     self.inserted_record = Metrics.counter(self.__class__, 'inserted_record')
     self.already_exists = Metrics.counter(self.__class__, 'already_exists')
+    self.large_record = Metrics.counter(self.__class__, 'large_record')
     self.instance_id = instance_id
     self.database_id = database_id
     self.table_id = table_id
@@ -86,12 +89,10 @@ class WriteToSpanner(beam.DoFn):
     self.writer.create_table(self.table_id, self.table_columns)
 
 
-  def process(self, element):
-    try:
-      # Data from cloud storage may be josn incoded.
+  def process(self, element, input_storage):
+    if input_storage is not None:
+      # Data from cloud storage may be json incoded.
       element = json.loads(element)
-    except:
-      pass
     try:
        self.writer.insert_data(self.table_id, element)
        self.inserted_record.inc()

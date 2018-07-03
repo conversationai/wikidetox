@@ -44,6 +44,13 @@ class SpannerWriteTest(unittest.TestCase):
       else:
         raise Exception(e)
     self.assertEqual(ret, 'Inserted data.')
+    # Test Cloud Storage Input
+    cmd = os.system("python dataflow_main.py --input_storage=gs://wikidetox-viz-dataflow/WikiConv_v1/wikiconvs/test.json\
+                    --spanner_instance=wikiconv --spanner_database=convdata --spanner_table=convdata\
+                    --spanner_table_columns_config=config --testmode --setup_file=./setup.py")
+    exit_code = os.WEXITSTATUS(cmd)
+    self.assertEqual(exit_code, 0)
+
     # Test BigQuery Input
     cmd = os.system("python dataflow_main.py --bigquery_table=scored_conversations.spanner_import_test_case\
                     --spanner_instance=wikiconv --spanner_database=convdata --spanner_table=convdata\
