@@ -18,10 +18,14 @@ A dataflow pipeline to write data into Spanner
 
 Run with:
 
-  python dataflow_main.py --input_storage=YourInputDataInCloudStorage --spanner_instance=SpannerInstanceID
+  python dataflow_main.py
+         --input_storage=YourInputDataInCloudStorage
+         (Or) --bigquery_table=YourBigQueryTable
+         --spanner_instance=SpannerInstanceID
          --spanner_database=SpannerDatabaseID --spanner_table=SpannerTableID
-         (Optional, if not provided, this will be inferred from cloud storage) --spanner_table_columns=ListOfColumnNames
+         --spanner_table_columns_config=JsonConfigFile
          (Optional) --testmode
+         --setup_file=./setup.py
 """
 
 from __future__ import absolute_import
@@ -56,8 +60,14 @@ def run(known_args, pipeline_args):
 
   with beam.Pipeline(options=pipeline_options) as p:
     # Main Pipeline
-    p = (p | beam.io.ReadFromText(known_args.input_storage)
-         | beam.ParDo(WriteToSpanner(known_args.spanner_instance, known_args.spanner_database,
+    if known_args.input_storage is not None:
+      # Read from cloud storage.
+      input_data = (p | beam.io.ReadFromText(known_args.input_storage))
+    else:
+      # Read from BigQuery.
+      input_data = (p | beam.io.Read(beam.io.BigQuerySource(
+          query="SELECT * FROM %s" % known_args.bigquery_table, use_standard_sql=True)))
+    p = (input_data | beam.ParDo(WriteToSpanner(known_args.spanner_instance, known_args.spanner_database,
                                      known_args.spanner_table, known_args.spanner_table_columns)))
 
 class WriteToSpanner(beam.DoFn):
@@ -71,20 +81,19 @@ class WriteToSpanner(beam.DoFn):
 
 
   def start_bundle(self):
+    self.table_columns = self.table_columns
     self.writer = SpannerWriter(self.instance_id, self.database_id)
     self.writer.create_table(self.table_id, self.table_columns)
 
 
   def process(self, element):
-    element = json.loads(element)
-    logging.info("RECORD PAGE %s INSERTED." % element['page_id'])
-    if table_columns is None:
-      table_columns = sorted(element.keys())
-    else:
-      table_columns = sorted(table_columns)
-    table_columns = tuple(table_columns)
     try:
-       self.writer.insert_data(table_id, [(element[key] for key in table_columns)])
+      # Data from cloud storage may be josn incoded.
+      element = json.loads(element)
+    except:
+      pass
+    try:
+       self.writer.insert_data(self.table_id, element)
        self.inserted_record.inc()
     except Exception as e:
       if 'StatusCode.ALREADY_EXISTS' in str(e):
@@ -99,7 +108,11 @@ if __name__ == '__main__':
   # input/output parameters.
   parser.add_argument('--input_storage',
                       dest='input_storage',
+                      default=None,
                       help='Input storage of the data records to be written into Spanner.')
+  parser.add_argument('--bigquery_table',
+                      dest='bigquery_table',
+                      help='Input BigQuery table.')
   parser.add_argument('--spanner_instance',
                       dest='spanner_instance',
                       help='The id of the Spanner instance.')
@@ -109,11 +122,10 @@ if __name__ == '__main__':
   parser.add_argument('--spanner_table',
                       dest='spanner_table',
                       help='The id of the Spanner table.')
-  parser.add_argument('--spanner_table_columns',
-                      dest='spanner_table_columns',
-                      type=list,
+  parser.add_argument('--spanner_table_columns_config',
+                      dest='config_file',
                       default=None,
-                      help='(Optional) The columns in the spanner table.')
+                      help='The config file in json format to specify columns.')
   parser.add_argument('--testmode',
                       dest='testmode',
                       action='store_true',
@@ -121,5 +133,8 @@ if __name__ == '__main__':
                       help='(Optional) Run the pipeline in testmode.')
 
   known_args, pipeline_args = parser.parse_known_args()
+  if known_args.config_file is not None:
+    with open(known_args.config_file, "r") as f:
+      known_args.spanner_table_columns = json.load(f)
   run(known_args, pipeline_args)
 
