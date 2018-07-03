@@ -20,6 +20,7 @@ A utility class to initialize a database object in Spanner and write to it.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+import datetime
 from google.cloud import spanner
 
 
@@ -42,6 +43,46 @@ class SpannerWriter():
       with self.database.batch() as batch:
         batch.insert(
             table = table_id,
-            columns = self.table_columns[table_id],
-            values = data)
+            columns = sorted(self.table_columns[table_id].keys()),
+            values = self.convert_data(table_id, data))
       return 'Inserted data.'
+
+    def _convert(self, datatype, data):
+        if datatype == 'STRING':
+          return str(data)
+        elif datatype == 'FLOAT':
+          return float(data)
+        elif datatype == "INT":
+          return int(data)
+        elif datatype == "BOOL":
+          return bool(data)
+        elif datatype == "TIMESTAMP":
+          try:
+            # Records from BigQuery with type timestamp has trailing 0s after
+            # second. Hence the hacky solution here to convert it into spanner
+            # interpretable timestamp type.
+            return datetime.datetime.strptime(data[:19], "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%dT%H:%M:%SZ")
+          except ValueError:
+            return data
+        else:
+          raise Exception("Type %s not recognized." % datatype)
+
+
+    def convert_data(self, table_id, data):
+      ret = {}
+      for key, val in self.table_columns[table_id].iteritems():
+        if not(key in data) or not(data[key]):
+          ret[key] = None
+          continue
+        if "ARRAY" in val:
+          element_type = val[6:-1]
+          ret[key] = []
+          for x in data[key]:
+            ret[key].append(self._convert(element_type, x))
+        else:
+          ret[key] = self._convert(val, data[key])
+      res = []
+      for key in sorted(ret.keys()):
+        res.append(ret[key])
+      return [tuple(res)]
+
