@@ -32,12 +32,15 @@ import json
 import os
 from os import path
 import urllib2
+import tempfile
 import ast
 import copy
 import sys
+import time
 
 import apache_beam as beam
 from apache_beam.io import filesystems
+from apache_beam.metrics.metric import Metrics
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from construct_utils.conversation_constructor import Conversation_Constructor
@@ -45,10 +48,10 @@ from construct_utils.conversation_constructor import Conversation_Constructor
 
 LOG_INTERVAL = 100
 MEMORY_THERESHOLD = 1000000
-REVISION_THERESHOLD = 100000000
+REVISION_THERESHOLD = 250000000
 SAVE_TO_MEMORY = 0
 SAVE_TO_STORAGE = 1
-
+RETRY_LIMIT = 10
 
 def get_metadata(x):
   record_size = len(x)
@@ -121,20 +124,31 @@ def run(known_args, pipeline_args):
 
 
 class Count(beam.DoFn):
+  def __init__(self):
+      self.pages_to_storage = Metrics.counter(self.__class__, 'pages_to_storage')
+      self.pages = Metrics.counter(self.__class__, 'pages')
+
   def process(self, element):
     (page_id, metadata) = element
     flag = SAVE_TO_MEMORY
     revision_sum = 0
+    self.pages.inc()
+    metadata = list(metadata)
     for s in metadata:
       revision_sum += s['record_size']
       if revision_sum > REVISION_THERESHOLD:
          flag = SAVE_TO_STORAGE
+         self.pages_to_storage.inc()
          break
     for rev in metadata:
       yield (rev['rev_id'], flag)
 
 
 class WriteToStorage(beam.DoFn):
+  def __init__(self):
+      self.revisions_to_storage = Metrics.counter(self.__class__, 'revisions_to_storage')
+      self.write_retries = Metrics.counter(self.__class__, 'write_retries')
+
   def process(self, element, outputdir):
     (rev_id, data) = element
     metadata = data['metadata'][0]
@@ -148,12 +162,22 @@ class WriteToStorage(beam.DoFn):
       element = json.loads(raw)
       page_id = element['page_id']
       rev_id = element['rev_id']
+      self.revisions_to_storage.inc()
       # Creates writing path given the week, year pair
       write_path = path.join(outputdir, page_id, rev_id)
       # Writes to storage
       logging.info('USERLOG: Write to path %s.' % write_path)
-      with filesystems.FileSystems.create(write_path) as outputfile:
-         json.dump(element, outputfile)
+      wait_time = 1
+      for i in range(RETRY_LIMIT):
+          try:
+             with filesystems.FileSystems.create(write_path) as outputfile:
+                json.dump(element, outputfile)
+          except RuntimeError:
+            self.write_retries.inc()
+            time.sleep(wait_time)
+            wait_time *= 2
+          else:
+            break
       ret = {'timestamp': element['timestamp'], 'rev_id': int(rev_id)}
     yield (page_id, ret)
 
@@ -240,12 +264,13 @@ class ReconstructConversation(beam.DoFn):
     last_loading = 0
     logging.info('Reconstruction on page %s started.' % (page_id))
     if 'text' not in revision_lst[0]:
-      os.system("gsutil -m cp -r %s %s" % (path.join(tmp_input, page_id), path.join('/var/tmp/')))
+      tempfile_path = tempfile.mkdtemp()
+      os.system("gsutil -m cp -r %s %s" % (path.join(tmp_input, page_id), tempfile_path + '/'))
     for key in revision_lst:
         if 'text' not in key:
-           with open(path.join('/var/tmp/', page_id, str(key['rev_id'])), 'r') as f:
+           with open(path.join(tempfile_path, page_id, str(key['rev_id'])), 'r') as f:
               revision = json.load(f)
-           os.system("rm %s" % path.join('/var/tmp/', page_id, str(key['rev_id'])))
+           os.system("rm %s" % path.join(tempfile_path, page_id, str(key['rev_id'])))
         else:
            revision = key
         revision['rev_id'] = int(revision['rev_id'])
