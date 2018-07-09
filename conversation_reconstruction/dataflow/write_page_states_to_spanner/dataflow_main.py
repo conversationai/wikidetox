@@ -19,13 +19,18 @@ A dataflow pipeline to write data into Spanner
 Run with:
 
   python dataflow_main.py
-         --input_storage=YourInputDataInCloudStorage
-         (Or) --bigquery_table=YourBigQueryTable
+         --input_storage=YourInputDataInCloudStorage**
+         --bigquery_table=YourBigQueryTable**
          --spanner_instance=SpannerInstanceID
          --spanner_database=SpannerDatabaseID --spanner_table=SpannerTableID
          --spanner_table_columns_config=JsonConfigFile
-         (Optional) --testmode
+         --testmode***
          --setup_file=./setup.py
+
+Note:
+  **Storage options: There are two ways to provide storage options: via input_storage or bigquery_table
+  ***--testmode: optional on-off button that enables testmode of the dataflow pipeline,
+              running on DirectRunner instead of DataflowRunner when turned on.
 """
 # -*- coding: utf-8 -*-
 
@@ -61,14 +66,14 @@ def run(known_args, pipeline_args):
   logging.info("PIPELINE STARTED")
 
   with beam.Pipeline(options=pipeline_options) as p:
-    # Main Pipeline
     if known_args.input_storage is not None:
       # Read from cloud storage.
       input_data = (p | beam.io.ReadFromText(known_args.input_storage))
     else:
-      # Read from BigQuery.
+      # Read from BigQuery, the table has to already exist.
       input_data = (p | beam.io.Read(beam.io.BigQuerySource(
           query="SELECT * FROM %s" % known_args.bigquery_table, use_standard_sql=True)))
+    # Main pipeline.
     p = (input_data | beam.ParDo(WriteToSpanner(known_args.spanner_instance, known_args.spanner_database,
                                      known_args.spanner_table, known_args.spanner_table_columns), known_args.input_storage))
 
@@ -113,6 +118,7 @@ if __name__ == '__main__':
                       help='Input storage of the data records to be written into Spanner.')
   parser.add_argument('--bigquery_table',
                       dest='bigquery_table',
+                      default=None,
                       help='Input BigQuery table.')
   parser.add_argument('--spanner_instance',
                       dest='spanner_instance',
@@ -134,6 +140,10 @@ if __name__ == '__main__':
                       help='(Optional) Run the pipeline in testmode.')
 
   known_args, pipeline_args = parser.parse_known_args()
+  if known_args.input_storage is None and known_args.bigquery_table is None:
+    raise Exception("Please provide input storage/BigQuery table to run the pipeline.")
+  if known_args.input_storage is not None and known_args.bigquery_table is not None:
+    raise Exception("Input storage and BigQuery table cannot be both specifiedi.")
   if known_args.config_file is not None:
     with open(known_args.config_file, "r") as f:
       known_args.spanner_table_columns = json.load(f)
