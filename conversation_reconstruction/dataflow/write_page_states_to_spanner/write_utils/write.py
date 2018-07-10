@@ -75,6 +75,15 @@ class SpannerWriter():
             values = self.convert_data(table_id, data))
       return 'Inserted data.'
 
+
+    def mock_insert_data(self, table_id, data):
+      """(Mock) Inserts data record into spanner."""
+      table = table_id
+      columns = sorted(self.table_columns[table_id].keys())
+      values = self.convert_data(table_id, data))
+      return 'Inserted data.'
+
+
     def convert_format_for_spanner_write(self, table_id, data):
       ret = {}
       for key, val in self.table_columns[table_id].iteritems():
