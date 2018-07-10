@@ -15,7 +15,7 @@ limitations under the License.
 
 -------------------------------------------------------------------------------
 
-A dataflow pipeline to collect statistics on Wikipedia talk pages including number of revisions and their sizes..
+A dataflow pipeline to collect statistics on Wikipedia talk pages including number of revisions and their sizes.
 
 Run with:
 
