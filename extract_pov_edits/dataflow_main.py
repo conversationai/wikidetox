@@ -1,5 +1,5 @@
 """
-Copyright 2017 Google Inc.
+Copyright 2018 Google Inc.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -40,16 +40,21 @@ ingestFrom: choose from the three options : {wikipedia, local, cloud}:
     run the code with
            [python dataflow_main.py --setup_file ./setup.py
            --ingestFrom=cloud --cloudBucket=YourCloudBucket(without gs:// prefix)
+           (Optional) --extract_all_edits
            (Optional) --cloudlist=YourInputListLocation
            (Optional) --cloudlistStartFrom=startProcessingPointInTheList
-           (Optional) --cloudlistEnd=endProcessingPointInTheList]
+           (Optional) --cloudlistEnd=endProcessingPointInTheList
+           (Optional) --selected_pages=CloudStorageWithListOfSelectedPages]
+           (Optional) --ingest
 
+ingest: If turned on, this pipeline will ingest revisions into json formats.
 language: the language of the wikipedia data you want to extract, e.g. en, fr, zh
 dumpdate: the dumpdate of the wikipedia data, e.g. latest
 testmode: if turned on, the pipeline runs on DirectRunner.
 localStorage: the location of the local test file.
 download: if turned on, the pipeline only performs downloading job from Wikipedia.
 cloudBucket: the cloud bucket where the ingestion reads from or the download stores to.
+extract_all_edits: If turned on, this pipeline will process all edits as opposed to only edits with POV in comment.
 """
 
 from __future__ import absolute_import
@@ -64,13 +69,13 @@ import copy
 import bz2
 from os import path
 from ingest_utils.wikipedia_revisions_ingester import parse_stream
-from ingest_utils.process import process
+from ingest_utils.process import isSimilar
 import os
 import time
 import urllib
 import urllib2
-import subprocess
 import StringIO
+import tempfile
 import mwparserfromhell
 
 from HTMLParser import HTMLParser
@@ -90,7 +95,11 @@ from apache_beam.io import WriteToText
 from apache_beam.io import filesystems
 from datetime import datetime
 import nltk
+import resource
 
+
+MEMLIMIT = 1024 * 1024 * 1024
+TIMEOUT = 2
 GOOGLE_STORAGE = 'gs'
 LOCAL_STORAGE = 'file'
 CONTEXT_RANGE = 3
@@ -110,7 +119,7 @@ def run(known_args, pipeline_args, sections, jobname):
     '--project=wikidetox',
     '--staging_location=gs://wikidetox-dataflow/staging',
     '--temp_location=gs://wikidetox-dataflow/tmp',
-    '--job_name=extract-wiki-edits-{}'.format(jobname),
+    '--job_name=extract-edits-{}'.format(jobname),
     '--num_workers=20',
   ])
 
@@ -118,25 +127,39 @@ def run(known_args, pipeline_args, sections, jobname):
   pipeline_options.view_as(SetupOptions).save_main_session = True
   with beam.Pipeline(options=pipeline_options) as p:
     pcoll = (p | "GetDataDumpList" >> beam.Create(sections))
-    cloud_storage = ("gs://wikidetox-dataflow/article_edits/{lan}-{date}".
+    cloud_storage = ("gs://wikidetox-dataflow/edits/{lan}-{date}".
                      format(lan=known_args.language, date=known_args.dumpdate))
     if known_args.download:
        pcoll = (pcoll |
                 "DownloadDataDumps" >> beam.ParDo(DownloadDataDumps(), known_args.bucket))
     else:
-       error_log, pov_rejects, npov_improvements, pov_non_rejects = ( pcoll |
-           "Ingestion" >> beam.ParDo(WriteDecompressedFile(),
-                    known_args.bucket, known_args.ingestFrom).with_outputs(
-                    'pov_rejects', 'npov_improvements', 'pov_non_rejects',
-                    main = 'error_log'))
-       (pov_rejects | "RejectedToStorage" >>
-        beam.io.WriteToText(path.join(cloud_storage, 'pov_rejected-{}'.format(jobname))))
-       (npov_improvements | "NPOVinsertsToStorage" >>
-        beam.io.WriteToText(path.join(cloud_storage, 'npov_improved-{}'.format(jobname))))
-       (pov_non_rejects | "NPOVToStorage" >>
-        beam.io.WriteToText(path.join(cloud_storage, 'non_pov_rejected-{}'.format(jobname))))
-       (error_log | "ERRORlog" >>
-        beam.io.WriteToText(path.join(cloud_storage, 'error_log-{}'.format(jobname))))
+      if known_args.ingest:
+        if known_args.POVpages is not None:
+           selected_pages = (p | "GetSelectedPages" >> beam.io.ReadFromText(known_args.POVpages)
+                             | beam.Map(lambda x: (eval(x)['chunk_name'], eval(x)['page_id'])))
+           pcoll = (pcoll | beam.Map(lambda x: (x, x)))
+           pipeline_input = ({"selected_pages": selected_pages, "datadump": pcoll} | beam.CoGroupByKey())
+        else:
+           pipeline_input = pcoll
+        pipeline_input = ( pipeline_input |
+            "Ingestion" >> beam.ParDo(IngestDumps(), known_args.bucket,
+                                      known_args.ingestFrom, known_args.all_edits) |
+                          "WriteIngested" >> beam.io.WriteToText(path.join("gs://wikidetox-dataflow/ingested", 'ingested-revisions-{}'.format(jobname))))
+      else:
+        error_log, rejects, improvments, non_rejects, sent_revises = ( p |
+            "ReadIngested" >> beam.io.ReadFromText(path.join("gs://wikidetox-dataflow/ingested", 'ingested-revisions-{}*'.format(jobname))) |
+            "GetDiffs" >> beam.ParDo(WriteDecompressedFile()).with_outputs(
+                     'rejects', 'improvments', 'non_rejects', 'sent_revises', main = 'error_log'))
+        (sent_revises | "SentRevisesToStorage" >>
+         beam.io.WriteToText(path.join(cloud_storage, 'sent_revise-{}'.format(jobname))))
+        (rejects | "RejectedToStorage" >>
+         beam.io.WriteToText(path.join(cloud_storage, 'rejected-{}'.format(jobname))))
+        (improvments | "InsertsToStorage" >>
+         beam.io.WriteToText(path.join(cloud_storage, 'improved-{}'.format(jobname))))
+        (non_rejects | "NonRejectsToStorage" >>
+         beam.io.WriteToText(path.join(cloud_storage, 'non_rejected-{}'.format(jobname))))
+        (error_log | "ERRORlog" >>
+         beam.io.WriteToText(path.join(cloud_storage, 'error_log-{}'.format(jobname))))
 
 
 class DownloadDataDumps(beam.DoFn):
@@ -145,81 +168,142 @@ class DownloadDataDumps(beam.DoFn):
        Returns the cloud storage location.
     """
     mirror, chunk_name =  element
-    logging.info('USERLOG: Download data dump %s to store in cloud storage.' % chunk_name)
+    logging.info('USERLOG: Download data dump %s to store in cloud storage.', chunk_name)
     # Download data dump from Wikipedia and upload to cloud storage.
     url = mirror + "/" + chunk_name
     write_path = path.join('gs://', bucket, chunk_name)
     urllib.urlretrieve(url, chunk_name)
-    os.system("gsutil cp %s %s" % (chunk_name, write_path))
-    os.system("rm %s" % chunk_name)
+    os.system("gsutil cp {chunk} {filepath}".format(chunk=chunk_name, filepath=write_path))
+    os.system("rm {chunk}".format(chunk=chunk_name))
     yield chunk_name
     return
 
 
-class WriteDecompressedFile(beam.DoFn):
+class IngestDumps(beam.DoFn):
   def __init__(self):
       self.processed_revisions = Metrics.counter(self.__class__, 'processed_revisions')
-      self.errors = Metrics.counter(self.__class__, 'errors')
 
-
-  def process(self, element, bucket, ingestFrom):
-    """Ingests the xml dump into json, returns the josn records
+  def process(self, element, bucket, ingestFrom, all_edits):
+    """Ingests the xml dump into consecutive revision pairs in json format.
     """
-    nltk.download('punkt')
-    # Decompress the data dump
-    chunk_name = element
-    logging.info('USERLOG: Running ingestion process on %s' % chunk_name)
+    if isinstance(element, basestring):
+      chunk_name = element
+      page_ids = None
+    else:
+      # If specified on selected pages.
+      (chunk_name, data) = element
+      if data['datadump'] == []:
+        logging.info('USERLOG: chunk %s skipped.', chunk_name)
+        return
+      page_ids = data['selected_pages']
+    logging.info('USERLOG: Running ingestion process on %s.', chunk_name)
     if ingestFrom == 'local':
        input_stream = chunk_name
     else:
-       cmd = "gsutil -m cp %s %s" % (path.join('gs://', bucket, chunk_name), chunk_name)
-       status = os.WEXITSTATUS(os.system(cmd))
-       if status  != 0:
-         raise Exception("GSUTIL COPY Error, exited with status %d" % status)
-       input_stream = chunk_name
+      cmd = "gsutil -m cp {path} {chunk}".format(filepath=path.join('gs://', bucket, chunk_name), chunk=chunk_name)
+      status = os.WEXITSTATUS(os.system(cmd))
+      if status  != 0:
+        raise Exception("GSUTIL COPY Error, exited with status {}".format(status))
+      input_stream = chunk_name
     # Running ingestion on the xml file
-    last_revision = 'None'
+    last_revision = None
     last_completed = time.time()
-    cur_sents = {}
     i = 0
     for i, content in enumerate(parse_stream(bz2.BZ2File(chunk_name))):
-      # List of X on Wikipedia includes long tables, might be the reason that
-      # mwparser crushes
-      if 'list' in content['page_title'].lower():
+      if (page_ids is not None) and (content['page_id'] not in page_ids):
         continue
       self.processed_revisions.inc()
-      last_revision = content['rev_id']
-      # Add the week and year field for sharding
       if content['text'] is None:
         content['text'] = ""
-      yield content
-      (context_equals, inserts, deletes, cur_sents), error = process(content,cur_sents)
+      if (content["comment"] is not None and "POV" in content["comment"]) or all_edits:
+        yield json.dumps((last_revision, content))
+      last_revision = content
+      logging.info('INGESTION_LOG: CHUNK %(chunk): revision %(revid) ingested, time elapsed: %(time).',
+                   extra={'chunk':chunk_name, 'revid':content['rev_id'], 'time':time.time() - last_completed))
+      last_completed = time.time()
+    if ingestFrom != 'local': os.system("rm %s" % chunk_name)
+    logging.info('USERLOG: Ingestion on file %(chunk) complete! %(cnt) lines emitted',
+                 extra={'chunk':chunk_name, 'cnt':i})
+
+
+class WriteDecompressedFile(beam.DoFn):
+  def __init__(self):
+      self.processed_revision_pairs = Metrics.counter(self.__class__, 'processed_revision_pairs')
+      self.errors = Metrics.counter(self.__class__, 'errors')
+      self.revision_skipped = Metrics.counter(self.__class__, 'revision_skipped')
+      self.sentence_revises = Metrics.counter(self.__class__, 'sentence_revises')
+
+  @staticmethod
+  def set_memory_limit(soft, hard):
+    resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
+
+  @staticmethod
+  def parse(input_pair):
+    # Add memory and time limit to edit processing to prevent pipeline
+    # crashes.
+    with tempfile.NamedTemporaryFile(delete=False) as tf:
+      json.dump(input_pair, tf)
+      filename = tf.name
+    process_cmd = ['python2', '-m', 'ingest_utils.run_processor', '-i', filename]
+    try:
+      sub_proc = subprocess.Popen(process_cmd, stdout=subprocess.PIPE, preexec_fn=WriteDecompressedFile.set_memory_limit(MEMLIMIT, -1))
+      kill = lambda p: p.kill()
+      timer = Timer(TIMEOUT, kill, [sub_proc])
+      timer.start()
+    except MemoryError:
+      return None, True
+    else:
+      ret, stderr = sub_proc.communicate()
+      sub_proc.wait()
+      timer.cancel()
+      WriteDecompressedFile.set_memory_limit(-1, -1)
+      if ret == "" or ret is None:
+        return None, True
+      else:
+        return ret, False
+
+  def start_bundle(self):
+    nltk.download('punkt')
+
+  def process(self, element):
+    """Compares two revisions and return the edits.
+    """
+    (former, content) = json.loads(element)
+    if isSimilar(former, content):
+      # Only focus on revision pairs that are similar to look for sentence
+      # revises.
+      logging.info('EDIT_PROCESS_LOG: revision %s started.', content['rev_id'])
+      self.processed_revision_pairs.inc()
+      ret, error = WriteDecompressedFile.parse((former, content))
       if error:
-        yield beam.pvalue.TaggedOutput('error_log', json.dumps(content['rev_id']))
+        # If errors encountered in parsing process.
+        yield beam.pvalue.TaggedOutput('error_log', json.dumps({"revision": content['rev_id'], "page_id": content["page_id"]}))
         self.errors.inc()
-      metadata = {f : content[f] for f in ['comment', 'user_id', 'user_text',
-                                           'user_ip', 'page_id', 'page_title']}
-      if content["comment"] is not None and "POV" in content["comment"]:
-        rejections = {"rejecter" : content['rev_id'],
-                      "rejectee" : [d[1] for d in deletes]}
-        rejections.update(metadata)
-        yield beam.pvalue.TaggedOutput('pov_rejections', json.dumps(rejections))
+      else:
+        # If the parsing finishes.
+        (context_equals, inserts, deletes, sentence_revises) = ret
+        metadata = {f : content[f] for f in ['comment', 'user_id', 'user_text',
+                                            'user_ip', 'page_id', 'page_title']}
         ret = {"rejecter" : content['rev_id']}
         ret.update(metadata)
         for d in deletes:
-          ret['content'] = d[0]
-          ret['rejectee'] = d[1]
-          yield beam.pvalue.TaggedOutput('pov_rejects', json.dumps(ret))
+          ret['content'] = d
+          yield beam.pvalue.TaggedOutput('rejects', json.dumps(ret))
         for sent in inserts:
-          ret['content'] = sent[0]
-          yield beam.pvalue.TaggedOutput('npov_improvements', json.dumps(ret))
+          ret['content'] = sent
+          yield beam.pvalue.TaggedOutput('improvments', json.dumps(ret))
         for sent in context_equals:
           ret['content'] = sent
-          yield beam.pvalue.TaggedOutput('pov_non_rejects', json.dumps(ret))
-      logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=last_revision, time=time.time() - last_completed))
-      last_completed = time.time()
-    if ingestFrom != 'local': os.system("rm %s" % chunk_name)
-    logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, last_revision %s' % (chunk_name, i, last_revision))
+          yield beam.pvalue.TaggedOutput('non_rejects', json.dumps(ret))
+        del ret['content']
+        for i, (sent1, sent2) in enumerate(sentence_revises):
+          ret['original_content'] = sent1
+          ret['revised_content'] = sent2
+          yield beam.pvalue.TaggedOutput('sent_revises', json.dumps(ret))
+        self.sentence_revises.inc(i)
+        logging.info('INGESTION_LOG: revision %s processed.', content['rev_id'])
+    else:
+      self.revision_skipped.inc()
 
 class ParseDirectory(HTMLParser):
   def __init__(self):
@@ -288,6 +372,20 @@ if __name__ == '__main__':
                       dest='end',
                       default=None,
                       help='(Optional) end processing from any point in the cloudlist.')
+  parser.add_argument('--selected_pages',
+                      dest='POVpages',
+                      default=None,
+                      help='(Optional) List of selected pages to be processed on')
+  parser.add_argument('--extract_all_edits',
+                      dest='all_edits',
+                      action='store_true',
+                      help='If turned on, this pipeline will process all edits as opposed to only edits with POV in comment.')
+  parser.add_argument('--ingest',
+                      dest='ingest',
+                      action='store_true',
+                      help='If turned on, this pipeline will ingest revisions into json formats.')
+
+
   known_args, pipeline_args = parser.parse_known_args()
   if known_args.download:
      # If specified downloading from Wikipedia
