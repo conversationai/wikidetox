@@ -75,6 +75,7 @@ import time
 import urllib
 import urllib2
 import StringIO
+import tempfile
 import mwparserfromhell
 
 from HTMLParser import HTMLParser
@@ -95,14 +96,10 @@ from apache_beam.io import filesystems
 from datetime import datetime
 import nltk
 import resource
-from threading import Timer
-import signal
 
 
 MEMLIMIT = 1024 * 1024 * 1024
-my_timeout = 2
-
-
+TIMEOUT = 2
 GOOGLE_STORAGE = 'gs'
 LOCAL_STORAGE = 'file'
 CONTEXT_RANGE = 3
@@ -171,13 +168,13 @@ class DownloadDataDumps(beam.DoFn):
        Returns the cloud storage location.
     """
     mirror, chunk_name =  element
-    logging.info('USERLOG: Download data dump %s to store in cloud storage.' % chunk_name)
+    logging.info('USERLOG: Download data dump %s to store in cloud storage.', chunk_name)
     # Download data dump from Wikipedia and upload to cloud storage.
     url = mirror + "/" + chunk_name
     write_path = path.join('gs://', bucket, chunk_name)
     urllib.urlretrieve(url, chunk_name)
-    os.system("gsutil cp %s %s" % (chunk_name, write_path))
-    os.system("rm %s" % chunk_name)
+    os.system("gsutil cp {chunk} {filepath}".format(chunk=chunk_name, filepath=write_path))
+    os.system("rm {chunk}".format(chunk=chunk_name))
     yield chunk_name
     return
 
@@ -196,18 +193,18 @@ class IngestDumps(beam.DoFn):
       # If specified on selected pages.
       (chunk_name, data) = element
       if data['datadump'] == []:
-         logging.info('USERLOG: chunk %s skipped.' % chunk_name)
-         return
+        logging.info('USERLOG: chunk %s skipped.', chunk_name)
+        return
       page_ids = data['selected_pages']
-    logging.info('USERLOG: Running ingestion process on %s' % chunk_name)
+    logging.info('USERLOG: Running ingestion process on %s.', chunk_name)
     if ingestFrom == 'local':
        input_stream = chunk_name
     else:
-       cmd = "gsutil -m cp %s %s" % (path.join('gs://', bucket, chunk_name), chunk_name)
-       status = os.WEXITSTATUS(os.system(cmd))
-       if status  != 0:
-         raise Exception("GSUTIL COPY Error, exited with status %d" % status)
-       input_stream = chunk_name
+      cmd = "gsutil -m cp {path} {chunk}".format(filepath=path.join('gs://', bucket, chunk_name), chunk=chunk_name)
+      status = os.WEXITSTATUS(os.system(cmd))
+      if status  != 0:
+        raise Exception("GSUTIL COPY Error, exited with status {}".format(status))
+      input_stream = chunk_name
     # Running ingestion on the xml file
     last_revision = None
     last_completed = time.time()
@@ -221,11 +218,12 @@ class IngestDumps(beam.DoFn):
       if (content["comment"] is not None and "POV" in content["comment"]) or all_edits:
         yield json.dumps((last_revision, content))
       last_revision = content
-      logging.info('INGESTION_LOG: CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(
-          chunk=chunk_name, revid=content['rev_id'], time=time.time() - last_completed))
+      logging.info('INGESTION_LOG: CHUNK %(chunk): revision %(revid) ingested, time elapsed: %(time).',
+                   extra={'chunk':chunk_name, 'revid':content['rev_id'], 'time':time.time() - last_completed))
       last_completed = time.time()
     if ingestFrom != 'local': os.system("rm %s" % chunk_name)
-    logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted' % (chunk_name, i))
+    logging.info('USERLOG: Ingestion on file %(chunk) complete! %(cnt) lines emitted',
+                 extra={'chunk':chunk_name, 'cnt':i})
 
 
 class WriteDecompressedFile(beam.DoFn):
@@ -239,6 +237,31 @@ class WriteDecompressedFile(beam.DoFn):
   def set_memory_limit(soft, hard):
     resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
 
+  @staticmethod
+  def parse(input_pair):
+    # Add memory and time limit to edit processing to prevent pipeline
+    # crashes.
+    with tempfile.NamedTemporaryFile(delete=False) as tf:
+      json.dump(input_pair, tf)
+      filename = tf.name
+    process_cmd = ['python2', '-m', 'ingest_utils.run_processor', '-i', filename]
+    try:
+      sub_proc = subprocess.Popen(process_cmd, stdout=subprocess.PIPE, preexec_fn=WriteDecompressedFile.set_memory_limit(MEMLIMIT, -1))
+      kill = lambda p: p.kill()
+      timer = Timer(TIMEOUT, kill, [sub_proc])
+      timer.start()
+    except MemoryError:
+      return None, True
+    else:
+      ret, stderr = sub_proc.communicate()
+      sub_proc.wait()
+      timer.cancel()
+      WriteDecompressedFile.set_memory_limit(-1, -1)
+      if ret == "" or ret is None:
+        return None, True
+      else:
+        return ret, False
+
   def start_bundle(self):
     nltk.download('punkt')
 
@@ -249,56 +272,36 @@ class WriteDecompressedFile(beam.DoFn):
     if isSimilar(former, content):
       # Only focus on revision pairs that are similar to look for sentence
       # revises.
-      logging.info('EDIT_PROCESS_LOG: revision {revid} started.'.format(revid=content['rev_id']))
+      logging.info('EDIT_PROCESS_LOG: revision %s started.', content['rev_id'])
       self.processed_revision_pairs.inc()
-      # Add memory and time limit to edit processing to prevent pipeline
-      # crashes.
-
-      tf = tempfile.NamedTemporaryFile(delete=False)
-      json.dump((former, content), tf)
-      tf.close()
-      process_cmd = ['python2', '-m', 'ingest_utils.run_processor', '-i', tf.name]
-      try:
-        sub_proc = subprocess.Popen(process_cmd, stdout=subprocess.PIPE, preexec_fn=WriteDecompressedFile.set_memory_limit(MEMLIMIT, -1))
-      except MemoryError:
-        # If errors encountered.
+      ret, error = WriteDecompressedFile.parse((former, content))
+      if error:
+        # If errors encountered in parsing process.
         yield beam.pvalue.TaggedOutput('error_log', json.dumps({"revision": content['rev_id'], "page_id": content["page_id"]}))
         self.errors.inc()
       else:
-        timer = Timer(my_timeout, sub_proc.kill())
-        timer.start()
-        ret, stderr = sub_proc.communicate()
-        sub_proc.wait()
-        timer.cancel()
-        WriteDecompressedFile.set_memory_limit(-1, -1)
-
-        if ret == "" or ret == None:
-          # If errors encountered.
-          yield beam.pvalue.TaggedOutput('error_log', json.dumps({"revision": content['rev_id'], "page_id": content["page_id"]}))
-          self.errors.inc()
-        else:
-          # If the parsing finishes.
-          (context_equals, inserts, deletes, sentence_revises) = ret
-          metadata = {f : content[f] for f in ['comment', 'user_id', 'user_text',
-                                              'user_ip', 'page_id', 'page_title']}
-          ret = {"rejecter" : content['rev_id']}
-          ret.update(metadata)
-          for d in deletes:
-            ret['content'] = d
-            yield beam.pvalue.TaggedOutput('rejects', json.dumps(ret))
-          for sent in inserts:
-            ret['content'] = sent
-            yield beam.pvalue.TaggedOutput('improvments', json.dumps(ret))
-          for sent in context_equals:
-            ret['content'] = sent
-            yield beam.pvalue.TaggedOutput('non_rejects', json.dumps(ret))
-          del ret['content']
-          for i, (sent1, sent2) in enumerate(sentence_revises):
-            ret['original_content'] = sent1
-            ret['revised_content'] = sent2
-            yield beam.pvalue.TaggedOutput('sent_revises', json.dumps(ret))
-          self.sentence_revises.inc(i)
-          logging.info('INGESTION_LOG: revision {revid} processed.'.format(revid=content['rev_id']))
+        # If the parsing finishes.
+        (context_equals, inserts, deletes, sentence_revises) = ret
+        metadata = {f : content[f] for f in ['comment', 'user_id', 'user_text',
+                                            'user_ip', 'page_id', 'page_title']}
+        ret = {"rejecter" : content['rev_id']}
+        ret.update(metadata)
+        for d in deletes:
+          ret['content'] = d
+          yield beam.pvalue.TaggedOutput('rejects', json.dumps(ret))
+        for sent in inserts:
+          ret['content'] = sent
+          yield beam.pvalue.TaggedOutput('improvments', json.dumps(ret))
+        for sent in context_equals:
+          ret['content'] = sent
+          yield beam.pvalue.TaggedOutput('non_rejects', json.dumps(ret))
+        del ret['content']
+        for i, (sent1, sent2) in enumerate(sentence_revises):
+          ret['original_content'] = sent1
+          ret['revised_content'] = sent2
+          yield beam.pvalue.TaggedOutput('sent_revises', json.dumps(ret))
+        self.sentence_revises.inc(i)
+        logging.info('INGESTION_LOG: revision %s processed.', content['rev_id'])
     else:
       self.revision_skipped.inc()
 
