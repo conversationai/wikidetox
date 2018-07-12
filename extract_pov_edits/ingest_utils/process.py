@@ -231,4 +231,5 @@ def isSimilar(former, content):
     return False
   size_former = len(former['text'])
   size_content = len(content['text'])
+  print(size_former, size_content)
   return (max(size_former, size_content) - min(size_former, size_content) < SIZE_DIFF_THERESHOLD)
