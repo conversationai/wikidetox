@@ -34,8 +34,10 @@ def read_data(filename):
 def matched(sent1, sent2):
   tokens1 = word_tokenize(sent1)
   tokens2 = word_tokenize(sent2)
-  overlapping_rate1 = len(set(tokens1)&set(tokens2))/float(len(set(tokens1)))
-  overlapping_rate2 = len(set(tokens1)&set(tokens2))/float(len(set(tokens2)))
+  set_tokens1 = set(tokens1)
+  set_tokens2 = set(tokens2)
+  overlapping_rate1 = len(set_tokens1 & set_tokens2) / float(len(set_tokens1))
+  overlapping_rate2 = len(set_tokens1 & set_tokens2) / float(len(set_tokens2))
   return (sent1 != sent2 and
           len(tokens1) >= SENTENCE_THERESHOLD and
           overlapping_rate1 >= MATCHING_THERESHOLD and
