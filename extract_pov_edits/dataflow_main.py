@@ -130,7 +130,7 @@ def run(known_args, pipeline_args, sections, jobname):
   pipeline_options.view_as(SetupOptions).save_main_session = True
   with beam.Pipeline(options=pipeline_options) as p:
     pcoll = (p | "GetDataDumpList" >> beam.Create(sections))
-    cloud_storage = ("gs://wikidetox-dataflow/article_edits/{lan}-{date}".
+    cloud_storage = ("gs://wikidetox-dataflow/edits/{lan}-{date}".
                      format(lan=known_args.language, date=known_args.dumpdate))
     if known_args.download:
        pcoll = (pcoll |
@@ -147,10 +147,10 @@ def run(known_args, pipeline_args, sections, jobname):
         pipeline_input = ( pipeline_input |
             "Ingestion" >> beam.ParDo(IngestDumps(), known_args.bucket,
                                       known_args.ingestFrom, known_args.all_edits) |
-                          "WriteIngested" >> beam.io.WriteToText(path.join(cloud_storage, 'ingested-revisions-{}'.format(jobname))))
+                          "WriteIngested" >> beam.io.WriteToText(path.join("gs://wikidetox-dataflow/ingested", 'ingested-revisions-{}'.format(jobname))))
       else:
         error_log, rejects, improvments, non_rejects, sent_revises = ( p |
-            "ReadIngested" >> beam.io.ReadFromText(path.join(cloud_storage, 'ingested-revisions-{}*'.format(jobname))) |
+            "ReadIngested" >> beam.io.ReadFromText(path.join("gs://wikidetox-dataflow/ingested", 'ingested-revisions-{}*'.format(jobname))) |
             "GetDiffs" >> beam.ParDo(WriteDecompressedFile()).with_outputs(
                      'rejects', 'improvments', 'non_rejects', 'sent_revises', main = 'error_log'))
         (sent_revises | "SentRevisesToStorage" >>
@@ -220,6 +220,7 @@ class IngestDumps(beam.DoFn):
         content['text'] = ""
       if (content["comment"] is not None and "POV" in content["comment"]) or all_edits:
         yield json.dumps((last_revision, content))
+      last_revision = content
       logging.info('INGESTION_LOG: CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(
           chunk=chunk_name, revid=content['rev_id'], time=time.time() - last_completed))
       last_completed = time.time()
@@ -231,7 +232,7 @@ class WriteDecompressedFile(beam.DoFn):
   def __init__(self):
       self.processed_revision_pairs = Metrics.counter(self.__class__, 'processed_revision_pairs')
       self.errors = Metrics.counter(self.__class__, 'errors')
-      self.revision_skipped = Metrics.counter(self.__class__, 'processed_revision_pairs')
+      self.revision_skipped = Metrics.counter(self.__class__, 'revision_skipped')
       self.sentence_revises = Metrics.counter(self.__class__, 'sentence_revises')
 
   @staticmethod
