@@ -92,13 +92,12 @@ class TestWikiIngester(unittest.TestCase):
           sub_proc.wait()
           timer.cancel()
           set_memory_limit(-1, -1)
-          print(stdout)
           ans = json.loads(stdout)
           anses.append([sorted(a) for a in ans])
         former = content
-#    with open(ans_file, 'r') as f:
-#      standard = f.read()
-#    self.assertEqual(json.dumps(anses), standard)
+    with open(ans_file, 'r') as f:
+      standard = f.read()
+    self.assertEqual(json.dumps(anses), standard)
 
   def test_large_rev_pairs(self):
     content = {'rev_id': 'placeholder'}
