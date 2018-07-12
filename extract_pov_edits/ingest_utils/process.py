@@ -227,6 +227,8 @@ def process_pair(former, content):
 
 def isSimilar(former, content):
   # Compare revision size
+  if former == None:
+    return False
   size_former = len(former['text'])
   size_content = len(content['text'])
   return (max(size_former, size_content) - min(size_former, size_content) < SIZE_DIFF_THERESHOLD)
