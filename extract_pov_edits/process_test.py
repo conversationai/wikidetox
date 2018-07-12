@@ -28,34 +28,42 @@ from __future__ import print_function
 import unittest
 import json
 import time
+import subprocess
+import tempfile
 from os import path
-from ingest_utils.process import process
+from ingest_utils.process import process, process_pair, isSimilar
+from dataflow_main import WriteDecompressedFile
+import resource
+from threading import Timer
+import signal
 
 class TestWikiIngester(unittest.TestCase):
-  def test_normal_revs(self):
+
+  def test_normal_rev_pair(self):
     input_file = path.join('ingest_utils', 'testdata', 'dummy_test.json')
-    ans_file = path.join('ingest_utils', 'testdata', 'dummy_test_ans.json')
-    cur_sents = {}
+    ans_file = path.join('ingest_utils', 'testdata', 'dummy_test_ans_pairs.json')
     anses = []
     with open(input_file, 'r') as f:
+      former = None
       for i, line in enumerate(f):
-          content = json.loads(line)
-          ans, error = process(content, cur_sents)
-          anses.append(ans)
+        content = json.loads(line)
+        ans, err = WriteDecompressedFile.parse((former, content))
+        anses.append(json.loads(ans))
+        former = content
     with open(ans_file, 'r') as f:
       standard = f.read()
     self.assertEqual(json.dumps(anses), standard)
 
-  def test_large_revs(self):
+  def test_large_rev_pairs(self):
     content = {'rev_id': 'placeholder'}
-    content['text'] = 'w' * 500000 + '. Haha there\'s a sentence.'
+    content['text'] = 'w' * 500000
+    former = None
     start_time = time.time()
-    ans, error = process(content, {})
+    ans, err = WriteDecompressedFile.parse((former, content))
     end_time = time.time()
-    self.assertLess(end_time - start_time, 1)
-    self.assertEqual(error, True)
-    self.assertEqual(len(ans[1]), 1)
-
+    self.assertLess(end_time - start_time, 5)
+    self.assertEqual(ans, None)
+    self.assertEqual(err, True)
 
 if __name__ == '__main__':
   unittest.main()

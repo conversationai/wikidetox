@@ -29,8 +29,12 @@ import re
 import nltk
 import mwparserfromhell
 import multiprocessing
+from nltk import word_tokenize
 
+SENTENCE_THERESHOLD = 3
+MATCHING_THERESHOLD = 0.6
 COMPONENT_THERESHOLD = 10000
+SIZE_DIFF_THERESHOLD = 100
 TIMEOUT = 2
 CONTEXT_RANGE = 3
 
@@ -85,7 +89,43 @@ def diff(sents, cur_sents, rev_id):
   return context_equals, inserts, deletes, new_seq
 
 
-def format_clean(s):
+def diff_pair(sents, sents_old):
+  """Computes diff at sentence level."""
+  equals = []
+  inserts = []
+  deletes = []
+  change_in_new = []
+  for s in sents:
+    if s in sents_old:
+      equals.append(s)
+      change_in_new.append(False)
+    else:
+      inserts.append(s)
+      change_in_new.append(True)
+  change_in_old = []
+  for s in sents_old:
+    if s not in sents:
+      change_in_old.append(True)
+      deletes.append(s)
+    else:
+      change_in_old.append(False)
+  # Locate context sentences that are unchanged near the inseted/deleted
+  # sentences.
+  context_equals = set()
+  for ind, s in enumerate(sents):
+    if (not change_in_new[ind] and
+        change_close_by(CONTEXT_RANGE, ind, change_in_new)):
+        context_equals.add(s)
+  for ind, s in enumerate(sents_old):
+    if (not change_in_old[ind] and
+        change_close_by(CONTEXT_RANGE, ind, change_in_old)):
+        context_equals.add(s)
+  # Dedeuplicate sentences.
+  context_equals = list(context_equals)
+  return context_equals, inserts, deletes
+
+
+def format_clean(s, error):
   """Clean MediaWiki format."""
   # Clean titles
   ret = []
@@ -96,8 +136,12 @@ def format_clean(s):
         or len(front_cnt.group(0)) != len(back_cnt.group(0))):
       ret.append(line)
   s = "\n".join(ret)
-  # mwparserfromhell clean.
-  s = mwparserfromhell.parse(s).strip_code()
+  try:
+     # mwparserfromhell clean.
+     s = mwparserfromhell.parse(s).strip_code()
+  except:
+     error = True
+     pass
   return s
 
 
@@ -117,30 +161,34 @@ def split(text):
 
 def _process(args):
   """Dry run to test if the revision will break the pipeline."""
-  (content, cur_sents) = args
+  (content, cur_sents, error) = args
   sents = []
-  for component in split(format_clean(content['text'])):
+  for component in split(format_clean(content['text'], error)):
     if len(component) < COMPONENT_THERESHOLD:
       # Prevents nltk from sentence tokenizing over-long paragraphs which might
       # result in endless execution and memory leak.
       sents.extend(nltk.sent_tokenize(component))
-  _ = diff(sents, cur_sents, content['rev_id'])
+  try:
+     _ = diff(sents, cur_sents, content['rev_id'])
+  except KeyError:
+    error = True
 
 
 def process(content, cur_sents):
   """Main Processing Point."""
+  error = False
   p = multiprocessing.Process(target = _process, name = "subprocess",
-                              args=((content, cur_sents), ))
+                              args=((content, cur_sents, error), ))
   p.start()
   p.join(TIMEOUT)
-  if p.is_alive():
+  if p.is_alive() or error:
     error = True
     p.terminate()
     p.join()
     return diff(cur_sents, cur_sents, content['rev_id']), True
   sents = []
   error = False
-  for component in split(format_clean(content['text'])):
+  for component in split(format_clean(content['text'], error)):
     if len(component) < COMPONENT_THERESHOLD:
       # Prevents nltk from sentence tokenizing over-long paragraphs which might
       # result in endless execution and memory leak.
@@ -149,3 +197,41 @@ def process(content, cur_sents):
        error = True
   return diff(sents, cur_sents, content['rev_id']), error
 
+
+def matched(sent1, sent2):
+  tokens1 = word_tokenize(sent1)
+  tokens2 = word_tokenize(sent2)
+  set_tokens1 = set(tokens1)
+  set_tokens2 = set(tokens2)
+  overlapping_rate1 = len(set_tokens1 & set_tokens2) / float(len(set_tokens1))
+  overlapping_rate2 = len(set_tokens1 & set_tokens2) / float(len(set_tokens2))
+  return (sent1 != sent2 and
+          len(tokens1) >= SENTENCE_THERESHOLD and
+          overlapping_rate1 >= MATCHING_THERESHOLD and
+          overlapping_rate2 >= MATCHING_THERESHOLD)
+
+
+def process_pair(former, content):
+  """Main Processing Point for Revision Pairs."""
+  error = False
+  if former:
+    former_sents = nltk.sent_tokenize(format_clean(former['text'], error))
+  else:
+    former_sents = []
+  sents = nltk.sent_tokenize(format_clean(content['text'], error))
+  context_equal, inserts, deletes = diff_pair(sents, former_sents)
+  sentence_revises = []
+  for sent1 in inserts:
+    for sent2 in deletes:
+      if matched(sent1, sent2):
+        sentence_revises.append((sent2, sent1))
+  return context_equal, inserts, deletes, sentence_revises
+
+def isSimilar(former, content):
+  # Compare revision size
+  if former == None:
+    return False
+  size_former = len(former['text'])
+  size_content = len(content['text'])
+  print(size_former, size_content)
+  return (max(size_former, size_content) - min(size_former, size_content) < SIZE_DIFF_THERESHOLD)
