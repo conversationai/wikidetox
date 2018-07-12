@@ -186,10 +186,6 @@ class IngestDumps(beam.DoFn):
   def __init__(self):
       self.processed_revisions = Metrics.counter(self.__class__, 'processed_revisions')
 
-  @staticmethod
-  def set_memory_limit(soft, hard):
-    resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
-
   def process(self, element, bucket, ingestFrom, all_edits):
     """Ingests the xml dump into consecutive revision pairs in json format.
     """
@@ -238,6 +234,10 @@ class WriteDecompressedFile(beam.DoFn):
       self.revision_skipped = Metrics.counter(self.__class__, 'processed_revision_pairs')
       self.sentence_revises = Metrics.counter(self.__class__, 'sentence_revises')
 
+  @staticmethod
+  def set_memory_limit(soft, hard):
+    resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
+
   def start_bundle(self):
     nltk.download('punkt')
 
@@ -258,7 +258,7 @@ class WriteDecompressedFile(beam.DoFn):
       tf.close()
       process_cmd = ['python2', '-m', 'ingest_utils.run_processor', '-i', tf.name]
       try:
-        sub_proc = subprocess.Popen(process_cmd, stdout=subprocess.PIPE, preexec_fn=IngestDumps.set_memory_limit(MEMLIMIT, -1))
+        sub_proc = subprocess.Popen(process_cmd, stdout=subprocess.PIPE, preexec_fn=WriteDecompressedFile.set_memory_limit(MEMLIMIT, -1))
       except MemoryError:
         # If errors encountered.
         yield beam.pvalue.TaggedOutput('error_log', json.dumps({"revision": content['rev_id'], "page_id": content["page_id"]}))
@@ -269,9 +269,9 @@ class WriteDecompressedFile(beam.DoFn):
         ret, stderr = sub_proc.communicate()
         sub_proc.wait()
         timer.cancel()
-        IngestDumps.set_memory_limit(-1, -1)
+        WriteDecompressedFile.set_memory_limit(-1, -1)
 
-        if ret == "":
+        if ret == "" or ret == None:
           # If errors encountered.
           yield beam.pvalue.TaggedOutput('error_log', json.dumps({"revision": content['rev_id'], "page_id": content["page_id"]}))
           self.errors.inc()
