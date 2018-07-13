@@ -48,7 +48,8 @@ class TestWikiIngester(unittest.TestCase):
       for i, line in enumerate(f):
         content = json.loads(line)
         ans, err = WriteDecompressedFile.parse((former, content))
-        anses.append(json.loads(ans))
+        if not(err):
+          anses.append(json.loads(ans))
         former = content
     with open(ans_file, 'r') as f:
       standard = f.read()

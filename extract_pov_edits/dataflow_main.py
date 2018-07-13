@@ -60,8 +60,7 @@ extract_all_edits: If turned on, this pipeline will process all edits as opposed
 from __future__ import absolute_import
 
 import logging
-import subprocess
-from threading import Timer
+import subprocess32 as subprocess
 import json
 import sys
 import zlib
@@ -147,7 +146,7 @@ def run(known_args, pipeline_args, sections, jobname):
                           "WriteIngested" >> beam.io.WriteToText(path.join("gs://wikidetox-dataflow/ingested", 'ingested-revisions-{}'.format(jobname))))
       else:
         error_log, rejects, improvments, non_rejects, sent_revises = ( p |
-            "ReadIngested" >> beam.io.ReadFromText(path.join("gs://wikidetox-dataflow/ingested", 'ingested-revisions-{}*'.format(jobname))) |
+            "ReadIngested" >> beam.io.ReadFromText(path.join("gs://wikidetox-dataflow/ingested", 'ingested-revisions-{}-00000-*'.format(jobname))) |
             "GetDiffs" >> beam.ParDo(WriteDecompressedFile()).with_outputs(
                      'rejects', 'improvments', 'non_rejects', 'sent_revises', main = 'error_log'))
         (sent_revises | "SentRevisesToStorage" >>
@@ -208,8 +207,8 @@ class IngestDumps(beam.DoFn):
     # Running ingestion on the xml file
     last_revision = None
     last_completed = time.time()
-    i = 0
-    for i, content in enumerate(parse_stream(bz2.BZ2File(chunk_name))):
+    ind = 0
+    for ind, content in enumerate(parse_stream(bz2.BZ2File(chunk_name))):
       if (page_ids is not None) and (content['page_id'] not in page_ids):
         continue
       self.processed_revisions.inc()
@@ -219,11 +218,11 @@ class IngestDumps(beam.DoFn):
         yield json.dumps((last_revision, content))
       last_revision = content
       logging.info('INGESTION_LOG: CHUNK %(chunk): revision %(revid) ingested, time elapsed: %(time).',
-                   extra={'chunk':chunk_name, 'revid':content['rev_id'], 'time':time.time() - last_completed))
+                   extra={'chunk':chunk_name, 'revid':content['rev_id'], 'time':time.time() - last_completed})
       last_completed = time.time()
     if ingestFrom != 'local': os.system("rm %s" % chunk_name)
     logging.info('USERLOG: Ingestion on file %(chunk) complete! %(cnt) lines emitted',
-                 extra={'chunk':chunk_name, 'cnt':i})
+                 extra={'chunk':chunk_name, 'cnt':ind})
 
 
 class WriteDecompressedFile(beam.DoFn):
@@ -247,20 +246,28 @@ class WriteDecompressedFile(beam.DoFn):
     process_cmd = ['python2', '-m', 'ingest_utils.run_processor', '-i', filename]
     try:
       sub_proc = subprocess.Popen(process_cmd, stdout=subprocess.PIPE, preexec_fn=WriteDecompressedFile.set_memory_limit(MEMLIMIT, -1))
-      kill = lambda p: p.kill()
-      timer = Timer(TIMEOUT, kill, [sub_proc])
-      timer.start()
-    except MemoryError:
-      return None, True
-    else:
-      ret, stderr = sub_proc.communicate()
-      sub_proc.wait()
-      timer.cancel()
+      ret, stderr = sub_proc.communicate(timeout=TIMEOUT)
+      exitcode = sub_proc.wait()
+      os.system("rm %s" % filename)
       WriteDecompressedFile.set_memory_limit(-1, -1)
-      if ret == "" or ret is None:
-        return None, True
+      if exitcode == 0:
+        if ret == "" or ret is None:
+          return None, True
+        else:
+          return ret, False
       else:
-        return ret, False
+        return None, True
+    except subprocess.TimeoutExpired:
+      sub_proc.kill()
+      WriteDecompressedFile.set_memory_limit(-1, -1)
+      os.system("rm %s" % filename)
+      return None, True
+    except MemoryError:
+      sub_proc.kill()
+      WriteDecompressedFile.set_memory_limit(-1, -1)
+      os.system("rm %s" % filename)
+      return None, True
+
 
   def start_bundle(self):
     nltk.download('punkt')
@@ -281,7 +288,7 @@ class WriteDecompressedFile(beam.DoFn):
         self.errors.inc()
       else:
         # If the parsing finishes.
-        (context_equals, inserts, deletes, sentence_revises) = ret
+        (context_equals, inserts, deletes, sentence_revises) = json.loads(ret)
         metadata = {f : content[f] for f in ['comment', 'user_id', 'user_text',
                                             'user_ip', 'page_id', 'page_title']}
         ret = {"rejecter" : content['rev_id']}
@@ -295,12 +302,14 @@ class WriteDecompressedFile(beam.DoFn):
         for sent in context_equals:
           ret['content'] = sent
           yield beam.pvalue.TaggedOutput('non_rejects', json.dumps(ret))
-        del ret['content']
-        for i, (sent1, sent2) in enumerate(sentence_revises):
+        if 'content' in ret:
+          del ret['content']
+        ind = 0
+        for ind, (sent1, sent2) in enumerate(sentence_revises):
           ret['original_content'] = sent1
           ret['revised_content'] = sent2
           yield beam.pvalue.TaggedOutput('sent_revises', json.dumps(ret))
-        self.sentence_revises.inc(i)
+        self.sentence_revises.inc(ind)
         logging.info('INGESTION_LOG: revision %s processed.', content['rev_id'])
     else:
       self.revision_skipped.inc()
@@ -411,8 +420,9 @@ if __name__ == '__main__':
         sections = []
         uri = boto.storage_uri(known_args.bucket, GOOGLE_STORAGE)
         prefix = known_args.bucket[known_args.bucket.find('/')+1:]
-        for obj in uri.list_bucket(prefix=prefix):
-           sections.append(obj.name[obj.name.rfind('/') + 1:])
+  else:
+    for obj in uri.list_bucket(prefix=prefix):
+       sections.append(obj.name[obj.name.rfind('/') + 1:])
   if known_args.ingestFrom == 'local':
      sections = [known_args.localStorage]
   if known_args.start is not None:

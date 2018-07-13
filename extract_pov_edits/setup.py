@@ -107,7 +107,8 @@ REQUIRED_PACKAGES = [
     'boto == 2.48.0',
     'gcs_oauth2_boto_plugin == 2.1',
     'mwparserfromhell == 0.5.1',
-    'nltk == 3.3'
+    'nltk == 3.3',
+    'subprocess32 == 3.5.2'
     ]
 
 
