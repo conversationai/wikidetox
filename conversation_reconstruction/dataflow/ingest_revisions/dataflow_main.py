@@ -85,6 +85,8 @@ from datetime import datetime
 
 GOOGLE_STORAGE = 'gs'
 LOCAL_STORAGE = 'file'
+MEMORY_THERESHOLD = 1000000
+
 
 def run(known_args, pipeline_args, sections):
   """Main entry point; defines and runs the ingestion pipeline."""
@@ -134,6 +136,7 @@ class DownloadDataDumps(beam.DoFn):
 class WriteDecompressedFile(beam.DoFn):
   def __init__(self):
       self.processed_revisions = Metrics.counter(self.__class__, 'processed_revisions')
+      self.large_page_revision_count = Metrics.counter(self.__class__, 'large_page_revision_cnt')
 
   def process(self, element, bucket, ingestFrom):
     """Ingests the xml dump into json, returns the josn records
@@ -149,6 +152,9 @@ class WriteDecompressedFile(beam.DoFn):
     # Running ingestion on the xml file
     last_revision = 'None'
     last_completed = time.time()
+    cur_page_id = None
+    page_size = 0
+    cur_page_revision_cnt = 0
     for i, content in enumerate(parse_stream(bz2.BZ2File(chunk_name))):
       self.processed_revisions.inc()
       # Add the week and year field for sharding
@@ -160,6 +166,18 @@ class WriteDecompressedFile(beam.DoFn):
       yield content
       logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=last_revision, time=time.time() - last_completed))
       last_completed = time.time()
+      if content['page_id'] == cur_page_id:
+        page_size += len(json.dumps(content))
+        cur_page_revision_cnt += 1
+      else:
+        if page_size >= MEMORY_THERESHOLD:
+          self.large_page_revision_count.inc(cur_page_revision_cnt)
+        cur_page_id = content['page_id']
+        page_size = len(json.dumps(content))
+        cur_page_revision_cnt = 1
+    if page_size >= MEMORY_THERESHOLD:
+      self.large_page_revision_count.inc(cur_page_revision_cnt)
+
     if ingestFrom != 'local': os.system("rm %s" % chunk_name)
     logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, last_revision %s' % (chunk_name, i, last_revision))
 
