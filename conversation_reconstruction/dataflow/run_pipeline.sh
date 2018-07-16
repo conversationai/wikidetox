@@ -21,7 +21,7 @@
 # Specify the language and the dumpdate of the data you want to process, run
 # with ./run_pipeline.sh
 
-language=es
+language=de
 dumpdate=20180601
 
 # Download the Dump
@@ -65,6 +65,6 @@ gsutil -m mv gs://wikidetox-viz-dataflow/reconstructed_res gs://wikidetox-viz-da
 # Clean Result Format
 cd conversation_reconstruction
 source activate python2
-python dataflow_main.py --input gs://wikidetox-viz-dataflow/wikiconv_v2/${language}-${dumpdate}/reconstructed_results/*/revisions* --setup_file ./setup.py --output gs://wikidetox-viz-dataflow/wikiconv_v2/${language}-${dumpdate}/cleaned_results/wikiconv-${language}-${dumpdate}- --error_log=gs://wikidetox-viz-dataflow/format-clean/error_log_${language}_${dumpdate}- || exit 1
+python dataflow_content_clean.py --input gs://wikidetox-viz-dataflow/wikiconv_v2/${language}-${dumpdate}/reconstructed_results/*/revisions* --setup_file ./setup.py --output gs://wikidetox-viz-dataflow/wikiconv_v2/${language}-${dumpdate}/cleaned_results/wikiconv-${language}-${dumpdate}- --error_log=gs://wikidetox-viz-dataflow/format-clean/error_log_${language}_${dumpdate}- --jobname=${language}${dumpdate} || exit 1
 source deactivate
 cd ..

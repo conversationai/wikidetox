@@ -44,12 +44,8 @@ TIMEOUT = 2
 def run(known_args, pipeline_args):
   """Main entry point; defines and runs the sharding pipeline."""
 
-  if known_args.testmode:
-    pipeline_args.append('--runner=DirectRunner')
-  else:
-    pipeline_args.append('--runner=DataflowRunner')
-
   pipeline_args.extend([
+    '--runner=DataflowRunner',
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
@@ -60,50 +56,9 @@ def run(known_args, pipeline_args):
 
   # Queries extracting the data
   with beam.Pipeline(options=pipeline_options) as p:
-       results, error_log = (p | beam.io.ReadFromText(known_args.input)
-                             | beam.ParDo(FormatClean()).with_outputs('error_log', main='results'))
-       results | "WriteResult" >> beam.io.WriteToText(known_args.output)
-       error_log | "WriteErrorLog" >> beam.io.WriteToText(known_args.error_log)
-
-class FormatClean(beam.DoFn):
-  def __init__(self):
-    self.processed_records = Metrics.counter(self.__class__, 'processed_records')
-    self.parsing_errors = Metrics.counter(self.__class__, 'parsing_errors')
-    self.schema = 'timestamp,user_id,cleaned_content,user_text,content,parent_id,replyTo_id,page_id,indentation,authors,conversation_id,page_title,type,id,ancestor_id,rev_id'
-    self.fields = self.schema.split(',')
-
-  def clean_schema(self, x):
-      res = {}
-      for f in self.fields:
-          if f in x:
-            res[f] = x[f]
-          else:
-            res[f] = None
-      return res
-
-  def process(self, element):
-    """Convert nested array field to array; clean the wikipedia webpage format."""
-    element = json.loads(element)
-    # Dry run of format cleanning in case of unexpected error.
-    p = multiprocessing.Process(target=content_clean, name="subprocess", args=((element['content']), ))
-    p.start()
-    p.join(TIMEOUT)
-    if p.is_alive():
-      self.parsing_errors.inc()
-      p.terminate()
-      p.join()
-      yield beam.pvalue.TaggedOutput('error_log', json.dumps(element))
-      element['cleaned_content'] = element['content']
-    else:
-      self.processed_records.inc()
-      # MediaWiki formats cleaned only in the case of a success run of subprocess.
-      element['cleaned_content'] = content_clean(element['content'])
-    # Avoid nested arrays.
-    temp = [u'{userid}:{username}'.format(userid=author[0] if author[0] is not None else 'ANONYMOUS',
-                                         username=author[1] if author[1] is not None else 'ANONYMOUS') for author in element['authors']]
-    element['authors'] = temp
-    yield json.dumps(self.clean_schema(element))
-
+       p = (p | beam.io.ReadFromText(known_args.input)
+            | beam.Map(lambda x: json.dumps(eval(x)))
+            | "WriteResult" >> beam.io.WriteToText(known_args.output))
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
@@ -115,16 +70,10 @@ if __name__ == '__main__':
   parser.add_argument('--output',
                       dest='output',
                       help='Output storage.')
-  parser.add_argument('--error_log',
-                      dest='error_log',
-                      help='Cloud storage location to write error log.')
   parser.add_argument('--jobname',
                       dest='jobname',
                       help='The dataflow jobname.')
-  parser.add_argument('--testmode',
-                      dest='testmode',
-                      action='store_true',
-                      help='Runs the dataflow pipeline using DirectRunner.')
+
 
   known_args, pipeline_args = parser.parse_known_args()
   run(known_args, pipeline_args)
