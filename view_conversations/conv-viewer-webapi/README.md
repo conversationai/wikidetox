@@ -23,6 +23,21 @@ Then from this directory, use yarn to install the local package dependencies:
 yarn install
 ```
 
+### Troubleshooting yran installing failure
+
+If there's grpc installing error occurred during yarn install,
+
+Run
+
+```
+nvm i v8 --reinstall-packages-from=default
+nvm alias default v8
+nvm use default
+rm -rf node_modules/
+npm i
+```
+to upgrade to node version 8.
+
 ### Config file setup
 
 Before you can deploy, you need to:
