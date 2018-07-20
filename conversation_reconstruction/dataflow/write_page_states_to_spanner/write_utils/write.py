@@ -28,7 +28,7 @@ import base64
 
 
 class SpannerWriter():
-    @static
+    @staticmethod
     def convert_data_format(datatype, data):
         if datatype == 'STRING':
           return data
@@ -72,7 +72,7 @@ class SpannerWriter():
         batch.insert(
             table = table_id,
             columns = sorted(self.table_columns[table_id].keys()),
-            values = self.convert_data(table_id, data))
+            values = self.convert_format_for_spanner_write(table_id, data))
       return 'Inserted data.'
 
 
@@ -80,7 +80,7 @@ class SpannerWriter():
       """(Mock) Inserts data record into spanner."""
       table = table_id
       columns = sorted(self.table_columns[table_id].keys())
-      values = self.convert_data(table_id, data))
+      values = self.convert_format_for_spanner_write(table_id, data)
       return 'Inserted data.'
 
 
