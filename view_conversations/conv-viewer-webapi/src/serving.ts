@@ -18,7 +18,7 @@ import * as compression from 'compression';
 import * as express from 'express';
 import * as http from 'http';
 import * as path from 'path';
-import * as bigquery from '@google-cloud/bigquery';
+import * as spanner from '@google-cloud/spanner';
 
 // import * as Logging from '@google-cloud/logging';
 // import * as helmet from 'helmet';
@@ -37,9 +37,18 @@ export class Server {
   public apiKey : string;
   public port: number;
   public staticPath: string;
-  public bqClient : bigquery.BigQueryClient;
+  //Public to support tests.
+  public spanner: spanner.Spanner;
+  public spannerInstance: spanner.Instance;
+  public spannerDatabase: spanner.Database;
+  public spannerTable: spanner.Table;
 
   constructor(public config: config.Config) {
+    this.spanner = spanner({ projectId: config.cloudProjectId });
+    this.spannerInstance = this.spanner.instance(config.spannerInstanceId);
+    this.spannerDatabase = this.spannerInstance.database(config.spannerDatabaseName, { keepAlive: 5 });
+    this.spannerTable = this.spannerDatabase.table(config.spannerTableName);
+
     console.log(`The config is: ${JSON.stringify(this.config, null, 2)}`);
     this.port = parseInt(this.config.port);
     if (!config.staticPath) {
@@ -78,9 +87,7 @@ export class Server {
       res.status(httpcodes.OK).send('ok');
     });
 
-    this.bqClient = new bigquery({ projectId: this.config.bigQueryProjectId });
-
-    routes.setup(this.app, this.config, this.bqClient);
+    routes.setup(this.app, this.config, this.spannerDatabase);
 
     this.httpServer = http.createServer(this.app);
     console.log(`created server.`);

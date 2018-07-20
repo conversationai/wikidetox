@@ -38,8 +38,13 @@ declare module '@google-cloud/spanner' {
       // A fake field to make this type unique: fake nominal typing using npm namespace.
       __type__: '@google-cloud/spanner:SpannerTimestamp';
     }
+    export interface SpannerBytes {
+      // A fake field to make this type unique: fake nominal typing using npm namespace.
+      __type__: '@google-cloud/spanner:SpannerBytes';
+    }
+
     export type InputField = string | null | SpannerDate | SpannerFloat
-                           | SpannerInt | SpannerTimestamp;
+                           | SpannerInt | SpannerTimestamp | SpannerBytes;
     export interface InputRow {
       [columnKey:string] : InputField;
     }
@@ -100,6 +105,7 @@ declare module '@google-cloud/spanner' {
       timestamp(x: string | Date | null) : SpannerTimestamp;
       float(x: number | string | null) : SpannerFloat;
       int(x: number | string | null) : SpannerInt;
+      bytes(x: number | string | null) : SpannerBytes;
       //
       createInstance(name: string, config : Object) : Promise<void>;
       // https://cloud.google.com/spanner/docs/reference/rpc/google.spanner.admin.instance.v1#google.spanner.admin.instance.v1.InstanceAdmin.ListInstances
