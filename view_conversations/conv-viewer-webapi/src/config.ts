@@ -18,7 +18,8 @@ export interface Config {
   staticPath: string;
   isProduction: boolean;
 
-  bigQueryProjectId: string;
-  bigQueryDataSetId: string;
-  bigQueryTable: string;
+  cloudProjectId: string;
+  spannerInstanceId: string;
+  spannerDatabaseName: string;
+  spannerTableName: string;
 }

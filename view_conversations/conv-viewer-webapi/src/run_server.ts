@@ -26,21 +26,27 @@ if (process.env['NODE_ENV'] !== 'development' &&
   process.exit(1);
 }
 
-if (!config.bigQueryProjectId) {
+if (!config.cloudProjectId) {
   console.error('The config file build/config/server_config.json is missing:'
                 + ' cloudProjectId');
   process.exit(1);
 }
 
-if (!config.bigQueryDataSetId) {
+if (!config.spannerInstanceId) {
   console.error('The config file build/config/server_config.json is missing:'
-                + ' bigQueryDataSetId');
+                + ' spannerInstanceId');
   process.exit(1);
 }
 
-if (!config.bigQueryTable) {
+if (!config.spannerDatabaseName) {
   console.error('The config file build/config/server_config.json is missing:'
-                + ' bigQueryTable');
+                + ' spannerDatabseName');
+  process.exit(1);
+}
+
+if (!config.spannerTableName) {
+  console.error('The config file build/config/server_config.json is missing:'
+                + ' spannerTableName');
   process.exit(1);
 }
 
