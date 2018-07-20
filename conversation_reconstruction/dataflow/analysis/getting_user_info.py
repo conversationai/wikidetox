@@ -65,8 +65,9 @@ def get_info(users):
       if 'groups' in dat:
        g = dat['groups']
        for group in ['bot', 'admin', 'bureaucrat']:
-         cur['is_%s'%group] = False
-         if group in g: cur['is_%s'%group] = True
+         field = 'is_%s' % group
+         cur[field] = False
+         if group in g: cur[field] = True
        if 'admins' in g or 'sysop' in g:
          cur['is_admin'] = True
       if 'userid' in dat:
@@ -98,11 +99,11 @@ if __name__ == '__main__':
                       help='If the code stopped last time, you can resume from the breaking point using this argument.')
   known_args, _ = parser.parse_known_args()
   total = known_args.total_user
-  with open(known_args.output_data, "w") as w:
-    with open(known_args.input_data, "r") as f:
+  with open(known_args.output_data, "w") as w, open(known_args.input_data, "r") as f:
       for ind, line in enumerate(f):
         # Skipping processed input
-        if ind < known_args.start_point: continue
+        if ind < known_args.start_point:
+          continue
         data = json.loads(line)
         user = data['user_text']
         progress += 1
