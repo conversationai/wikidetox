@@ -16,6 +16,8 @@ limitations under the License.
 import * as spanner from '@google-cloud/spanner';
 import * as runtime_types from './runtime_types';
 
+var ab2str = require('arraybuffer-to-string')
+
 // Spanner Row Representations in JS.
 //
 // Note: Cloud Spanner interprets Node.js numbers as FLOAT64s, so
@@ -47,24 +49,6 @@ interface SpannerFieldHandler<T> {
   fromSpannerResultField(row:spanner.ResultField) : T | null;
 }
 
-// TODO(ldixon): add fancier validation, more subtypes, e.g. for checking fields match specific T.
-class JsonFieldHandler<T> implements SpannerFieldHandler<T> {
-  constructor(public field_name: string) {
-    this.field_name = field_name;
-  }
-  public fromSpannerResultField(field:spanner.ResultField) : T | null {
-    if(field === null) {
-      return null;
-    }
-    if(typeof(field) !== 'string') {
-      console.log('Error: field:');
-      console.dir(field);
-      throw Error(`For ${this.field_name}: expected json field:string, not: ${typeof(field)}`);
-    }
-    return JSON.parse(field);
-  }
-}
-
 // TODO(ldixon): add additional constraints, e.g. regexp matching.
 class StringFieldHandler implements SpannerFieldHandler<string> {
   constructor(public field_name: string) {
@@ -85,14 +69,40 @@ class BytesFieldHandler implements SpannerFieldHandler<string> {
     this.field_name = field_name;
   }
   public fromSpannerResultField(field:spanner.ResultField) : string | null {
-    if(!(field === null || typeof(field) === 'string')) {
+  if (field == null){
+    return null;
+  }
+  if(!(field instanceof Uint8Array)) {
       console.log('Error: field:');
       console.dir(field);
-      throw Error(`For ${this.field_name}: expected field:string, not: ${typeof(field)}`);
-    }
-    return field;
+      throw Error(`For ${this.field_name}: expected field: byte array, not: ${typeof(field)}`);
+  }
+  return ab2str(<Uint8Array>field);
   }
 }
+
+class ArrayFieldHandler implements SpannerFieldHandler<string[]> {
+  constructor(public field_name: string) {
+    this.field_name = field_name;
+  }
+  public fromSpannerResultField(field:spanner.ResultField) : string[] | null {
+    if (field == null) {
+      return field;
+    }
+    if (!(field.constructor == Array)) {
+      console.log('Error: field:');
+      console.dir(field);
+      throw Error(`For ${this.field_name}: expected field: string array, not: ${typeof(field)}`);
+    }
+    let ret: string[] = []
+    for (let element of <string[]>field) {
+      ret.push(element)
+    }
+    return ret;
+  }
+}
+
+
 
 class IntFieldHandler implements SpannerFieldHandler<number> {
   constructor(public field_name: string) {
@@ -106,7 +116,7 @@ class IntFieldHandler implements SpannerFieldHandler<number> {
     } else if (field === null) {
       return null;
     }
-    return parseInt(field.value);
+    return parseInt((<{ value: string; }>field).value);
   }
 }
 
@@ -122,7 +132,7 @@ class FloatFieldHandler implements SpannerFieldHandler<number> {
     } else if (field === null) {
       return null;
     }
-    return parseFloat(field.value);
+    return parseFloat((<{ value:string; }>field).value);
   }
 }
 
@@ -143,7 +153,7 @@ interface HandlerSet { [field_name:string] : SpannerFieldHandler<any>; };
 let handlers : SpannerFieldHandler<{}>[] = [
   new StringFieldHandler('id'),
   new StringFieldHandler('ancestor_id'),
-  new JsonFieldHandler('authors'),
+  new ArrayFieldHandler('authors'),
   new BytesFieldHandler('cleaned_content'),
   new BytesFieldHandler('content'),
   new StringFieldHandler('conversation_id'),
