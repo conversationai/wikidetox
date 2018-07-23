@@ -3,7 +3,8 @@
   "isProduction": false,
   "staticPath": "build/static",
 
-  "bigQueryProjectId": "<enter the google cloud project id here>",
-  "bigQueryDataSetId": "<enter the corresponding bigquery dataset id here>",
-  "bigQueryTable": "<enter the table holding conversations here>"
+  "cloudProjectId": "wikidetox-viz",
+  "spannerInstanceId": "wikiconv",
+  "spannerDatabaseName": "convdata",
+  "spannerTableName": "zh_20180601_conv"
 }
