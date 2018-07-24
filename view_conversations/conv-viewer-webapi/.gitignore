@@ -8,6 +8,9 @@ yarn-error.log*
 # Yarn package lock
 package-lock.json
 
+# tslint config
+tslint.json
+
 # Runtime data
 pids
 *.pid
