@@ -1,35 +1,34 @@
 /*
-Copyright 2018 Google Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+ * Copyright 2018 Google Inc.
+ *
+ *Licensed under the Apache License, Version 2.0 (the "License");
+ *you may not use this file except in compliance with the License.
+ *You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *Unless required by applicable law or agreed to in writing, software
+ *distributed under the License is distributed on an "AS IS" BASIS,
+ *WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *See the License for the specific language governing permissions and
+ *limitations under the License.
 */
-import * as spanner from '@google-cloud/spanner';
-import * as runtime_types from './runtime_types';
 
-var ab2str = require('arraybuffer-to-string')
+import * as spanner from '@google-cloud/spanner';
+import * as ab2str from 'arraybuffer-to-string';
+import * as runtime_types from './runtime_types';
 
 // Spanner Row Representations in JS.
 //
 // Note: Cloud Spanner interprets Node.js numbers as FLOAT64s, so
 // in the row format, they are treated as strings (spanner does
 // the conversion to INT64s when appropriate)
-// TODO (yiqingh): modify this part accordingly
 export interface OutputRow {
   id: runtime_types.CommentId;
   ancestor_id: runtime_types.CommentId;
-  authors: null | string[];
-  cleaned_content: null | string;
-  content: null | string;
+  authors: string[] | null;
+  cleaned_content: string | null;
+  content: string | null;
   conversation_id: runtime_types.ConversationId;
   indentation: number;
   page_id: number;
@@ -44,113 +43,93 @@ export interface OutputRow {
 }
 
 
-interface SpannerFieldHandler<T> {
-  field_name : string;
-  fromSpannerResultField(row:spanner.ResultField) : T | null;
+abstract class SpannerFieldHandler<T> {
+  public fieldName : string;
+  constructor(public newFieldName: string) {this.fieldName = newFieldName}
+  public abstract fromSpannerResultField(row:spanner.ResultField) : T | null;
 }
 
 // TODO(ldixon): add additional constraints, e.g. regexp matching.
-class StringFieldHandler implements SpannerFieldHandler<string> {
-  constructor(public field_name: string) {
-    this.field_name = field_name;
-  }
+class StringFieldHandler extends SpannerFieldHandler<string> {
   public fromSpannerResultField(field:spanner.ResultField) : string | null {
     if(!(field === null || typeof(field) === 'string')) {
-      console.log('Error: field:');
+      console.error('Error: field:');
       console.dir(field);
-      throw Error(`For ${this.field_name}: expected field:string, not: ${typeof(field)}`);
+      throw Error(`For ${this.fieldName}: expected field:string, not: ${typeof(field)}`);
     }
     return field;
   }
 }
 
-class BytesFieldHandler implements SpannerFieldHandler<string> {
-  constructor(public field_name: string) {
-    this.field_name = field_name;
-  }
+class BytesFieldHandler extends SpannerFieldHandler<string> {
   public fromSpannerResultField(field:spanner.ResultField) : string | null {
-  if (field == null){
-    return null;
-  }
-  if(!(field instanceof Uint8Array)) {
-      console.log('Error: field:');
-      console.dir(field);
-      throw Error(`For ${this.field_name}: expected field: byte array, not: ${typeof(field)}`);
-  }
-  return ab2str(<Uint8Array>field);
+    if (field === null){
+      return null;
+    }
+    if(!(field instanceof Uint8Array)) {
+        console.error('Error: field:');
+        console.dir(field);
+        throw Error(`For ${this.fieldName}: expected field: byte array, not: ${typeof(field)}`);
+    }
+    return ab2str(field as Uint8Array);
   }
 }
 
-class ArrayFieldHandler implements SpannerFieldHandler<string[]> {
-  constructor(public field_name: string) {
-    this.field_name = field_name;
-  }
+class ArrayFieldHandler extends SpannerFieldHandler<string[]> {
   public fromSpannerResultField(field:spanner.ResultField) : string[] | null {
-    if (field == null) {
+    if (field === null) {
       return field;
     }
-    if (!(field.constructor == Array)) {
-      console.log('Error: field:');
+    if (!(field instanceof Array)) {
+      console.error('Error: field:');
       console.dir(field);
-      throw Error(`For ${this.field_name}: expected field: string array, not: ${typeof(field)}`);
+      throw Error(`For ${this.fieldName}: expected field: string array, not: ${typeof(field)}`);
     }
-    let ret: string[] = []
-    for (let element of <string[]>field) {
-      ret.push(element)
-    }
-    return ret;
+    return field as string[];
   }
 }
 
 
 
-class IntFieldHandler implements SpannerFieldHandler<number> {
-  constructor(public field_name: string) {
-    this.field_name = field_name;
-  }
+class IntFieldHandler extends SpannerFieldHandler<number> {
   public fromSpannerResultField(field:spanner.ResultField) : number | null {
     if(typeof(field) === 'string') {
-      throw Error(`For ${this.field_name}: expected field.value:string, but field:string`);
+      throw Error(`For ${this.fieldName}: expected field.value:string, but field:string`);
     } else if (field instanceof Date) {
-      throw Error(`For ${this.field_name}: expected field.value:string, but field:Date`);
+      throw Error(`For ${this.fieldName}: expected field.value:string, but field:Date`);
     } else if (field === null) {
       return null;
     }
-    return parseInt((<{ value: string; }>field).value);
+    return parseInt((field as spanner.ResultValue).value, 10);
   }
 }
 
-class FloatFieldHandler implements SpannerFieldHandler<number> {
-  constructor(public field_name: string) {
-    this.field_name = field_name;
-  }
+class FloatFieldHandler extends SpannerFieldHandler<number> {
   public fromSpannerResultField(field:spanner.ResultField) : number | null {
     if(typeof(field) === 'string') {
-      throw Error(`For ${this.field_name}: expected field.value:string, but field:string`);
+      throw Error(`For ${this.fieldName}: expected field.value:string, but field:string`);
     } else if (field instanceof Date) {
-      throw Error(`For ${this.field_name}: expected field.value:string, but field:Date`);
+      throw Error(`For ${this.fieldName}: expected field.value:string, but field:Date`);
     } else if (field === null) {
       return null;
     }
-    return parseFloat((<{ value:string; }>field).value);
+    return parseFloat((field as spanner.ResultValue).value);
   }
 }
 
-class TimestampFieldHandler implements SpannerFieldHandler<Date> {
-  constructor(public field_name: string) {
-    this.field_name = field_name;
-  }
+class TimestampFieldHandler extends SpannerFieldHandler<Date> {
   public fromSpannerResultField(field:spanner.ResultField) : Date | null {
     if (!(field === null || field instanceof Date)) {
-      throw Error(`For ${this.field_name}: expected field:Date, but field:${typeof(field)}`);
+      throw Error(`For ${this.fieldName}: expected field:Date, but field:${typeof(field)}`);
     }
     return field;
   }
 }
 
-interface HandlerSet { [field_name:string] : SpannerFieldHandler<any>; };
+interface HandlerSet { [fieldName:string] : SpannerFieldHandler<any>; };
+interface ParsedOutput { [fieldName:string] : {}; };
 
-let handlers : SpannerFieldHandler<{}>[] = [
+const handlers : Array<SpannerFieldHandler<{}>> = [
   new StringFieldHandler('id'),
   new StringFieldHandler('ancestor_id'),
   new ArrayFieldHandler('authors'),
@@ -169,18 +148,18 @@ let handlers : SpannerFieldHandler<{}>[] = [
   new StringFieldHandler('user_text'),
 ];
 
-function addHandler(handlers : HandlerSet, handler : SpannerFieldHandler<{}>)
+function addHandler(inputHandlers : HandlerSet, handler : SpannerFieldHandler<{}>)
     : HandlerSet {
-  handlers[handler.field_name] = handler;
-  return handlers;
+  inputHandlers[handler.fieldName] = handler;
+  return inputHandlers;
 }
 const handlerSet = handlers.reduce<HandlerSet>(addHandler, {});
 
 export function parseOutputRows<T>(rows: spanner.ResultRow[]) : T {
-  let output : { [field_name:string] : {} }[] = []
-  for (let row of rows) {
-    let ret: { [field_name:string] : {} } = {};
-    for (let field of row) {
+  const output : ParsedOutput[] = []
+  for (const row of rows) {
+    const ret: { [fieldName:string] : {} } = {};
+    for (const field of row) {
       if(!(field.name in handlerSet)) {
         console.error(`Field ${field.name} does not have a handler and so cannot be interpreted.`);
         break;
