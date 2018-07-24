@@ -24,6 +24,7 @@ export interface Comment {
   user_text: string;
   timestamp: string;
   page_title: string;
+  authors: string[];
   // If == id then this comment should be highlighted.
   comment_to_highlight?: string;
   // Added based on conversation structure.
@@ -46,16 +47,16 @@ export interface Conversation { [id: string]: Comment }
 //
 export function interpretId(id: string):
     {revision: number; token: number; action: number}|null {
-  let myRegexp = /(\d+)\.(\d+)\.(\d+)/g;
-  let match = myRegexp.exec(id);
+  const myRegexp = /(\d+)\.(\d+)\.(\d+)/g;
+  const match = myRegexp.exec(id);
   if (!match || match.length < 4) {
     return null
   }
 
   return {
-    revision: parseInt(match[1]),
-    token: parseInt(match[2]),
-    action: parseInt(match[3])
+    action: parseInt(match[3], 10)
+    revision: parseInt(match[1], 10),
+    token: parseInt(match[2], 10),
   };
 }
 
@@ -70,20 +71,20 @@ export function compareDateFn(da: Date, db: Date): number {
 }
 
 export function compareByDateFn(a: Comment, b: Comment): number {
-  let db = Date.parse(b.timestamp);
-  let da = Date.parse(a.timestamp);
+  const db = Date.parse(b.timestamp);
+  const da = Date.parse(a.timestamp);
   return db - da;
 }
 
 //
 export function compareCommentOrder(comment1: Comment, comment2: Comment) {
-  let dateCmp = compareByDateFn(comment2, comment1)
+  const dateCmp = compareByDateFn(comment2, comment1)
   if (dateCmp !== 0) {
     return dateCmp;
   }
 
-  let id1 = interpretId(comment1.id);
-  let id2 = interpretId(comment2.id);
+  const id1 = interpretId(comment1.id);
+  const id2 = interpretId(comment2.id);
 
   if (id1 === null || id2 === null) {
     console.warn(
@@ -94,9 +95,9 @@ export function compareCommentOrder(comment1: Comment, comment2: Comment) {
                                          (comment1.id > comment2.id ? 1 : -1);
   }
 
-  let revisionDiff = id1.revision - id2.revision;
-  let tokenDiff = id1.token - id2.token;
-  let actionDiff = id1.action - id2.action;
+  const revisionDiff = id1.revision - id2.revision;
+  const tokenDiff = id1.token - id2.token;
+  const actionDiff = id1.action - id2.action;
   return revisionDiff !== 0 ?
       revisionDiff :
       (tokenDiff !== 0 ? tokenDiff : (actionDiff !== 0 ? actionDiff : 0));
@@ -109,28 +110,35 @@ export function compareCommentOrderSmallestFirst(
 
 export function indentOfComment(
     comment: Comment, conversation: Conversation): number {
-  if (comment.parent_id === '' || comment.parent_id === null) {
+ if (comment.replyTo_id === '' || comment.replyTo_id === null) {
     return 0;
   }
-  let parent = conversation[comment.parent_id];
+  let parent = conversation[comment.replyTo_id];
+  // If the conversation parent is not present, assuming the
+  // comment is replying to the parent's latest version.
+  while (parent && !(parent.isPresent)) {
+    parent = (parent.latestVersion) ? conversation[parent.latestVersion]: conversation[parent.replyTo_id]
+  }
+  console.error(parent)
   if (!parent) {
     console.error(
-        'Comment lacks parent in conversation: ', conversation, comment);
+        'Comment lacks parent in conversation: ', comment.content);
     return 0;
   }
-  return 1 + indentOfComment(parent, conversation);
+  return indentOfComment(parent, conversation) + 1;
 }
 
 export function htmlForComment(
     comment: Comment, conversation: Conversation): string {
-  let indent = indentOfComment(comment, conversation);
-
-  let convId: string = '';
-  let section_heading: string = '';
-  let comment_class_name: string;
+  const convId = '';
+  const sectionHeading = '';
+  const commentClassName: string;
+  if (!comment.isPresent) {
+    return
+  }
   if (comment.isRoot) {
-    comment_class_name = 'comment';
-    section_heading = `<div>In page: <b>${comment.page_title}</b></div>`;
+    commentClassName = 'comment';
+    sectionHeading = `<div>In page: <b>${comment.page_title}</b></div>`;
     convId = `<div class="convid">
       <span class="convid-text">(conversation id: ${comment.id}) </span>
       <span class="convid-comment-index-header">Comment Number</span>
@@ -140,12 +148,12 @@ export function htmlForComment(
   } else {
     comment_class_name = 'comment';
   }
-  let timestamp = comment.timestamp.replace(/ UTC/g, '');
+  const timestamp = comment.timestamp.replace(/ UTC/g, '');
 
   return `
     ${section_heading}
     ${convId}
-    <div class="action ${comment_class_name}" style="margin-left: ${indent}em;">
+    <div class="action ${comment_class_name}" style="margin-left: ${comment.indentation}em;">
       <table class="action">
         <tr><td class="whenandwho">
             <div class="author">${comment.user_text}</div>
@@ -162,15 +170,15 @@ export function htmlForComment(
 // Walk down a comment and its children depth first.
 export function walkDfsComments(
     rootComment: Comment, f: (c: Comment) => void): void {
-  let commentsHtml = [];
+  const commentsHtml = [];
   let agenda: Comment[] = [];
-  let next_comment: Comment|undefined = rootComment;
-  while (next_comment) {
-    if (next_comment.children) {
-      agenda = agenda.concat(next_comment.children);
+  const nextComment: Comment|undefined = rootComment;
+  while (nextComment) {
+    if (nextComment.children) {
+      agenda = agenda.concat(nextComment.children);
     }
-    f(next_comment);
-    next_comment = agenda.pop();
+    f(nextComment);
+    nextComment = agenda.pop();
   }
 }
 
@@ -214,7 +222,7 @@ function selectRootComment(comment: Comment, rootComment: Comment|null) {
      return rootComment;
   }
   if (rootComment) {
-    let commentCmp = compareCommentOrder(rootComment, comment);
+    const commentCmp = compareCommentOrder(rootComment, comment);
     if (commentCmp < 0) {
       makeParent(comment, rootComment);
     } else if (commentCmp > 0) {
@@ -239,13 +247,13 @@ function selectRootComment(comment: Comment, rootComment: Comment|null) {
 // Also set the isRoot field of every comment, and return the
 // overall root comment of the conversation.
 export function structureConversaton(conversation: Conversation): Comment|null {
-  let ids = Object.keys(conversation);
+  const ids = Object.keys(conversation);
 
   let rootComment: Comment|null = null;
   let latestComments: Comment[] = [];
 
-  for (let i of ids) {
-    let comment = conversation[i];
+  for (const i of ids) {
+    const comment = conversation[i];
     // If the action is deletion, the content must have been deleted.
     conversation[i].isPresent = true;
     conversation[i].latestVersion = i;
@@ -255,20 +263,20 @@ export function structureConversaton(conversation: Conversation): Comment|null {
     }
     if (comment.parent_id !== null && comment.parent_id !== ''
     && conversation[comment.parent_id]) {
-      conversation[comment.parent_id].isPresent = False;
+      conversation[comment.parent_id].isPresent = false;
       conversation[comment.parent_id].latestVersion = i;
       // The previous content has been replaced by the new version.
     }
   }
 
-  for (let i of ids) {
-    let comment = conversation[i];
+  for (const i of ids) {
+    const comment = conversation[i];
     comment.isFinal = false;
     comment.isLatest = false;
     if (latestComments.length === 0) {
       latestComments = [comment];
     } else {
-      let dtime = compareByDateFn(latestComments[0], comment);
+      const dtime = compareByDateFn(latestComments[0], comment);
       if (dtime > 0) {
         latestComments = [comment];
       } else if (dtime === 0) {
@@ -279,16 +287,13 @@ export function structureConversaton(conversation: Conversation): Comment|null {
     if (!comment.children) {
       comment.children = [];
     }
+    comment.indentation = indentOfComment(comment, conversation)
     if (comment.replyTo_id !== null && comment.replyTo_id !== '') {
       let parent = conversation[comment.replyTo_id];
       // If the conversation parent is not present, assuming the
       // comment is replying to the parent's latest version.
       while (parent && !parent.isPresent) {
-        if (parent.latestVersion) {
-          parent = conversation[parent.latestVersion]
-        } else {
-          parent = conversation[parent.replyTo_id]
-        }
+        parent = (parent.latestVersion) ? conversation[parent.latestVersion]: conversation[parent.replyTo_id]
       }
 
       if (parent) {
@@ -307,7 +312,7 @@ export function structureConversaton(conversation: Conversation): Comment|null {
   // Identify the final comment w.r.t. dfs. i.e. the one at the bottom.
   if (rootComment) {
     indexComments(rootComment);
-    let finalComment = lastDecendentComment(rootComment);
+    const finalComment = lastDecendentComment(rootComment);
     finalComment.isFinal = true;
   }
 
