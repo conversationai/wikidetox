@@ -54,15 +54,15 @@ declare module '@google-cloud/spanner' {
       update(rows:InputRow[]) : Promise<void>;
     }
 
-    export type ByteField = { type: string; data: number[] }
-
     // The value representation chosen here by the spanner nodejs client
     // library is pretty surprising: INT64s are converted into
     // Objects with a value field that is the string representation of the number.
     // Strings on the other hand are just strings.
-    export type ResultField = string | { value: string } | null | Date | Uint8Array | string[];
+    export type ResultValue = { value: string }
+    // TODO(yiqingh): decompose ResultField into subtypes.
+    export type ResultField = string | ResultValue | null | Date | Uint8Array | string[];
     // Rows and Columns (Fields) in that row.
-    export type ResultRow = { name:string; value: ResultField; }[]
+    export type ResultRow = Array<{ name:string; value: ResultField }>
     export type QueryResult = ResultRow[];
     type StreamingQuery = stream.Readable;
     // export interface StreamingQuery {
