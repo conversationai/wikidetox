@@ -15,10 +15,12 @@ limitations under the License.
 */
 export interface Comment {
   id: string;
-  comment_type: 'COMMENT_MODIFICATION'|'COMMENT_ADDING'|'SECTION_CREATION';
+  comment_type: 'MODIFICATION'|'ADDITION'|'CREATION'|'RESTORATION'|'DELETION';
   content: string;
+  cleaned_content: string;
   parent_id: string|null;
-  indent?: number;
+  replyTo_id: string|null;
+  indentation?: number;
   user_text: string;
   timestamp: string;
   page_title: string;
@@ -31,6 +33,10 @@ export interface Comment {
       boolean;  // true iff this is the latest comment in the conversation.
   isFinal?: boolean;  // true iff this is the final (by DFS) comment in the
                       // conversation.
+  isPresent?: boolean; // true iff this version of the comment is present in
+                       // the current snapshot.
+  latestVersion?: string; // id of the latest version of this comment if isPresent
+                          // is false, otherwise id of self.
   dfs_index?: number  // index according to Depth First Search of conv.
 }
 
@@ -145,7 +151,7 @@ export function htmlForComment(
             <div class="author">${comment.user_text}</div>
             <div class="timestamp">${timestamp}</div>
         </td>
-        <td class="content">${comment.content}</td>
+        <td class="content">${comment.cleaned_content}</td>
         <td><div class="index">${comment.dfs_index}</div></td>
       </tr>
       </table>
@@ -187,6 +193,9 @@ export function indexComments(rootComment: Comment) {
 }
 
 export function makeParent(comment: Comment, parent: Comment) {
+  if (!comment.isPresent) {
+    return;
+  }
   if (!parent.children) {
     parent.children = [];
   }
@@ -201,6 +210,9 @@ function selectRootComment(comment: Comment, rootComment: Comment|null) {
   // and they are the first comment in the conversation.
   // Both the section creation action and the comment have no parent.
   // At this point, we get down to comparing offsets to choose the parent.
+  if (!comment.isPresent) {
+     return rootComment;
+  }
   if (rootComment) {
     let commentCmp = compareCommentOrder(rootComment, comment);
     if (commentCmp < 0) {
@@ -234,6 +246,23 @@ export function structureConversaton(conversation: Conversation): Comment|null {
 
   for (let i of ids) {
     let comment = conversation[i];
+    // If the action is deletion, the content must have been deleted.
+    conversation[i].isPresent = true;
+    conversation[i].latestVersion = i;
+    if (comment.type === 'DELETION') {
+      conversation[i].isPresent = false;
+      conversation[i].latestVersion = null;
+    }
+    if (comment.parent_id !== null && comment.parent_id !== ''
+    && conversation[comment.parent_id]) {
+      conversation[comment.parent_id].isPresent = False;
+      conversation[comment.parent_id].latestVersion = i;
+      // The previous content has been replaced by the new version.
+    }
+  }
+
+  for (let i of ids) {
+    let comment = conversation[i];
     comment.isFinal = false;
     comment.isLatest = false;
     if (latestComments.length === 0) {
@@ -250,8 +279,18 @@ export function structureConversaton(conversation: Conversation): Comment|null {
     if (!comment.children) {
       comment.children = [];
     }
-    if (comment.parent_id !== null && comment.parent_id !== '') {
-      let parent = conversation[comment.parent_id];
+    if (comment.replyTo_id !== null && comment.replyTo_id !== '') {
+      let parent = conversation[comment.replyTo_id];
+      // If the conversation parent is not present, assuming the
+      // comment is replying to the parent's latest version.
+      while (parent && !parent.isPresent) {
+        if (parent.latestVersion) {
+          parent = conversation[parent.latestVersion]
+        } else {
+          parent = conversation[parent.replyTo_id]
+        }
+      }
+
       if (parent) {
         makeParent(comment, parent);
       } else {
@@ -282,13 +321,5 @@ export function structureConversaton(conversation: Conversation): Comment|null {
   if (latestComments.length > 0) {
     latestComments[0].isLatest = true;
   }
-  // latestComments[].forEach(c => {
-  //   c.isLatest = true;
-  // });
-  // for(let i of ids) {
-  //   let comment : Comment = conversation[i];
-  //   comment.indent = indentOfComment(comment, conversation);
-  // }
-
   return rootComment;
 }
