@@ -246,7 +246,9 @@ function selectRootComment(comment: Comment, rootComment: Comment|null) {
 // Also set the isRoot field of every comment, and return the
 // overall root comment of the conversation.
 export function structureConversaton(conversation: Conversation): Comment|null {
-  const ids = Object.keys(conversation);
+  const items = Object.keys(conversation).map((key) => [key, conversation[key]]);
+  items.sort((v1, v2) => -compareByDateFn(v1[1], v2[1]));
+  const ids = items.map((value, index) => value[0]);
 
   let rootComment: Comment|null = null;
   let latestComments: Comment[] = [];
@@ -262,14 +264,25 @@ export function structureConversaton(conversation: Conversation): Comment|null {
     }
     if (comment.parent_id !== null && comment.parent_id !== ''
     && conversation[comment.parent_id]) {
-      conversation[comment.parent_id].isPresent = false;
-      conversation[comment.parent_id].latestVersion = i;
+      if (comment.comment_type !== 'RESTORATION') {
+        conversation[comment.parent_id].isPresent = false;
+      } else {
+        conversation[i].isPresent = false;
+        conversation[comment.parent_id].isPresent = true;
+        conversation[comment.parent_id].latestVersion = comment.parent_id;
+      }
+      if (comment.comment_type === 'MODIFICATION') {
+        conversation[comment.parent_id].latestVersion = i;
+      }
       // The previous content has been replaced by the new version.
     }
   }
 
   for (const i of ids) {
     const comment = conversation[i];
+    if (comment.comment_type === "RESTORATION" || comment.comment_type === "DELETION") {
+      continue
+    }
     comment.isFinal = false;
     comment.isLatest = false;
     if (latestComments.length === 0) {
@@ -318,7 +331,7 @@ export function structureConversaton(conversation: Conversation): Comment|null {
   // Idenitfy the latest action. Order by lex on time desc then index desc.
   latestComments.sort((c1, c2) => {
     if (c1.dfs_index === undefined || c2.dfs_index === undefined) {
-      throw Error('Comments should have dfs_index but do not');
+      return -1;
     }
     return c2.dfs_index - c1.dfs_index;
   });
