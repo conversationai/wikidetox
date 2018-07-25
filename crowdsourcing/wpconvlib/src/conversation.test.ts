@@ -18,7 +18,8 @@ import * as conversation from "./conversation";
 import { example_conversation1,
          example_conversation2,
          example_conversation3,
-         example_conversation4
+         example_conversation4,
+         example_conversation5
        } from "./testdata/example_conversations";
 
 export class ConversationTest {
@@ -150,6 +151,27 @@ export class ConversationTest {
     should(conversation.compareCommentOrder(comments[1], comments[2]) < 0)
       .beFalse();
   }
+
+  public "Map of structureConversaton with deleted comments"() {
+    const rootComment =
+      conversation.structureConversaton(
+        JSON.parse(JSON.stringify(example_conversation5)));
+    const commentIds: string[] = [];
+    should(rootComment).beOkay();
+    should(rootComment!.isRoot).equal(true);
+
+    conversation.walkDfsComments(rootComment!, (c) => {
+      commentIds.push(c.id);
+    });
+
+    should(commentIds).haveLength(4);
+    should(commentIds[0]).equal('99858.17787.17782');
+    should(commentIds[1]).equal('99999.18044.18044');
+    should(commentIds[2]).equal('100001.18478.18478');
+    should(commentIds[3]).equal('100037.18908.18908');
+  }
+
+
 
   // TODO (yiqingh, ldixon): not sure what this test is for
   /*
