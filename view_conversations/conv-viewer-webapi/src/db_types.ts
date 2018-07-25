@@ -126,10 +126,10 @@ class TimestampFieldHandler extends SpannerFieldHandler<Date> {
   }
 }
 
-interface HandlerSet { [fieldName:string] : SpannerFieldHandler<any>; };
-interface ParsedOutput { [fieldName:string] : {}; };
+interface HandlerSet { [fieldName:string] : SpannerFieldHandler<Date | number | string | string[]>; };
+interface ParsedOutput { [fieldName:string] : string | string[] | Date | number | null; };
 
-const handlers : Array<SpannerFieldHandler<{}>> = [
+const handlers : Array<SpannerFieldHandler<Date | number | string | string[]>> = [
   new StringFieldHandler('id'),
   new StringFieldHandler('ancestor_id'),
   new ArrayFieldHandler('authors'),
@@ -148,7 +148,7 @@ const handlers : Array<SpannerFieldHandler<{}>> = [
   new StringFieldHandler('user_text'),
 ];
 
-function addHandler(inputHandlers : HandlerSet, handler : SpannerFieldHandler<{}>)
+function addHandler(inputHandlers : HandlerSet, handler : SpannerFieldHandler<Date | number | string | string[]>)
     : HandlerSet {
   inputHandlers[handler.fieldName] = handler;
   return inputHandlers;
@@ -158,7 +158,7 @@ const handlerSet = handlers.reduce<HandlerSet>(addHandler, {});
 export function parseOutputRows<T>(rows: spanner.ResultRow[]) : T {
   const output : ParsedOutput[] = []
   for (const row of rows) {
-    const ret: { [fieldName:string] : {} } = {};
+    const ret:  { [fieldName:string] : string | string[] | Date | number | null } = {};
     for (const field of row) {
       if(!(field.name in handlerSet)) {
         console.error(`Field ${field.name} does not have a handler and so cannot be interpreted.`);
