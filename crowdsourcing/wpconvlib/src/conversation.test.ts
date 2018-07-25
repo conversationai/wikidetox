@@ -19,7 +19,8 @@ import { example_conversation1,
          example_conversation2,
          example_conversation3,
          example_conversation4,
-         example_conversation5
+         example_conversation5,
+         example_conversation6
        } from "./testdata/example_conversations";
 
 export class ConversationTest {
@@ -171,10 +172,25 @@ export class ConversationTest {
     should(commentIds[3]).equal('100037.18908.18908');
   }
 
+  public "Map of structureConversaton with deleted comments being restored back"() {
+    const rootComment =
+      conversation.structureConversaton(
+        JSON.parse(JSON.stringify(example_conversation6)));
+    const commentIds: string[] = [];
+    should(rootComment).beOkay();
+    should(rootComment!.isRoot).equal(true);
+
+    conversation.walkDfsComments(rootComment!, (c) => {
+      commentIds.push(c.id);
+    });
+
+    should(commentIds).haveLength(2);
+    should(commentIds[0]).equal('99858.17787.17782');
+    should(commentIds[1]).equal('99858.17811.17782');
+  }
 
 
-  // TODO (yiqingh, ldixon): not sure what this test is for
-  /*
+
   public "structure conversations with multiple roots treated sensibly"() {
     const theConversation = example_conversation3
     const rootComment =
@@ -188,11 +204,10 @@ export class ConversationTest {
     conversation.walkDfsComments(rootComment!, (c) => {
       comments.push(c);
     });
-    console.error(comments);
 
     should(comments).haveLength(2);
     should(comments[0].indentation).equal(0);
-    should(comments[1].indentation).equal(1);
+    should(comments[1].indentation).equal(0);
 
     const id1 = conversation.interpretId(comments[0].id);
     should(id1!.revision).equal(675014505);
@@ -207,6 +222,5 @@ export class ConversationTest {
     should(conversation.compareCommentOrder(comments[0], comments[1]) < 0)
       .beTrue();
   }
-   */
 }
 
