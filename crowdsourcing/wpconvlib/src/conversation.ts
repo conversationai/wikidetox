@@ -119,7 +119,6 @@ export function indentOfComment(
   while (parent && !(parent.isPresent)) {
     parent = (parent.latestVersion) ? conversation[parent.latestVersion]: conversation[parent.replyTo_id]
   }
-  console.error(parent)
   if (!parent) {
     console.error(
         'Comment lacks parent in conversation: ', comment.content);
@@ -257,7 +256,7 @@ export function structureConversaton(conversation: Conversation): Comment|null {
     // If the action is deletion, the content must have been deleted.
     conversation[i].isPresent = true;
     conversation[i].latestVersion = i;
-    if (comment.type === 'DELETION') {
+    if (comment.comment_type === 'DELETION') {
       conversation[i].isPresent = false;
       conversation[i].latestVersion = null;
     }
