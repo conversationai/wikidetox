@@ -276,17 +276,18 @@ export function structureConversaton(conversation: Conversation): Comment|null {
         conversation[comment.parent_id].isPresent = true;
         conversation[comment.parent_id].latestVersion = comment.parent_id;
       }
+      // When a modification happens, the current comment will
+      // be replaced by the new version.
       if (comment.comment_type === 'MODIFICATION') {
         conversation[comment.parent_id].latestVersion = i;
       }
-      // The previous content has been replaced by the new version.
     }
   }
 
   for (const i of ids) {
     const comment = conversation[i];
     if (comment.comment_type === "RESTORATION" || comment.comment_type === "DELETION") {
-      continue
+      continue;
     }
     comment.isFinal = false;
     comment.isLatest = false;
@@ -310,7 +311,7 @@ export function structureConversaton(conversation: Conversation): Comment|null {
       // If the conversation parent is not present, assuming the
       // comment is replying to the parent's latest version.
       while (parent && !parent.isPresent) {
-        parent = (parent.latestVersion) ? conversation[parent.latestVersion]: (parent.replyTo_id) ? conversation[parent.replyTo_id] : null;
+        parent = parent.latestVersion ? conversation[parent.latestVersion] : parent.replyTo_id ? conversation[parent.replyTo_id] : null;
       }
 
       if (parent) {
