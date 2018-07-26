@@ -68,10 +68,8 @@ export class ConversationTest {
     should(commentIds[4]).equal('100037.18908.18908');
   }
 
-  
   public "Indent level"() {
     const theConversation = example_conversation1
-
     const rootComment =
       conversation.structureConversaton(
         JSON.parse(JSON.stringify(theConversation)));
