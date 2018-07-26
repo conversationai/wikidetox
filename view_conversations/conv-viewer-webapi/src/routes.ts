@@ -59,7 +59,7 @@ export function setup(
 
       await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        res.status(httpcodes.OK).send(JSON.stringify(db_types.parseOutputRows<db_types.OutputRow[]>(rows), null, 2));
+        res.status(httpcodes.OK).send(JSON.stringify(db_types.parseOutputRows<db_types.OutputRow>(rows), null, 2));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
