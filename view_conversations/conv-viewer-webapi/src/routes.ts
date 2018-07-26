@@ -13,31 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import * as bigquery from '@google-cloud/bigquery';
+import * as spanner from '@google-cloud/spanner';
 import * as express from 'express';
 
 import * as config from './config';
 import * as httpcodes from './http-status-codes';
 import * as runtime_types from './runtime_types';
+import * as db_types from './db_types';
 
-// Convert the special 'BigQueryTimestamp' types to their string representation.
-function convertToSimpleTypes(rows: bigquery.QueryResult) {
-  for (let r of rows) {
-    for (let key in r) {
-      let obj = r[key];
-      if (obj === null || typeof (obj) === 'string' ||
-          typeof (obj) === 'number') {
-        continue;
-      }
-      if (obj && obj.constructor.name === 'BigQueryTimestamp' &&
-          'value' in obj) {
-        r[key] = obj.value;
-      }
-    }
-  }
-}
+export class NoResultsError extends Error {}
 
-//
 const SEARCH_BY_TYPE = new runtime_types.RuntimeStringType<string>(
     'SearchBy', /^(conversation_id|rev_id|page_id|page_title|id)$/);
 
@@ -46,16 +31,15 @@ const SEARCH_OP_TYPE =
 
 // TODO(ldixon): in time we can maybe make this a bit smarter and support
 // escaped quotes.
-const BQ_SQL_SAFE_STRING =
+const SQL_SAFE_STRING =
     new runtime_types.RuntimeStringType<string>('SearchBy', /^[^"]+$/);
 
 // TODO(ldixon): consider using passport auth
 // for google cloud project.
 export function setup(
     app: express.Express, conf: config.Config,
-    bqClient: bigquery.BigQueryClient) {
-  let table = `\`${conf.bigQueryProjectId}.${conf.bigQueryDataSetId}.${
-      conf.bigQueryTable}\``;
+    spannerDatabase: spanner.Database) {
+  let table = `\`${conf.spannerTableName}\``;
 
   app.get('/api/conversation-id/:conv_id', async (req, res) => {
     try {
@@ -64,20 +48,18 @@ export function setup(
 
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
-      FROM ${table}
-      WHERE conversation_id="${conv_id}"
-      LIMIT 100`;
+             FROM ${table}
+             WHERE conversation_id="${conv_id}"
+             LIMIT 100`;
       // Query options list:
-      // https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
-      const options = {
-        query: sqlQuery,
-        useLegacySql: false,  // Use standard SQL syntax for queries.
+      // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
+      const query: spanner.Query = {
+        sql: sqlQuery
       };
 
-      await bqClient.query(options).then(results => {
+      await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        convertToSimpleTypes(rows);
-        res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
+        res.status(httpcodes.OK).send(JSON.stringify(db_types.parseOutputRows<db_types.OutputRow>(rows), null, 2));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
@@ -98,16 +80,14 @@ export function setup(
       WHERE id="${comment_id}"
       LIMIT 100`;
       // Query options list:
-      // https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
-      const options = {
-        query: sqlQuery,
-        useLegacySql: false,  // Use standard SQL syntax for queries.
+      // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
+      const query: spanner.Query = {
+        sql: sqlQuery
       };
 
-      await bqClient.query(options).then(results => {
+      await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        convertToSimpleTypes(rows);
-        res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow[]>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
@@ -128,16 +108,14 @@ export function setup(
       WHERE rev_id=${rev_id}
       LIMIT 100`;
       // Query options list:
-      // https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
-      const options = {
-        query: sqlQuery,
-        useLegacySql: false,  // Use standard SQL syntax for queries.
+      // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
+      const query: spanner.Query = {
+        sql: sqlQuery
       };
 
-      await bqClient.query(options).then(results => {
+      await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        convertToSimpleTypes(rows);
-        res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow[]>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
@@ -158,16 +136,15 @@ export function setup(
       WHERE page_id=${page_id}
       LIMIT 100`;
       // Query options list:
-      // https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
-      const options = {
-        query: sqlQuery,
-        useLegacySql: false,  // Use standard SQL syntax for queries.
+      // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
+
+      const query: spanner.Query = {
+        sql: sqlQuery
       };
 
-      await bqClient.query(options).then(results => {
+      await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        convertToSimpleTypes(rows);
-        res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow[]>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
@@ -188,17 +165,15 @@ export function setup(
       WHERE page_title LIKE "${page_title}"
       LIMIT 100`;
       // Query options list:
-      // https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
-      const options = {
-        query: sqlQuery,
-        useLegacySql: false,  // Use standard SQL syntax for queries.
-      };
-      console.log(sqlQuery);
+      // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
 
-      await bqClient.query(options).then(results => {
+      const query: spanner.Query= {
+        sql: sqlQuery
+      };
+
+      await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        convertToSimpleTypes(rows);
-        res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow[]>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
@@ -221,7 +196,7 @@ export function setup(
       res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({error: errorMsg}));
       return;
     }
-    if (!BQ_SQL_SAFE_STRING.isValid(req.params.search_for)) {
+    if (!SQL_SAFE_STRING.isValid(req.params.search_for)) {
       let errorMsg = `Error: Invalid searchFor string: ${req.params.search_for}`
       console.error(errorMsg);
       res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({error: errorMsg}));
@@ -235,15 +210,15 @@ export function setup(
           req.params.search_for}"
       LIMIT 100`;
       // Query options list:
-      // https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
-      const options = {
-        query: sqlQuery,
-        useLegacySql: false,  // Use standard SQL syntax for queries.
+      // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
+
+      const query: spanner.Query = {
+        sql: sqlQuery
       };
-      await bqClient.query(options).then(results => {
+
+      await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        convertToSimpleTypes(rows);
-        res.status(httpcodes.OK).send(JSON.stringify(rows, null, 2));
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow[]>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
