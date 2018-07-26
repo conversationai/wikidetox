@@ -71,7 +71,7 @@ class BytesFieldHandler extends SpannerFieldHandler<string> {
         console.dir(field);
         throw Error(`For ${this.fieldName}: expected field: byte array, not: ${typeof(field)}`);
     }
-    return ab2str(field as Uint8Array);
+    return ab2str(field);
   }
 }
 
