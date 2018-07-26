@@ -116,8 +116,8 @@ export function indentOfComment(
   let parent : Comment | null = conversation[comment.replyTo_id];
   // If the conversation parent is not present, assuming the
   // comment is replying to the parent's latest version.
-  while (parent && !(parent.isPresent)) {
-    parent = (parent.latestVersion) ? conversation[parent.latestVersion]: (parent.replyTo_id) ? conversation[parent.replyTo_id] : null
+  while (parent && !parent.isPresent) {
+    parent = parent.latestVersion ? conversation[parent.latestVersion]: parent.replyTo_id ? conversation[parent.replyTo_id] : null
   }
   if (!parent) {
     console.error(
@@ -268,7 +268,7 @@ export function structureConversaton(conversation: Conversation): Comment|null {
       conversation[i].latestVersion = null;
     }
     if (comment.parent_id !== null && comment.parent_id !== ''
-    && conversation[comment.parent_id]) {
+      && conversation[comment.parent_id]) {
       if (comment.comment_type !== 'RESTORATION') {
         conversation[comment.parent_id].isPresent = false;
       } else {

@@ -155,7 +155,7 @@ function addHandler(inputHandlers : HandlerSet, handler : SpannerFieldHandler<Da
 }
 const handlerSet = handlers.reduce<HandlerSet>(addHandler, {});
 
-export function parseOutputRows<T>(rows: spanner.ResultRow[]) : T {
+export function parseOutputRows<T>(rows: spanner.ResultRow[]) : T[] {
   const output : ParsedOutput[] = []
   for (const row of rows) {
     const ret:  { [fieldName:string] : string | string[] | Date | number | null } = {};
@@ -168,5 +168,5 @@ export function parseOutputRows<T>(rows: spanner.ResultRow[]) : T {
     }
     output.push(ret)
   }
-  return output as any as T;
+  return output as any as T[];
 }
