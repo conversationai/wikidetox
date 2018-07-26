@@ -104,7 +104,7 @@ export class AppComponent implements OnInit {
         this.http
             .get(encodeURI(
                 '/api/' + URL_PART_FOR_SEARCHBY[this.form.value.searchBy] +
-                '/' + this.form.value.searchFor))
+              '/' + this.form.value.searchFor))
             .subscribe(
                 (actions: wpconvlib.Comment[]) => {
                   console.log('got conversation!');

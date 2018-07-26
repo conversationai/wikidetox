@@ -20,11 +20,11 @@ export interface Comment {
   cleaned_content: string;
   parent_id: string|null;
   replyTo_id: string|null;
-  indentation?: number;
+  indentation?: number|null;
   user_text: string;
   timestamp: string;
   page_title: string;
-  authors: string[];
+  authors?: string[]|null;
   // If == id then this comment should be highlighted.
   comment_to_highlight?: string;
   // Added based on conversation structure.
@@ -36,7 +36,7 @@ export interface Comment {
                       // conversation.
   isPresent?: boolean; // true iff this version of the comment is present in
                        // the current snapshot.
-  latestVersion?: string; // id of the latest version of this comment if isPresent
+  latestVersion?: string | null; // id of the latest version of this comment if isPresent
                           // is false, otherwise id of self.
   dfs_index?: number  // index according to Depth First Search of conv.
 }
@@ -54,7 +54,7 @@ export function interpretId(id: string):
   }
 
   return {
-    action: parseInt(match[3], 10)
+    action: parseInt(match[3], 10),
     revision: parseInt(match[1], 10),
     token: parseInt(match[2], 10),
   };
@@ -113,11 +113,11 @@ export function indentOfComment(
  if (comment.replyTo_id === '' || comment.replyTo_id === null) {
     return 0;
   }
-  let parent = conversation[comment.replyTo_id];
+  let parent : Comment | null = conversation[comment.replyTo_id];
   // If the conversation parent is not present, assuming the
   // comment is replying to the parent's latest version.
   while (parent && !(parent.isPresent)) {
-    parent = (parent.latestVersion) ? conversation[parent.latestVersion]: conversation[parent.replyTo_id]
+    parent = (parent.latestVersion) ? conversation[parent.latestVersion]: (parent.replyTo_id) ? conversation[parent.replyTo_id] : null
   }
   if (!parent) {
     console.error(
@@ -129,11 +129,11 @@ export function indentOfComment(
 
 export function htmlForComment(
     comment: Comment, conversation: Conversation): string {
-  const convId = '';
-  const sectionHeading = '';
-  const commentClassName: string;
+  let convId = '';
+  let sectionHeading = '';
+  let commentClassName = '';
   if (!comment.isPresent) {
-    return
+    return '';
   }
   if (comment.isRoot) {
     commentClassName = 'comment';
@@ -143,16 +143,16 @@ export function htmlForComment(
       <span class="convid-comment-index-header">Comment Number</span>
       </div>`;
   } else if (comment.isLatest) {
-    comment_class_name = 'comment finalcomment';
+    commentClassName = 'comment finalcomment';
   } else {
-    comment_class_name = 'comment';
+    commentClassName = 'comment';
   }
   const timestamp = comment.timestamp.replace(/ UTC/g, '');
 
   return `
-    ${section_heading}
+    ${sectionHeading}
     ${convId}
-    <div class="action ${comment_class_name}" style="margin-left: ${comment.indentation}em;">
+    <div class="action ${commentClassName}" style="margin-left: ${comment.indentation}em;">
       <table class="action">
         <tr><td class="whenandwho">
             <div class="author">${comment.user_text}</div>
@@ -171,7 +171,7 @@ export function walkDfsComments(
     rootComment: Comment, f: (c: Comment) => void): void {
   const commentsHtml = [];
   let agenda: Comment[] = [];
-  const nextComment: Comment|undefined = rootComment;
+  let nextComment: Comment|undefined = rootComment;
   while (nextComment) {
     if (nextComment.children) {
       agenda = agenda.concat(nextComment.children);
@@ -246,9 +246,14 @@ function selectRootComment(comment: Comment, rootComment: Comment|null) {
 // Also set the isRoot field of every comment, and return the
 // overall root comment of the conversation.
 export function structureConversaton(conversation: Conversation): Comment|null {
-  const items = Object.keys(conversation).map((key) => [key, conversation[key]]);
-  items.sort((v1, v2) => -compareByDateFn(v1[1], v2[1]));
-  const ids = items.map((value, index) => value[0]);
+  const keys = Object.keys(conversation);
+  interface ItemPair { key : string; value: Comment};
+  const items : ItemPair[] = [];
+  for (const k of keys) {
+    items.push({key: k, value: conversation[k]});
+  }
+  items.sort((v1, v2) => -compareByDateFn(v1.value, v2.value));
+  const ids = items.map((value, index) => value.key);
 
   let rootComment: Comment|null = null;
   let latestComments: Comment[] = [];
@@ -301,11 +306,11 @@ export function structureConversaton(conversation: Conversation): Comment|null {
     }
     comment.indentation = indentOfComment(comment, conversation)
     if (comment.replyTo_id !== null && comment.replyTo_id !== '') {
-      let parent = conversation[comment.replyTo_id];
+      let parent : Comment | null = conversation[comment.replyTo_id];
       // If the conversation parent is not present, assuming the
       // comment is replying to the parent's latest version.
       while (parent && !parent.isPresent) {
-        parent = (parent.latestVersion) ? conversation[parent.latestVersion]: conversation[parent.replyTo_id]
+        parent = (parent.latestVersion) ? conversation[parent.latestVersion]: (parent.replyTo_id) ? conversation[parent.replyTo_id] : null;
       }
 
       if (parent) {
