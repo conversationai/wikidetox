@@ -23,7 +23,7 @@ Then from this directory, use yarn to install the local package dependencies:
 yarn install
 ```
 
-### Troubleshooting yran installing failure
+### Troubleshooting yarn installing failure
 
 If there's grpc installing error occurred during yarn install,
 

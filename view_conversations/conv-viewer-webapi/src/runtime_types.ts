@@ -87,3 +87,4 @@ export let PageId = new RuntimeStringType<PageId>('PageId', /^(\d+)$/);
 // TODO(ldixon): support escaping for double quotes, or force quote them.
 export let PageTitleSearch =
     new RuntimeStringType<PageTitleSearch>('PageTitleSearch', /^([^"]+)$/);
+
