@@ -170,14 +170,12 @@ export function htmlForComment(
 export function walkDfsComments(
     rootComment: Comment, f: (c: Comment) => void): void {
   const commentsHtml = [];
-  let agenda: Comment[] = [];
   let nextComment: Comment|undefined = rootComment;
-  while (nextComment) {
-    if (nextComment.children) {
-      agenda = agenda.concat(nextComment.children);
-    }
+  if (nextComment) {
     f(nextComment);
-    nextComment = agenda.pop();
+    for (const ch of nextComment.children) {
+      walkDfsComments(ch, f)
+    }
   }
 }
 
@@ -207,7 +205,8 @@ export function makeParent(comment: Comment, parent: Comment) {
     parent.children = [];
   }
   parent.children.push(comment);
-  parent.children.sort(compareCommentOrderSmallestFirst);
+  parent.children.sort(compareCommentOrder);
+  console.error('Children of ', parent.id, parent.children.map((value, index) => value.id))
   comment.parent_id = parent.id;
   comment.isRoot = false;
 }
@@ -253,6 +252,7 @@ export function structureConversaton(conversation: Conversation): Comment|null {
     items.push({key: k, value: conversation[k]});
   }
   items.sort((v1, v2) => -compareByDateFn(v1.value, v2.value));
+  console.error(items.map((value, index) => value.key));
   const ids = items.map((value, index) => value.key);
 
   let rootComment: Comment|null = null;
