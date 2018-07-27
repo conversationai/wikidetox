@@ -206,7 +206,6 @@ export function makeParent(comment: Comment, parent: Comment) {
   }
   parent.children.push(comment);
   parent.children.sort(compareCommentOrder);
-  console.error('Children of ', parent.id, parent.children.map((value, index) => value.id))
   comment.parent_id = parent.id;
   comment.isRoot = false;
 }
