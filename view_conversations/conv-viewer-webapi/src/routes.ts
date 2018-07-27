@@ -70,6 +70,37 @@ export function setup(
     }
   });
 
+  app.get('/api/toxicity/:score', async (req, res) => {
+    try {
+      let score: number = req.params.score;
+      const index = conf.spannerTableName + '_by_toxicity';
+
+      // TODO remove outer try wrapper unless it get used.
+      const sqlQuery = `SELECT *
+             FROM ${table}@{FORCE_INDEX=${index}}
+             WHERE RockV6_1_TOXICITY <= ${score} and type != "DELETION"
+             ORDER BY RockV6_1_TOXICITY DESC
+             LIMIT 20`;
+      // Query options list:
+      // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
+      const query: spanner.Query = {
+        sql: sqlQuery
+      };
+
+      await spannerDatabase.run(query).then(results => {
+        const rows = results[0];
+        res.status(httpcodes.OK).send(JSON.stringify(db_types.parseOutputRows<db_types.OutputRow>(rows), null, 2));
+      });
+    } catch (e) {
+      console.error(`*** Failed: `, e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({
+        error: e.message
+      }));
+    }
+  });
+
+
+
   app.get('/api/comment-id/:comment_id', async (req, res) => {
     try {
       let comment_id: runtime_types.CommentId =

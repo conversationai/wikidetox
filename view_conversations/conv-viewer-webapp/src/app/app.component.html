@@ -4,8 +4,38 @@
     WikiDetox Conversation Viewer
   </h3>
 </div>
+
 <div *ngIf="!embed">
-  <form [formGroup]="form" (submit)="submitSearch()">
+  <form [formGroup]="browseForm" (submit)="submitBrowse()">
+
+  <button mat-button type="button"
+    [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Browse by
+  </button>
+  <mat-menu #menu="matMenu">
+    <mat-radio-group class="browseby-radio-group"
+        (change)="updateLocationHash()"
+        formControlName="browseBy">
+      <mat-radio-button class="searchby-radio-button" *ngFor="let s of browseBys"
+        [value]="s">{{s}}</mat-radio-button>
+    </mat-radio-group>
+  </mat-menu>
+
+  <mat-form-field class="browse-text">
+    <input matInput type="text" placeholder="Score <= ? (Maximum value 1)"
+          formControlName="browseFor">
+  </mat-form-field>
+
+  <button mat-raised-button
+    [disabled]="!browseForm.valid || inFlightBrowseRequest !== undefined"
+    type="submit" color="primary">Browse</button>
+  </form>
+
+  <mat-progress-bar *ngIf="inFlightBrowseRequest" mode="query"></mat-progress-bar>
+</div>
+
+
+<div *ngIf="!embed">
+  <form [formGroup]="searchForm" (submit)="submitSearch()">
 
   <button mat-button type="button"
     [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Search by
@@ -20,12 +50,12 @@
   </mat-menu>
 
   <mat-form-field class="search-text">
-    <input matInput type="text" placeholder="{{form.value.searchBy}}"
+    <input matInput type="text" placeholder="{{searchForm.value.searchBy}}"
           formControlName="searchFor">
   </mat-form-field>
 
   <button mat-raised-button
-    [disabled]="!form.valid || inFlightRequest !== undefined"
+    [disabled]="!searchForm.valid || inFlightRequest !== undefined"
     type="submit" color="primary">Search</button>
   </form>
 
@@ -44,5 +74,12 @@
 
   <app-conversation *ngIf="rootComment" [rootComment]="rootComment"></app-conversation>
 </div>
+
+<div class="comments" *ngIf="answerComments">
+  <div *ngFor="let comment of answerComments">
+    <app-comment *ngIf="comment" [comment]="comment"></app-comment>
+  </div>
+</div>
+
 
 <div *ngIf="!embed" id="debug-pre-output">{{searchResult}}</div>
