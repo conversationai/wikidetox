@@ -146,6 +146,7 @@ const handlers : Array<SpannerFieldHandler<Date | number | string | string[]>> =
   new StringFieldHandler('type'),
   new IntFieldHandler('user_id'),
   new StringFieldHandler('user_text'),
+  new FloatFieldHandler('Score'),
 ];
 
 function addHandler(inputHandlers : HandlerSet, handler : SpannerFieldHandler<Date | number | string | string[]>)
@@ -154,17 +155,19 @@ function addHandler(inputHandlers : HandlerSet, handler : SpannerFieldHandler<Da
   return inputHandlers;
 }
 const handlerSet = handlers.reduce<HandlerSet>(addHandler, {});
+const ScoreSubstrings = 'RockV6_1|Smirnoff_2';
 
 export function parseOutputRows<T>(rows: spanner.ResultRow[]) : T[] {
   const output : ParsedOutput[] = []
   for (const row of rows) {
     const ret:  { [fieldName:string] : string | string[] | Date | number | null } = {};
     for (const field of row) {
-      if(!(field.name in handlerSet)) {
+      const testname = new RegExp(ScoreSubstrings).test(field.name) ? 'Score' : field.name;
+      if(!(testname in handlerSet)) {
         console.error(`Field ${field.name} does not have a handler and so cannot be interpreted.`);
         break;
       }
-      ret[field.name] = handlerSet[field.name].fromSpannerResultField(field.value);
+      ret[field.name] = handlerSet[testname].fromSpannerResultField(field.value);
     }
     output.push(ret)
   }
