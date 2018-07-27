@@ -75,10 +75,17 @@ export function setup(
           runtime_types.CommentId.assert(req.params.comment_id);
 
       // TODO remove outer try wrapper unless it get used.
-      const sqlQuery = `SELECT *
-      FROM ${table}
-      WHERE id="${comment_id}"
-      LIMIT 100`;
+      // id field is unique.
+      const sqlQuery = `
+      SELECT r.*
+      FROM ${table} as r
+      JOIN
+      (SELECT conversation_id, timestamp
+        FROM ${table}
+        WHERE id="${comment_id}") as l
+      ON r.conversation_id=l.conversation_id
+      WHERE r.timestamp <= l.timestamp
+      `;
       // Query options list:
       // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
       const query: spanner.Query = {
@@ -87,7 +94,7 @@ export function setup(
 
       await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow[]>(rows));
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
@@ -115,7 +122,7 @@ export function setup(
 
       await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow[]>(rows));
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
@@ -144,7 +151,7 @@ export function setup(
 
       await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow[]>(rows));
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
@@ -162,7 +169,7 @@ export function setup(
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
       FROM ${table}
-      WHERE page_title LIKE "${page_title}"
+      WHERE page_title = "${page_title}"
       LIMIT 100`;
       // Query options list:
       // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
@@ -173,7 +180,7 @@ export function setup(
 
       await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow[]>(rows));
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
@@ -218,7 +225,7 @@ export function setup(
 
       await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow[]>(rows));
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
