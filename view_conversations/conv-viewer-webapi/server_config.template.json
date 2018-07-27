@@ -3,8 +3,8 @@
   "isProduction": false,
   "staticPath": "build/static",
 
-  "cloudProjectId": "wikidetox-viz",
-  "spannerInstanceId": "wikiconv",
-  "spannerDatabaseName": "convdata",
-  "spannerTableName": "zh_20180601_conv"
+  "cloudProjectId": "yourCloudProject",
+  "spannerInstanceId": "yourSpannerInstance",
+  "spannerDatabaseName": "yourSpannerDatabase",
+  "spannerTableName": "yourSpannerTable"
 }

@@ -45,10 +45,11 @@ export function setup(
     try {
       let conv_id: runtime_types.ConversationId =
           runtime_types.ConversationId.assert(req.params.conv_id);
+      const index = conf.spannerTableName + '_by_conversation_id';
 
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
-             FROM ${table}
+             FROM ${table}@{FORCE_INDEX=${index}}
              WHERE conversation_id="${conv_id}"
              LIMIT 100`;
       // Query options list:
@@ -73,19 +74,17 @@ export function setup(
     try {
       let comment_id: runtime_types.CommentId =
           runtime_types.CommentId.assert(req.params.comment_id);
+      const index = conf.spannerTableName + '_by_conversation_id';
+
 
       // TODO remove outer try wrapper unless it get used.
       // id field is unique.
       const sqlQuery = `
-      SELECT r.*
-      FROM ${table} as r
-      JOIN
-      (SELECT conversation_id, timestamp
-        FROM ${table}
-        WHERE id="${comment_id}") as l
-      ON r.conversation_id=l.conversation_id
-      WHERE r.timestamp <= l.timestamp
-      `;
+      SELECT conv_r.*
+      FROM ${table} conv_l
+        JOIN ${table}@{FORCE_INDEX=${index}} conv_r
+        ON conv_r.conversation_id = conv_l.conversation_id
+      WHERE conv_l.id = "${comment_id}" and conv_r.timestamp <= conv_l.timestamp`;
       // Query options list:
       // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
       const query: spanner.Query = {

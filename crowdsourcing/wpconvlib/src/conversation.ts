@@ -15,7 +15,7 @@ limitations under the License.
 */
 export interface Comment {
   id: string;
-  comment_type: 'MODIFICATION'|'ADDITION'|'CREATION'|'RESTORATION'|'DELETION';
+  type: 'MODIFICATION'|'ADDITION'|'CREATION'|'RESTORATION'|'DELETION';
   content: string;
   cleaned_content: string;
   parent_id: string|null;
@@ -39,6 +39,31 @@ export interface Comment {
   latestVersion?: string | null; // id of the latest version of this comment if isPresent
                           // is false, otherwise id of self.
   dfs_index?: number  // index according to Depth First Search of conv.
+  // Starting here are toxicity scores, since they don't exist in all datasets
+  // except in English, this fields are optional.
+  RockV6_1_FLIRTATION?: number | null,
+  RockV6_1_GENDER?: number | null,
+  RockV6_1_HEALTH_AGE_DISABILITY?: number | null,
+  RockV6_1_RELIGION?: number | null,
+  RockV6_1_RNE?: number | null,
+  RockV6_1_SEVERE_TOXICITY?: number | null,
+  RockV6_1_SEXUAL_ORIENTATION?: number | null,
+  RockV6_1_SEXUALLY_EXPLICIT?: number | null,
+  RockV6_1_TOXICITY?: number | null,
+  RockV6_1_TOXICITY_IDENTITY_HATE?: number | null,
+  RockV6_1_TOXICITY_INSULT?: number | null,
+  RockV6_1_TOXICITY_OBSCENE?: number | null,
+  RockV6_1_TOXICITY_THREAT?: number | null,
+  Smirnoff_2_ATTACK_ON_AUTHOR?: number | null,
+  Smirnoff_2_ATTACK_ON_COMMENTER?: number | null,
+  Smirnoff_2_ATTACK_ON_PUBLISHER?: number | null,
+  Smirnoff_2_INCOHERENT?: number | null,
+  Smirnoff_2_INFLAMMATORY?: number | null,
+  Smirnoff_2_LIKELY_TO_REJECT?: number | null,
+  Smirnoff_2_OBSCENE?: number | null,
+  Smirnoff_2_OFF_TOPIC?: number | null,
+  Smirnoff_2_SPAM?: number | null,
+  Smirnoff_2_UNSUBSTANTIAL?: number | null,
 }
 
 export interface Conversation { [id: string]: Comment }
@@ -173,8 +198,10 @@ export function walkDfsComments(
   let nextComment: Comment|undefined = rootComment;
   if (nextComment) {
     f(nextComment);
-    for (const ch of nextComment.children) {
-      walkDfsComments(ch, f)
+    if (nextComment.children) {
+      for (const ch of nextComment.children) {
+        walkDfsComments(ch, f)
+      }
     }
   }
 }
@@ -251,7 +278,6 @@ export function structureConversaton(conversation: Conversation): Comment|null {
     items.push({key: k, value: conversation[k]});
   }
   items.sort((v1, v2) => -compareByDateFn(v1.value, v2.value));
-  console.error(items.map((value, index) => value.key));
   const ids = items.map((value, index) => value.key);
 
   let rootComment: Comment|null = null;
@@ -262,13 +288,13 @@ export function structureConversaton(conversation: Conversation): Comment|null {
     // If the action is deletion, the content must have been deleted.
     conversation[i].isPresent = true;
     conversation[i].latestVersion = i;
-    if (comment.comment_type === 'DELETION') {
+    if (comment.type === 'DELETION') {
       conversation[i].isPresent = false;
       conversation[i].latestVersion = null;
     }
     if (comment.parent_id !== null && comment.parent_id !== ''
       && conversation[comment.parent_id]) {
-      if (comment.comment_type !== 'RESTORATION') {
+      if (comment.type !== 'RESTORATION') {
         conversation[comment.parent_id].isPresent = false;
       } else {
         conversation[i].isPresent = false;
@@ -277,7 +303,7 @@ export function structureConversaton(conversation: Conversation): Comment|null {
       }
       // When a modification happens, the current comment will
       // be replaced by the new version.
-      if (comment.comment_type === 'MODIFICATION') {
+      if (comment.type === 'MODIFICATION') {
         conversation[comment.parent_id].latestVersion = i;
       }
     }
@@ -285,7 +311,7 @@ export function structureConversaton(conversation: Conversation): Comment|null {
 
   for (const i of ids) {
     const comment = conversation[i];
-    if (comment.comment_type === "RESTORATION" || comment.comment_type === "DELETION") {
+    if (comment.type === "RESTORATION" || comment.type === "DELETION") {
       continue;
     }
     comment.isFinal = false;
