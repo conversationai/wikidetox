@@ -124,12 +124,13 @@ last {
 }
 
 .collapsible-action {
-  background-color: Grey;
+  background-color: #EEE;
   color: #444;
   cursor: pointer;
   padding: 18px;
   width: 100%;
-  border: solid lightGrey;
+  border-left: 6px solid cornflowerblue;
+  border-bottom: solid grey;
   text-align: left;
   outline: none;
   font-size: 15px;
