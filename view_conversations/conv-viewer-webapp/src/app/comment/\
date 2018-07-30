@@ -1,39 +1,3 @@
-#debug-pre-output {
-  font-family: monospace;
-  white-space: pre;
-}
-
-.searchby-radio-group {
-
-}
-.searchby-radio-button {
-  display: block;
-}
-
-.errorMessage {
-  color: #AA0000;
-  font-weight: 200%;
-}
-
-.menu {
-  display: inline-flex;
-  align-items: center;
-  padding-right: 5px;
-}
-
-.conversation {
-  border: 1px solid #CCC;
-  padding: 5px;
-  background: #EEE;
-}
-.convid {
-  text-align: right;
-}
-.convid-text {
-  font-size: 80%;
-  color: #BBB;
-}
-
 .debug-pre-output {
   font-family: monospace;
   white-space: pre;
@@ -59,10 +23,25 @@ last {
 
 .action {
   display: flex;
+  background-color: lightgrey;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: flex-start;
 }
+
+.collapsible-action {
+  background-color: #eee;
+  color: #444;
+  cursor: pointer;
+  padding: 18px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  font-size: 15px;
+}
+
+
 
 .comment {
   padding: 5px;
@@ -116,23 +95,3 @@ last {
   font-size: 80%;
   color: #BBB;
 }
-
-.collapseComment{
-  border: 1px solid #CCC;
-  padding: 5px;
-  background: #EEE;
-}
-
-.collapsible-action {
-  background-color: Grey;
-  color: #444;
-  cursor: pointer;
-  padding: 18px;
-  width: 100%;
-  border: solid lightGrey;
-  text-align: left;
-  outline: none;
-  font-size: 15px;
-}
-
-

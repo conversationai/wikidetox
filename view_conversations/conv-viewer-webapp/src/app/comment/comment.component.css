@@ -23,10 +23,25 @@ last {
 
 .action {
   display: flex;
+  background-color: #eee;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: flex-start;
 }
+
+.collapsible-action {
+  background-color: #eee;
+  color: #444;
+  cursor: pointer;
+  padding: 18px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  font-size: 15px;
+}
+
+
 
 .comment {
   padding: 5px;

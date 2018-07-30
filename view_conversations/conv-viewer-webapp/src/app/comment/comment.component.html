@@ -1,4 +1,4 @@
-<div class="action">
+<button class="collapsible-action">
   <table class="action">
     <tr>
       <td class="whenandwho">
@@ -8,5 +8,16 @@
       <td class="content">{{comment.cleaned_content}}</td>
     </tr>
   </table>
-</div>
+</button>
 
+<div *ngIf="errorMessage" class="errorMessage">{{errorMessage}}</div>
+
+<div class="conversation" *ngIf="rootComment">
+  <div *ngIf="showPageContext">
+    <div>In page: <b>{{rootComment.page_title}}</b></div>
+    <div class="convid">
+        <span class="convid-text">(conversation id: {{rootComment.id}})</span>
+    </div>
+  </div>
+  <app-conversation *ngIf="rootComment" [rootComment]="rootComment"></app-conversation>
+</div>
