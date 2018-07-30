@@ -40,7 +40,6 @@ import {HttpClientModule} from '@angular/common/http';
 
 import { AppComponent } from './app.component';
 import { ConversationComponent } from './conversation/conversation.component';
-import { CommentComponent } from './comment/comment.component';
 
 
 @NgModule({
@@ -85,7 +84,6 @@ import { CommentComponent } from './comment/comment.component';
   declarations: [
     AppComponent,
     ConversationComponent,
-    CommentComponent,
   ],
   providers: [],
   bootstrap: [AppComponent]

@@ -2,7 +2,8 @@
   <table class="action" [ngClass]="{ 'finalcomment': isHighlighted}">
     <tr>
       <td class="whenandwho">
-        <div class="author">{{rootComment.user_text}}</div>
+        <div class="author" *ngIf="rootComment.user_text">{{rootComment.user_text}}</div>
+        <div class="author" *ngIf="!rootComment.user_text">Anonymous</div>
         <div class="timestamp">{{rootComment.timestamp}}</div>
       </td>
       <td class="content">{{rootComment.cleaned_content}}</td>
