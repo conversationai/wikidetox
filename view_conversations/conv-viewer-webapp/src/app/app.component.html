@@ -37,6 +37,7 @@
 <div *ngIf="!embed">
   <form [formGroup]="searchForm" (submit)="submitSearch()">
 
+
   <button mat-button type="button"
     [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Search by
   </button>
@@ -77,7 +78,35 @@
 
 <div class="comments" *ngIf="answerComments">
   <div *ngFor="let comment of answerComments">
-    <app-comment *ngIf="comment" [comment]="comment"></app-comment>
+
+    <button class="collapsible-action" (click)="comment.isCollapsed = !comment.isCollapsed; submitCommentSearch(comment)">
+     <table class="action">
+       <tr>
+         <td class="whenandwho">
+           <div class="author">{{comment.user_text}}</div>
+           <div class="timestamp">{{comment.timestamp}}</div>
+         </td>
+         <td class="content">{{comment.cleaned_content}}</td>
+       </tr>
+     </table>
+    </button>
+
+    <div id="collapseComment" *ngIf="comment.isCollapsed">
+      <div *ngIf="errorMessage" class="errorMessage">{{errorMessage}}</div>
+      <div class="conversation" *ngIf="comment.rootComment">
+        <div *ngIf="showPageContext">
+          <div>In page: <b>{{comment.rootComment.page_title}}</b></div>
+          <div class="convid">
+            <span class="convid-text">(conversation id: {{comment.rootComment.id}})</span>
+          </div>
+        </div>
+
+        <app-conversation *ngIf="comment.rootComment" [rootComment]="comment.rootComment"></app-conversation>
+      </div>
+    </div>
+
+
+
   </div>
 </div>
 
