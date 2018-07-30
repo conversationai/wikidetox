@@ -122,6 +122,54 @@ export class AppComponent implements OnInit {
     document.location.hash = JSON.stringify(objToEncode);
   }
 
+  submitCommentSearch(comment : wpconvlib.Comment) {
+    console.log('model-based form submitted');
+    this.errorMessage = null;
+    this.updateLocationHash();
+
+    this.inFlightRequest =
+        this.http
+            .get(encodeURI(
+              '/api/comment-id/' + comment.id))
+            .subscribe(
+                (actions: wpconvlib.Comment[]) => {
+                  console.log('got conversation!');
+                  this.searchResult = JSON.stringify(actions, null, 2);
+                  delete this.inFlightRequest;
+
+                  const conversation: wpconvlib.Conversation = {};
+                  for (const a of actions) {
+                    conversation[a.id] = a;
+                    if (this.highlightId) {
+                      if (this.highlightId === a.id) {
+                        conversation[a.id].comment_to_highlight = a.id;
+                      } else {
+                        delete conversation[a.id].comment_to_highlight;
+                      }
+                    }
+                  }
+
+                  console.log(conversation);
+
+                  comment.rootComment =
+                      wpconvlib.structureConversaton(conversation);
+                  if (!comment.rootComment) {
+                    this.errorMessage = 'No Root comment in conversation';
+                    return;
+                  }
+                },
+                (e) => {
+                  console.log(e);
+                  if (e.error && e.error.error) {
+                    this.errorMessage = e.message + '\n' + e.error.error;
+                  } else {
+                    this.errorMessage = e.message;
+                  }
+                  delete this.inFlightRequest;
+                });
+  }
+
+
   submitSearch() {
     console.log('model-based form submitted');
     console.log(this.searchForm.value);
@@ -188,6 +236,9 @@ export class AppComponent implements OnInit {
                   this.browseResult = JSON.stringify(comments, null, 2);
                   delete this.inFlightBrowseRequest;
                   console.log(comments);
+                  for (const comment of comments) {
+                    comment.isCollapsed = false;
+                  }
                   this.answerComments = comments;
                 },
                 (e) => {

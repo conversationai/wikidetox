@@ -38,7 +38,7 @@ export interface Comment {
                        // the current snapshot.
   latestVersion?: string | null; // id of the latest version of this comment if isPresent
                           // is false, otherwise id of self.
-  dfs_index?: number  // index according to Depth First Search of conv.
+  dfs_index?: number;  // index according to Depth First Search of conv.
   // Starting here are toxicity scores, since they don't exist in all datasets
   // except in English, this fields are optional.
   RockV6_1_FLIRTATION?: number | null,
@@ -64,6 +64,9 @@ export interface Comment {
   Smirnoff_2_OFF_TOPIC?: number | null,
   Smirnoff_2_SPAM?: number | null,
   Smirnoff_2_UNSUBSTANTIAL?: number | null,
+  // The following fields are used in displaying comments in viz app.
+  isCollapsed?: boolean,
+  rootComment?: Comment,
 }
 
 export interface Conversation { [id: string]: Comment }
@@ -195,7 +198,7 @@ export function htmlForComment(
 export function walkDfsComments(
     rootComment: Comment, f: (c: Comment) => void): void {
   const commentsHtml = [];
-  let nextComment: Comment|undefined = rootComment;
+  const nextComment: Comment|undefined = rootComment;
   if (nextComment) {
     f(nextComment);
     if (nextComment.children) {
