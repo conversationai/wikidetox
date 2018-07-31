@@ -41,7 +41,7 @@ def process_revision(namespace_length, rev):
            if tag == "id": ret['rev_id'] = ele.text
            else: ret[tag] = ele.text
         elif parent == "contributor" and tag in ['id', 'username', 'ip']:
-          if tag == 'username': ret['user_text'] = ele.text
+          if tag == 'username' or tag == 'ip': ret['user_text'] = ele.text
           else: ret['user_' + tag] = ele.text
     return ret
 
