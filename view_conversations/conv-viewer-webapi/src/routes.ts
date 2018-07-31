@@ -33,21 +33,24 @@ const SEARCH_OP_TYPE =
 // escaped quotes.
 const SQL_SAFE_STRING =
     new runtime_types.RuntimeStringType<string>('SearchBy', /^[^"]+$/);
+const conversationIdIndex = '_by_conversation_id';
+const toxicityIndex = '_by_toxicity';
 
 // TODO(ldixon): consider using passport auth
 // for google cloud project.
 export function setup(
     app: express.Express, conf: config.Config,
     spannerDatabase: spanner.Database) {
-  let table = `\`${conf.spannerTableName}\``;
+  const table = `\`${conf.spannerTableName}\``;
 
   app.get('/api/conversation-id/:conv_id', async (req, res) => {
     try {
-      let conv_id: runtime_types.ConversationId =
+      const conv_id: runtime_types.ConversationId =
           runtime_types.ConversationId.assert(req.params.conv_id);
-      const index = conf.spannerTableName + '_by_conversation_id';
+      const index = conf.spannerTableName + conversationIdIndex;
 
       // TODO remove outer try wrapper unless it get used.
+      // Forcce Spanner using particular indices to speed up performance.
       const sqlQuery = `SELECT *
              FROM ${table}@{FORCE_INDEX=${index}}
              WHERE conversation_id="${conv_id}"
@@ -72,8 +75,11 @@ export function setup(
 
   app.get('/api/toxicity/:score', async (req, res) => {
     try {
-      let score: number = req.params.score;
-      const index = conf.spannerTableName + '_by_toxicity';
+      if isNaN(req.params.score) {
+        throw new Error(`Wanted number but got: NaN.`);
+      }
+      const score: number = req.params.score;
+      const index = conf.spannerTableName + toxicityIndex;
 
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
@@ -103,9 +109,9 @@ export function setup(
 
   app.get('/api/comment-id/:comment_id', async (req, res) => {
     try {
-      let comment_id: runtime_types.CommentId =
+      const comment_id: runtime_types.CommentId =
           runtime_types.CommentId.assert(req.params.comment_id);
-      const index = conf.spannerTableName + '_by_conversation_id';
+      const index = conf.spannerTableName + conversationIdIndex;
 
 
       // TODO remove outer try wrapper unless it get used.
@@ -136,7 +142,7 @@ export function setup(
 
   app.get('/api/revision-id/:rev_id', async (req, res) => {
     try {
-      let rev_id: runtime_types.RevisionId =
+      const rev_id: runtime_types.RevisionId =
           runtime_types.RevisionId.assert(req.params.rev_id);
 
       // TODO remove outer try wrapper unless it get used.
@@ -164,7 +170,7 @@ export function setup(
 
   app.get('/api/page-id/:page_id', async (req, res) => {
     try {
-      let page_id: runtime_types.PageId =
+      const page_id: runtime_types.PageId =
           runtime_types.PageId.assert(req.params.page_id);
 
       // TODO remove outer try wrapper unless it get used.
@@ -193,7 +199,7 @@ export function setup(
 
   app.get('/api/page-title/:page_title', async (req, res) => {
     try {
-      let page_title: runtime_types.PageTitleSearch =
+      const page_title: runtime_types.PageTitleSearch =
           runtime_types.PageTitleSearch.assert(req.params.page_title);
 
       // TODO remove outer try wrapper unless it get used.
@@ -222,19 +228,19 @@ export function setup(
 
   app.get('/api/search/:search_by/:search_op/:search_for', async (req, res) => {
     if (!SEARCH_BY_TYPE.isValid(req.params.search_by)) {
-      let errorMsg = `Error: Invalid searchBy string: ${req.params.search_by}`
+      const errorMsg = `Error: Invalid searchBy string: ${req.params.search_by}`
       console.error(errorMsg);
       res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({error: errorMsg}));
       return;
     }
     if (!SEARCH_OP_TYPE.isValid(req.params.search_op)) {
-      let errorMsg = `Error: Invalid searchOp string: ${req.params.search_op}`
+      const errorMsg = `Error: Invalid searchOp string: ${req.params.search_op}`
       console.error(errorMsg);
       res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({error: errorMsg}));
       return;
     }
     if (!SQL_SAFE_STRING.isValid(req.params.search_for)) {
-      let errorMsg = `Error: Invalid searchFor string: ${req.params.search_for}`
+      const errorMsg = `Error: Invalid searchFor string: ${req.params.search_for}`
       console.error(errorMsg);
       res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({error: errorMsg}));
       return;

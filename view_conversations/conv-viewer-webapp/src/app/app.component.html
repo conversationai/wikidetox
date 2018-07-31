@@ -84,7 +84,7 @@
        <tr>
          <td class="whenandwho">
            <div class="author" *ngIf="comment.user_text">{{comment.user_text}}</div>
-           <div class="author" *ngIf="!comment.user_text">Anonymous</div>
+           <div class="anonAuthor" *ngIf="!comment.user_text">Anonymous</div>
            <div class="timestamp">{{comment.timestamp}}</div>
          </td>
          <td class="content">{{comment.cleaned_content}}</td>
