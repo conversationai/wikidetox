@@ -41,6 +41,8 @@ export interface Comment {
   dfs_index?: number;  // index according to Depth First Search of conv.
   // Starting here are toxicity scores, since they don't exist in all datasets
   // except in English, this fields are optional.
+  // TODO(yiqingh, ldixon) : decide on which scores to use, delete non-public
+  // ones from the spanner table.
   RockV6_1_FLIRTATION?: number | null,
   RockV6_1_GENDER?: number | null,
   RockV6_1_HEALTH_AGE_DISABILITY?: number | null,
@@ -197,15 +199,18 @@ export function htmlForComment(
 // Walk down a comment and its children depth first.
 export function walkDfsComments(
     rootComment: Comment, f: (c: Comment) => void): void {
-  const commentsHtml = [];
-  const nextComment: Comment|undefined = rootComment;
-  if (nextComment) {
+  const stack = [rootComment];
+  let nextComment: Comment|undefined = stack.pop();
+  while (nextComment){
     f(nextComment);
-    if (nextComment.children) {
-      for (const ch of nextComment.children) {
-        walkDfsComments(ch, f)
+    if (nextComment.children){
+      if (nextComment.children.reverse()) {
+        for (const ch of nextComment.children) {
+          stack.push(ch)
+        }
       }
     }
+    nextComment = stack.pop();
   }
 }
 

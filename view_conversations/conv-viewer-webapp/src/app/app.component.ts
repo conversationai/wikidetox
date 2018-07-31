@@ -34,6 +34,21 @@ interface HashObj {
   highlightId?: string;
 }
 
+function highlightComments(actions : wpconvlib.Comment[], highlightId: string | undefined){
+  const conversation: wpconvlib.Conversation = {};
+  for (const a of actions) {
+    conversation[a.id] = a;
+    if (highlightId) {
+      if (highlightId === a.id) {
+        conversation[a.id].comment_to_highlight = a.id;
+      } else {
+        delete conversation[a.id].comment_to_highlight;
+      }
+    }
+  }
+  return conversation;
+}
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -122,6 +137,23 @@ export class AppComponent implements OnInit {
     document.location.hash = JSON.stringify(objToEncode);
   }
 
+  fetchConversations(actions: wpconvlib.Comment[]) {
+    this.searchResult = JSON.stringify(actions, null, 2);
+    delete this.inFlightRequest;
+    console.log('got conversation!');
+
+    const conversation: wpconvlib.Conversation = highlightComments(actions, this.highlightId);
+    console.log(conversation);
+
+    this.rootComment =
+        wpconvlib.structureConversaton(conversation);
+    if (!this.rootComment) {
+      this.errorMessage = 'No Root comment in conversation';
+      return;
+    }
+  }
+
+
   submitCommentSearch(comment : wpconvlib.Comment) {
     console.log('model-based form submitted');
     this.errorMessage = null;
@@ -133,31 +165,18 @@ export class AppComponent implements OnInit {
               '/api/comment-id/' + comment.id))
             .subscribe(
                 (actions: wpconvlib.Comment[]) => {
-                  console.log('got conversation!');
-                  this.searchResult = JSON.stringify(actions, null, 2);
-                  delete this.inFlightRequest;
-
-                  const conversation: wpconvlib.Conversation = {};
-                  for (const a of actions) {
-                    conversation[a.id] = a;
-                    if (this.highlightId) {
-                      if (this.highlightId === a.id) {
-                        conversation[a.id].comment_to_highlight = a.id;
-                      } else {
-                        delete conversation[a.id].comment_to_highlight;
-                      }
+                    this.searchResult = JSON.stringify(actions, null, 2);
+                    delete this.inFlightRequest;
+                    console.log('got conversation!');
+                    const conversation: wpconvlib.Conversation = highlightComments(actions, this.highlightId);
+                    console.log(conversation);
+                    comment.rootComment =
+                        wpconvlib.structureConversaton(conversation);
+                    if (!comment.rootComment) {
+                      this.errorMessage = 'No Root comment in conversation';
+                      return;
                     }
-                  }
-
-                  console.log(conversation);
-
-                  comment.rootComment =
-                      wpconvlib.structureConversaton(conversation);
-                  if (!comment.rootComment) {
-                    this.errorMessage = 'No Root comment in conversation';
-                    return;
-                  }
-                },
+                  },
                 (e) => {
                   console.log(e);
                   if (e.error && e.error.error) {
@@ -168,7 +187,6 @@ export class AppComponent implements OnInit {
                   delete this.inFlightRequest;
                 });
   }
-
 
   submitSearch() {
     console.log('model-based form submitted');
@@ -182,32 +200,7 @@ export class AppComponent implements OnInit {
                 '/api/' + URL_PART_FOR_SEARCHBY[this.searchForm.value.searchBy] +
                 '/' + this.searchForm.value.searchFor))
             .subscribe(
-                (actions: wpconvlib.Comment[]) => {
-                  console.log('got conversation!');
-                  this.searchResult = JSON.stringify(actions, null, 2);
-                  delete this.inFlightRequest;
-
-                  const conversation: wpconvlib.Conversation = {};
-                  for (const a of actions) {
-                    conversation[a.id] = a;
-                    if (this.highlightId) {
-                      if (this.highlightId === a.id) {
-                        conversation[a.id].comment_to_highlight = a.id;
-                      } else {
-                        delete conversation[a.id].comment_to_highlight;
-                      }
-                    }
-                  }
-
-                  console.log(conversation);
-
-                  this.rootComment =
-                      wpconvlib.structureConversaton(conversation);
-                  if (!this.rootComment) {
-                    this.errorMessage = 'No Root comment in conversation';
-                    return;
-                  }
-                },
+                this.fetchConversations,
                 (e) => {
                   console.log(e);
                   if (e.error && e.error.error) {

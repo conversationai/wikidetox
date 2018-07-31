@@ -76,6 +76,12 @@ last {
   font-weight: bold;
 }
 
+.anonAuthor {
+  color: Crimson;
+  font-weight: bold;
+}
+
+
 .timestamp {
   font-size: 80%;
   color: #BBB;
