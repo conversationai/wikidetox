@@ -67,6 +67,9 @@ export class AppComponent implements OnInit {
   answerComments?: wpconvlib.Comment[];
   searchForm: FormGroup;
   browseForm: FormGroup;
+  scoreLower?: number;
+  scoreUpper?: number;
+  scoreCategory?: string:
 
   embed = false;
   showPageContext = true;
@@ -219,26 +222,37 @@ export class AppComponent implements OnInit {
   submitBrowse() {
     console.log('model-based browse form submitted');
     console.log(this.browseForm.value);
+    this.browseByScore(this.browseForm.value.browseBy, this.browseForm.value.browseUpper, this.browseForm.value.browseLower);
+  }
+
+  browseByScore(browseBy : string, browseUpper: number, browseLower: number) {
     this.errorMessage = null;
     this.updateLocationHash();
+    console.log(browseUpper, browseLower);
 
     this.inFlightBrowseRequest =
         this.http
             .get(encodeURI(
-                '/api/' + URL_PART_FOR_BROWSEBY[this.browseForm.value.browseBy] +
-              '/' + this.browseForm.value.browseUpper+ '/' + this.browseForm.value.browseLower))
+                '/api/' + URL_PART_FOR_BROWSEBY[browseBy] +
+              '/' + browseUpper+ '/' + browseLower))
             .subscribe(
                 (comments: wpconvlib.Comment[]) => {
                   console.log('got comments!');
                   this.browseResult = JSON.stringify(comments, null, 2);
                   delete this.inFlightBrowseRequest;
+                  this.scoreLower = browseUpper;
+                  this.scoreUpper = browseLower;
                   console.log(comments);
                   for (const comment of comments) {
                     comment.isCollapsed = false;
                     if (this.browseForm.value.browseBy === MOST_TOXIC_TEXT) {
                       comment.displayScore = MOST_TOXIC_TEXT + ' Score: ' + comment.RockV6_1_TOXICITY
+                      const commentScore = comment.RockV6_1_TOXICITY;
                     }
+                    this.scoreLower = (commentScore !== undefined && parseFloat(commentScore) < parseFloat(this.scoreLower)) ? commentScore : this.scoreLower;
+                    this.scoreUpper = (commentScore !== undefined && parseFloat(commentScore) > parseFloat(this.scoreUpper)) ? commentScore : this.scoreUpper;
                   }
+                  this.scoreCategory = browseBy;
                   this.answerComments = comments;
                 },
                 (e) => {
