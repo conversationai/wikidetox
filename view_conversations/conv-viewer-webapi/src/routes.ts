@@ -33,22 +33,26 @@ const SEARCH_OP_TYPE =
 // escaped quotes.
 const SQL_SAFE_STRING =
     new runtime_types.RuntimeStringType<string>('SearchBy', /^[^"]+$/);
+const conversationIdIndex = '_by_conversation_id';
+const toxicityIndex = '_by_toxicity';
 
 // TODO(ldixon): consider using passport auth
 // for google cloud project.
 export function setup(
     app: express.Express, conf: config.Config,
     spannerDatabase: spanner.Database) {
-  let table = `\`${conf.spannerTableName}\``;
+  const table = `\`${conf.spannerTableName}\``;
 
   app.get('/api/conversation-id/:conv_id', async (req, res) => {
     try {
-      let conv_id: runtime_types.ConversationId =
+      const conv_id: runtime_types.ConversationId =
           runtime_types.ConversationId.assert(req.params.conv_id);
+      const index = conf.spannerTableName + conversationIdIndex;
 
       // TODO remove outer try wrapper unless it get used.
+      // Force Spanner using particular indices to speed up performance.
       const sqlQuery = `SELECT *
-             FROM ${table}
+             FROM ${table}@{FORCE_INDEX=${index}}
              WHERE conversation_id="${conv_id}"
              LIMIT 100`;
       // Query options list:
@@ -69,16 +73,17 @@ export function setup(
     }
   });
 
-  app.get('/api/comment-id/:comment_id', async (req, res) => {
+  app.get('/api/toxicity/:score', async (req, res) => {
     try {
-      let comment_id: runtime_types.CommentId =
-          runtime_types.CommentId.assert(req.params.comment_id);
+      const score: number = runtime_types.assertNumber(req.params.score);
+      const index = conf.spannerTableName + toxicityIndex;
 
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
-      FROM ${table}
-      WHERE id="${comment_id}"
-      LIMIT 100`;
+             FROM ${table}@{FORCE_INDEX=${index}}
+             WHERE RockV6_1_TOXICITY <= ${score} and type != "DELETION"
+             ORDER BY RockV6_1_TOXICITY DESC
+             LIMIT 20`;
       // Query options list:
       // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
       const query: spanner.Query = {
@@ -87,7 +92,42 @@ export function setup(
 
       await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow[]>(rows));
+        res.status(httpcodes.OK).send(JSON.stringify(db_types.parseOutputRows<db_types.OutputRow>(rows), null, 2));
+      });
+    } catch (e) {
+      console.error(`*** Failed: `, e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({
+        error: e.message
+      }));
+    }
+  });
+
+
+
+  app.get('/api/comment-id/:comment_id', async (req, res) => {
+    try {
+      const comment_id: runtime_types.CommentId =
+          runtime_types.CommentId.assert(req.params.comment_id);
+      const index = conf.spannerTableName + conversationIdIndex;
+
+
+      // TODO remove outer try wrapper unless it get used.
+      // id field is unique.
+      const sqlQuery = `
+      SELECT conv_r.*
+      FROM ${table} conv_l
+        JOIN ${table}@{FORCE_INDEX=${index}} conv_r
+        ON conv_r.conversation_id = conv_l.conversation_id
+      WHERE conv_l.id = "${comment_id}" and conv_r.timestamp <= conv_l.timestamp`;
+      // Query options list:
+      // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
+      const query: spanner.Query = {
+        sql: sqlQuery
+      };
+
+      await spannerDatabase.run(query).then(results => {
+        const rows = results[0];
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
@@ -99,7 +139,7 @@ export function setup(
 
   app.get('/api/revision-id/:rev_id', async (req, res) => {
     try {
-      let rev_id: runtime_types.RevisionId =
+      const rev_id: runtime_types.RevisionId =
           runtime_types.RevisionId.assert(req.params.rev_id);
 
       // TODO remove outer try wrapper unless it get used.
@@ -115,7 +155,7 @@ export function setup(
 
       await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow[]>(rows));
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
@@ -127,7 +167,7 @@ export function setup(
 
   app.get('/api/page-id/:page_id', async (req, res) => {
     try {
-      let page_id: runtime_types.PageId =
+      const page_id: runtime_types.PageId =
           runtime_types.PageId.assert(req.params.page_id);
 
       // TODO remove outer try wrapper unless it get used.
@@ -144,7 +184,7 @@ export function setup(
 
       await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow[]>(rows));
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
@@ -156,13 +196,13 @@ export function setup(
 
   app.get('/api/page-title/:page_title', async (req, res) => {
     try {
-      let page_title: runtime_types.PageTitleSearch =
+      const page_title: runtime_types.PageTitleSearch =
           runtime_types.PageTitleSearch.assert(req.params.page_title);
 
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
       FROM ${table}
-      WHERE page_title LIKE "${page_title}"
+      WHERE page_title = "${page_title}"
       LIMIT 100`;
       // Query options list:
       // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
@@ -173,7 +213,7 @@ export function setup(
 
       await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow[]>(rows));
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
@@ -185,19 +225,19 @@ export function setup(
 
   app.get('/api/search/:search_by/:search_op/:search_for', async (req, res) => {
     if (!SEARCH_BY_TYPE.isValid(req.params.search_by)) {
-      let errorMsg = `Error: Invalid searchBy string: ${req.params.search_by}`
+      const errorMsg = `Error: Invalid searchBy string: ${req.params.search_by}`
       console.error(errorMsg);
       res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({error: errorMsg}));
       return;
     }
     if (!SEARCH_OP_TYPE.isValid(req.params.search_op)) {
-      let errorMsg = `Error: Invalid searchOp string: ${req.params.search_op}`
+      const errorMsg = `Error: Invalid searchOp string: ${req.params.search_op}`
       console.error(errorMsg);
       res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({error: errorMsg}));
       return;
     }
     if (!SQL_SAFE_STRING.isValid(req.params.search_for)) {
-      let errorMsg = `Error: Invalid searchFor string: ${req.params.search_for}`
+      const errorMsg = `Error: Invalid searchFor string: ${req.params.search_for}`
       console.error(errorMsg);
       res.status(httpcodes.BAD_REQUEST).send(JSON.stringify({error: errorMsg}));
       return;
@@ -218,7 +258,7 @@ export function setup(
 
       await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow[]>(rows));
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
