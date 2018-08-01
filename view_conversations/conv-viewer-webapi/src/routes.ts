@@ -33,6 +33,7 @@ const SEARCH_OP_TYPE =
 // escaped quotes.
 const SQL_SAFE_STRING =
     new runtime_types.RuntimeStringType<string>('SearchBy', /^[^"]+$/);
+const parentIdIndex = '_by_parent_id';
 const conversationIdIndex = '_by_conversation_id';
 const toxicityIndex = '_by_toxicity';
 
@@ -94,6 +95,39 @@ export function setup(
       await spannerDatabase.run(query).then(results => {
         const rows = results[0];
         res.status(httpcodes.OK).send(JSON.stringify(db_types.parseOutputRows<db_types.OutputRow>(rows), null, 2));
+      });
+    } catch (e) {
+      console.error(`*** Failed: `, e);
+      res.status(httpcodes.INTERNAL_SERVER_ERROR).send(JSON.stringify({
+        error: e.message
+      }));
+    }
+  });
+
+  app.get('/api/parent-id/:parent_id', async (req, res) => {
+    try {
+      const parent_id: runtime_types.CommentId =
+          runtime_types.CommentId.assert(req.params.parent_id);
+      const index = conf.spannerTableName + parentIdIndex;
+
+
+      // TODO remove outer try wrapper unless it get used.
+      // id field is unique.
+      const sqlQuery = `
+      SELECT parent_id, type, timestamp
+      FROM ${table}@{FORCE_INDEX=${index}}
+      WHERE parent_id = "${parent_id}"
+      ORDER BY timestamp DESC
+      LIMIT 1`;
+      // Query options list:
+      // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
+      const query: spanner.Query = {
+        sql: sqlQuery
+      };
+
+      await spannerDatabase.run(query).then(results => {
+        const rows = results[0];
+        res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow>(rows));
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
