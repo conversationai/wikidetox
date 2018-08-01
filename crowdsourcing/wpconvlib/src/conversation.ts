@@ -61,6 +61,7 @@ export interface Comment {
   Smirnoff_2_OFF_TOPIC?: number | null,
   Smirnoff_2_SPAM?: number | null,
   Smirnoff_2_UNSUBSTANTIAL?: number | null,
+  displayScore?: number | null,
   // The following fields are used in displaying comments in viz app.
   isCollapsed?: boolean,
   rootComment?: Comment,

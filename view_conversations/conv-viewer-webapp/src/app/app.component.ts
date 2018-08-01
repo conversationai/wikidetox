@@ -12,7 +12,7 @@ const REVISION_ID_TEXT = 'Revision ID';
 const PAGE_ID_TEXT = 'Page ID';
 const PAGE_TITLE_TEXT = 'Page Name';
 
-const MOST_TOXIC_TEXT = 'Most Toxic';
+const MOST_TOXIC_TEXT = 'Toxicity';
 
 const URL_PART_FOR_SEARCHBY: {[text: string]: string} = {};
 const URL_PART_FOR_BROWSEBY: {[text: string]: string} = {};
@@ -28,7 +28,8 @@ interface HashObj {
   searchBy?: string;
   searchFor?: string;
   browseBy?: string;
-  browseFor?: string;
+  browseUpper?: string;
+  browseLower?: string;
   embed: boolean;
   showPageContext: boolean;
   highlightId?: string;
@@ -80,7 +81,8 @@ export class AppComponent implements OnInit {
     let searchFor = '';
 
     let browseBy = MOST_TOXIC_TEXT;
-    let browseFor = 1;
+    let browseUpper = 1;
+    let browseLower = 0;
 
     console.log(`init-hash: ${document.location.hash}`);
     try {
@@ -106,14 +108,15 @@ export class AppComponent implements OnInit {
     });
     this.browseForm = formBuilder.group({
       browseBy: new FormControl(browseBy, Validators.required),
-      browseFor: new FormControl(browseFor, Validators.required),
+      browseUpper: new FormControl(browseUpper, Validators.required),
+      browseLower: new FormControl(browseLower, Validators.required),
     });
 
 
     if (searchFor && searchBy && this.embed) {
       this.submitSearch();
     }
-    if (browseFor && browseBy && this.embed) {
+    if (browseUpper && browseLower && browseBy && this.embed) {
       this.submitBrowse();
     }
 
@@ -127,7 +130,8 @@ export class AppComponent implements OnInit {
       searchBy: this.searchForm.value.searchBy,
       searchFor: this.searchForm.value.searchFor,
       browseBy: this.browseForm.value.browseBy,
-      browseFor: this.browseForm.value.browseFor,
+      browseUpper: this.browseForm.value.browseUpper,
+      browseLower: this.browseForm.value.browseLower,
       embed: this.embed,
       showPageContext: this.showPageContext,
     };
@@ -168,7 +172,7 @@ export class AppComponent implements OnInit {
                     this.searchResult = JSON.stringify(actions, null, 2);
                     delete this.inFlightRequest;
                     console.log('got conversation!');
-                    const conversation: wpconvlib.Conversation = highlightComments(actions, this.highlightId);
+                    const conversation: wpconvlib.Conversation = highlightComments(actions, comment.id);
                     console.log(conversation);
                     comment.rootComment =
                         wpconvlib.structureConversaton(conversation);
@@ -222,7 +226,7 @@ export class AppComponent implements OnInit {
         this.http
             .get(encodeURI(
                 '/api/' + URL_PART_FOR_BROWSEBY[this.browseForm.value.browseBy] +
-                '/' + this.browseForm.value.browseFor))
+              '/' + this.browseForm.value.browseUpper+ '/' + this.browseForm.value.browseLower))
             .subscribe(
                 (comments: wpconvlib.Comment[]) => {
                   console.log('got comments!');
@@ -231,6 +235,9 @@ export class AppComponent implements OnInit {
                   console.log(comments);
                   for (const comment of comments) {
                     comment.isCollapsed = false;
+                    if (this.browseForm.value.browseBy === MOST_TOXIC_TEXT) {
+                      comment.displayScore = MOST_TOXIC_TEXT + ' Score: ' + comment.RockV6_1_TOXICITY
+                    }
                   }
                   this.answerComments = comments;
                 },

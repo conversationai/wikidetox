@@ -73,15 +73,16 @@ export function setup(
     }
   });
 
-  app.get('/api/toxicity/:score', async (req, res) => {
+  app.get('/api/toxicity/:upper_score/:lower_score', async (req, res) => {
     try {
-      const score: number = runtime_types.assertNumber(req.params.score);
+      const upper_score: number = runtime_types.assertNumber(req.params.upper_score);
+      const lower_score: number = runtime_types.assertNumber(req.params.lower_score);
       const index = conf.spannerTableName + toxicityIndex;
 
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
              FROM ${table}@{FORCE_INDEX=${index}}
-             WHERE RockV6_1_TOXICITY <= ${score} and type != "DELETION"
+             WHERE RockV6_1_TOXICITY <= ${upper_score} and RockV6_1_TOXICITY >= ${lower_score} and type != "DELETION"
              ORDER BY RockV6_1_TOXICITY DESC
              LIMIT 20`;
       // Query options list:
