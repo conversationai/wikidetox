@@ -4,8 +4,39 @@
     WikiDetox Conversation Viewer
   </h3>
 </div>
+
 <div *ngIf="!embed">
-  <form [formGroup]="form" (submit)="submitSearch()">
+  <form [formGroup]="browseForm" (submit)="submitBrowse()">
+
+  <button mat-button type="button"
+    [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Browse by
+  </button>
+  <mat-menu #menu="matMenu">
+    <mat-radio-group class="browseby-radio-group"
+        (change)="updateLocationHash()"
+        formControlName="browseBy">
+      <mat-radio-button class="searchby-radio-button" *ngFor="let s of browseBys"
+        [value]="s">{{s}}</mat-radio-button>
+    </mat-radio-group>
+  </mat-menu>
+
+  <mat-form-field class="browse-text">
+    <input matInput type="text" placeholder="Score <= ? (Maximum value 1)"
+          formControlName="browseFor">
+  </mat-form-field>
+
+  <button mat-raised-button
+    [disabled]="!browseForm.valid || inFlightBrowseRequest !== undefined"
+    type="submit" color="primary">Browse</button>
+  </form>
+
+  <mat-progress-bar *ngIf="inFlightBrowseRequest" mode="query"></mat-progress-bar>
+</div>
+
+
+<div *ngIf="!embed">
+  <form [formGroup]="searchForm" (submit)="submitSearch()">
+
 
   <button mat-button type="button"
     [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Search by
@@ -20,12 +51,12 @@
   </mat-menu>
 
   <mat-form-field class="search-text">
-    <input matInput type="text" placeholder="{{form.value.searchBy}}"
+    <input matInput type="text" placeholder="{{searchForm.value.searchBy}}"
           formControlName="searchFor">
   </mat-form-field>
 
   <button mat-raised-button
-    [disabled]="!form.valid || inFlightRequest !== undefined"
+    [disabled]="!searchForm.valid || inFlightRequest !== undefined"
     type="submit" color="primary">Search</button>
   </form>
 
@@ -44,5 +75,41 @@
 
   <app-conversation *ngIf="rootComment" [rootComment]="rootComment"></app-conversation>
 </div>
+
+<div class="comments" *ngIf="answerComments">
+  <div *ngFor="let comment of answerComments">
+
+    <button class="collapsible-action" (click)="comment.isCollapsed = !comment.isCollapsed; submitCommentSearch(comment)">
+     <table class="action">
+       <tr>
+         <td class="whenandwho">
+           <div class="author" *ngIf="comment.user_text">{{comment.user_text}}</div>
+           <div class="anonAuthor" *ngIf="!comment.user_text">Anonymous</div>
+           <div class="timestamp">{{comment.timestamp}}</div>
+         </td>
+         <td class="content">{{comment.cleaned_content}}</td>
+       </tr>
+     </table>
+    </button>
+
+    <div id="collapseComment" *ngIf="comment.isCollapsed">
+      <div *ngIf="errorMessage" class="errorMessage">{{errorMessage}}</div>
+      <div class="conversation" *ngIf="comment.rootComment">
+        <div *ngIf="showPageContext">
+          <div>In page: <a href="https://en.wikipedia.org/w/index.php?oldid={{comment.rev_id}}"><b>{{comment.rootComment.page_title}}</b></a> </div>
+          <div class="convid">
+            <span class="convid-text">(conversation id: {{comment.rootComment.id}})</span>
+          </div>
+        </div>
+
+        <app-conversation *ngIf="comment.rootComment" [rootComment]="comment.rootComment"></app-conversation>
+      </div>
+    </div>
+
+
+
+  </div>
+</div>
+
 
 <div *ngIf="!embed" id="debug-pre-output">{{searchResult}}</div>

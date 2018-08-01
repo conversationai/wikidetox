@@ -128,6 +128,8 @@ class TimestampFieldHandler extends SpannerFieldHandler<Date> {
 
 interface HandlerSet { [fieldName:string] : SpannerFieldHandler<Date | number | string | string[]>; };
 interface ParsedOutput { [fieldName:string] : string | string[] | Date | number | null; };
+const scoreSubstrings = 'RockV6_1|Smirnoff_2';
+const scoreType = 'score';
 
 const handlers : Array<SpannerFieldHandler<Date | number | string | string[]>> = [
   new StringFieldHandler('id'),
@@ -146,6 +148,7 @@ const handlers : Array<SpannerFieldHandler<Date | number | string | string[]>> =
   new StringFieldHandler('type'),
   new IntFieldHandler('user_id'),
   new StringFieldHandler('user_text'),
+  new FloatFieldHandler(scoreType),
 ];
 
 function addHandler(inputHandlers : HandlerSet, handler : SpannerFieldHandler<Date | number | string | string[]>)
@@ -160,11 +163,12 @@ export function parseOutputRows<T>(rows: spanner.ResultRow[]) : T[] {
   for (const row of rows) {
     const ret:  { [fieldName:string] : string | string[] | Date | number | null } = {};
     for (const field of row) {
-      if(!(field.name in handlerSet)) {
+      const testname = new RegExp(scoreSubstrings).test(field.name) ? scoreType : field.name;
+      if(!(testname in handlerSet)) {
         console.error(`Field ${field.name} does not have a handler and so cannot be interpreted.`);
         break;
       }
-      ret[field.name] = handlerSet[field.name].fromSpannerResultField(field.value);
+      ret[field.name] = handlerSet[testname].fromSpannerResultField(field.value);
     }
     output.push(ret)
   }
