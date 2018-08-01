@@ -43,22 +43,17 @@ export interface Comment {
   // except in English, this fields are optional.
   // TODO(yiqingh, ldixon) : decide on which scores to use, delete non-public
   // ones from the spanner table.
-  RockV6_1_FLIRTATION?: number | null,
-  RockV6_1_GENDER?: number | null,
-  RockV6_1_HEALTH_AGE_DISABILITY?: number | null,
-  RockV6_1_RELIGION?: number | null,
-  RockV6_1_RNE?: number | null,
   RockV6_1_SEVERE_TOXICITY?: number | null,
   RockV6_1_SEXUAL_ORIENTATION?: number | null,
   RockV6_1_SEXUALLY_EXPLICIT?: number | null,
   RockV6_1_TOXICITY?: number | null,
+  //TODO(yiqingh): change TOXICITY_IDENTITY_HATE to IDENTITY_ATTACK
   RockV6_1_TOXICITY_IDENTITY_HATE?: number | null,
   RockV6_1_TOXICITY_INSULT?: number | null,
   RockV6_1_TOXICITY_OBSCENE?: number | null,
   RockV6_1_TOXICITY_THREAT?: number | null,
   Smirnoff_2_ATTACK_ON_AUTHOR?: number | null,
   Smirnoff_2_ATTACK_ON_COMMENTER?: number | null,
-  Smirnoff_2_ATTACK_ON_PUBLISHER?: number | null,
   Smirnoff_2_INCOHERENT?: number | null,
   Smirnoff_2_INFLAMMATORY?: number | null,
   Smirnoff_2_LIKELY_TO_REJECT?: number | null,
