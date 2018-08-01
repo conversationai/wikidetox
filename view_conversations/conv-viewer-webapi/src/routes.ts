@@ -50,7 +50,7 @@ export function setup(
       const index = conf.spannerTableName + conversationIdIndex;
 
       // TODO remove outer try wrapper unless it get used.
-      // Forcce Spanner using particular indices to speed up performance.
+      // Force Spanner using particular indices to speed up performance.
       const sqlQuery = `SELECT *
              FROM ${table}@{FORCE_INDEX=${index}}
              WHERE conversation_id="${conv_id}"
@@ -75,10 +75,7 @@ export function setup(
 
   app.get('/api/toxicity/:score', async (req, res) => {
     try {
-      if isNaN(req.params.score) {
-        throw new Error(`Wanted number but got: NaN.`);
-      }
-      const score: number = req.params.score;
+      const score: number = runtime_types.assertNumber(req.params.score);
       const index = conf.spannerTableName + toxicityIndex;
 
       // TODO remove outer try wrapper unless it get used.
