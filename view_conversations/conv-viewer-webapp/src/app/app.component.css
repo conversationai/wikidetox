@@ -30,6 +30,7 @@
   border: 1px solid #CCC;
   padding: 5px;
   background: linen;
+  margin-bottom: 2em;
 }
 
 .convid {
@@ -164,5 +165,17 @@ last {
   outline: none;
   font-size: 15px;
 }
+
+.moreToxicButton{
+  float: left;
+  margin-bottom: 2em;
+}
+
+.lessToxicButton{
+  float: right;
+  margin-bottom: 2em;
+}
+
+
 
 
