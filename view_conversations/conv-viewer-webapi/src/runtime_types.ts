@@ -88,3 +88,10 @@ export let PageId = new RuntimeStringType<PageId>('PageId', /^(\d+)$/);
 export let PageTitleSearch =
     new RuntimeStringType<PageTitleSearch>('PageTitleSearch', /^([^"]+)$/);
 
+export function assertNumber(score : number) {
+  if isNaN(score) {
+    throw new Error(`Wanted number but got: NaN.`);
+  }
+  return score;
+}
+

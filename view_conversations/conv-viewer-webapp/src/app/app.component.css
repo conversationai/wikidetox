@@ -33,3 +33,112 @@
   font-size: 80%;
   color: #BBB;
 }
+
+.debug-pre-output {
+  font-family: monospace;
+  white-space: pre;
+  border: 1px #AAA solid;
+}
+
+.indent {
+  margin-left: 1em;
+}
+
+hr {
+  display: block;
+  height: 1px;
+}
+
+last {
+  color: blue;
+}
+
+.hidden {
+  display: none;
+}
+
+.action {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+
+.comment {
+  padding: 5px;
+  margin: 2px;
+  margin-left: 10px;
+  flex: auto;
+}
+
+.index {
+  border: 1px solid #CCC;
+  padding: 5px;
+  width: 2em;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.finalcomment {
+  border: 2px dotted #88F;
+}
+
+.content{
+  padding: 5px;
+  background: #FFF;
+  width: 100%;
+  /* border: 1px solid #CCC; */
+}
+
+/* TODO: figure out how to make vertical line that
+   scales with the heigh of the containing element */
+.sep {
+}
+
+.whenandwho {
+  width: 100px;
+  text-align: right;
+  font-size: 80%;
+  flex: none;
+  display: block;
+
+  /* padding-right: 5px;
+  border-right: 2px solid #CCC; */
+  margin-right: 5px;
+}
+
+.author {
+  color: #44B;
+  font-weight: bold;
+}
+
+.anonAuthor {
+  color: Crimson;
+  font-weight: bold;
+}
+
+.timestamp {
+  font-size: 80%;
+  color: #BBB;
+}
+
+.collapseComment{
+  border: 1px solid #CCC;
+  padding: 5px;
+  background: #EEE;
+}
+
+.collapsible-action {
+  background-color: #EEE;
+  color: #444;
+  cursor: pointer;
+  padding: 18px;
+  width: 100%;
+  border-left: 6px solid cornflowerblue;
+  border-bottom: solid grey;
+  text-align: left;
+  outline: none;
+  font-size: 15px;
+}
+
+
