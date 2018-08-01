@@ -69,7 +69,7 @@ export class AppComponent implements OnInit {
   browseForm: FormGroup;
   scoreLower?: number;
   scoreUpper?: number;
-  scoreCategory?: string:
+  scoreCategory?: string;
 
   embed = false;
   showPageContext = true;
@@ -245,12 +245,13 @@ export class AppComponent implements OnInit {
                   console.log(comments);
                   for (const comment of comments) {
                     comment.isCollapsed = false;
+                    let commentScore : number | null = null;
                     if (this.browseForm.value.browseBy === MOST_TOXIC_TEXT) {
                       comment.displayScore = MOST_TOXIC_TEXT + ' Score: ' + comment.RockV6_1_TOXICITY
-                      const commentScore = comment.RockV6_1_TOXICITY;
+                      commentScore = comment.RockV6_1_TOXICITY;
                     }
-                    this.scoreLower = (commentScore !== undefined && parseFloat(commentScore) < parseFloat(this.scoreLower)) ? commentScore : this.scoreLower;
-                    this.scoreUpper = (commentScore !== undefined && parseFloat(commentScore) > parseFloat(this.scoreUpper)) ? commentScore : this.scoreUpper;
+                    this.scoreLower = (commentScore !== null && commentScore < this.scoreLower) ? commentScore : this.scoreLower;
+                    this.scoreUpper = (commentScore !== null && commentScore > this.scoreUpper) ? commentScore : this.scoreUpper;
                   }
                   this.scoreCategory = browseBy;
                   this.answerComments = comments;
@@ -264,6 +265,7 @@ export class AppComponent implements OnInit {
                   }
                   delete this.inFlightBrowseRequest;
                 });
+
   }
 
 }

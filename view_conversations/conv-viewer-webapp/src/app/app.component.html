@@ -100,11 +100,13 @@
   <div *ngFor="let comment of answerComments">
 
     <button class="collapsible-action" (click)="comment.isCollapsed = !comment.isCollapsed; submitCommentSearch(comment)">
+      <!-- {{submitParentSearch(comment.id)}} -->
      <table class="action">
        <tr>
          <td class="whenandwho">
            <div class="author" *ngIf="comment.user_text">{{comment.user_text}}</div>
            <div class="anonAuthor" *ngIf="!comment.user_text">Anonymous</div>
+           <br />
            <div class="timestamp">{{comment.timestamp}}</div>
            <!-- TODO(yiqingh): add hyper link to show the previous comments -->
            <div class="modification" *ngIf="comment.type == 'MODIFICATION'">Modification from Other Comments</div>
