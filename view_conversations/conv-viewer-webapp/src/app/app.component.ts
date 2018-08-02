@@ -35,7 +35,7 @@ interface HashObj {
   highlightId?: string;
 }
 
-function highlightComments(actions : wpconvlib.Comment[], highlightId: string | undefined){
+function highlightComments(actions: wpconvlib.Comment[], highlightId: string | undefined) {
   const conversation: wpconvlib.Conversation = {};
   for (const a of actions) {
     conversation[a.id] = a;
@@ -83,9 +83,9 @@ export class AppComponent implements OnInit {
     let searchBy = CONVERSATION_ID_TEXT;
     let searchFor = '';
 
-    let browseBy = MOST_TOXIC_TEXT;
-    let browseUpper = 1;
-    let browseLower = 0;
+    const browseBy = MOST_TOXIC_TEXT;
+    const browseUpper = 1;
+    const browseLower = 0;
 
     console.log(`init-hash: ${document.location.hash}`);
     try {
@@ -161,7 +161,7 @@ export class AppComponent implements OnInit {
   }
 
 
-  submitCommentSearch(comment : wpconvlib.Comment) {
+  submitCommentSearch(comment: wpconvlib.Comment) {
     console.log('model-based form submitted');
     this.errorMessage = null;
     this.updateLocationHash();

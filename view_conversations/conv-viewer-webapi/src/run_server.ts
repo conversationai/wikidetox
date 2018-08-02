@@ -59,8 +59,8 @@ if(IS_PRODUCTION) {
     projectId: config.cloudProjectId
   });
   require('@google-cloud/debug-agent').start({
+    allowExpressions: true,
     projectId: config.cloudProjectId,
-    allowExpressions: true
   });
 }
 
