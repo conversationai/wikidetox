@@ -74,17 +74,21 @@ export function setup(
     }
   });
 
-  app.get('/api/toxicity/:upper_score/:lower_score', async (req, res) => {
+  app.get('/api/toxicity/:upper_score/:lower_score/:order', async (req, res) => {
     try {
       const upper_score: number = runtime_types.assertNumber(req.params.upper_score);
       const lower_score: number = runtime_types.assertNumber(req.params.lower_score);
-      const index = conf.spannerTableName + toxicityIndex;
+      const order: string = runtime_types.assertOrder(req.params.order);
+      let index = conf.spannerTableName + toxicityIndex;
+      if (order === 'ASC') {
+        index = index + '_ASC';
+      }
 
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
              FROM ${table}@{FORCE_INDEX=${index}}
              WHERE RockV6_1_TOXICITY < ${upper_score} and RockV6_1_TOXICITY > ${lower_score} and type != "DELETION"
-             ORDER BY RockV6_1_TOXICITY DESC
+             ORDER BY RockV6_1_TOXICITY ${order}
              LIMIT 20`;
       // Query options list:
       // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
