@@ -95,3 +95,11 @@ export function assertNumber(score : number) {
   return score;
 }
 
+export function assertOrder(order : string) {
+  if (order !== 'DESC' && order !== 'ASC') {
+    throw new Error(`Wanted ASC or DESC but got ${order}`);
+  }
+  return order;
+}
+
+
