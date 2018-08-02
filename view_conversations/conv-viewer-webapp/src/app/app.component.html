@@ -19,11 +19,20 @@
         [value]="s">{{s}}</mat-radio-button>
     </mat-radio-group>
   </mat-menu>
+  Score in the range of
 
   <mat-form-field class="browse-text">
-    <input matInput type="text" placeholder="Score <= ? (Maximum value 1)"
-          formControlName="browseFor">
+    <input matInput type="text" placeholder="Minimum value 0"
+          formControlName="browseLower">
   </mat-form-field>
+
+  to
+
+  <mat-form-field class="browse-text">
+    <input matInput type="text" placeholder="Maximum value 1"
+          formControlName="browseUpper">
+  </mat-form-field>
+
 
   <button mat-raised-button
     [disabled]="!browseForm.valid || inFlightBrowseRequest !== undefined"
@@ -77,24 +86,41 @@
 </div>
 
 <div class="comments" *ngIf="answerComments">
+  <button mat-raised-button
+    [disabled]="inFlightRequest !== undefined || scoreUpper === undefined || scoreCategory === undefined"
+    class = "moreToxicButton"
+    (click)="browseByScore(scoreCategory, 1, scoreUpper)" color="primary">More Toxic</button>
+
+  <button mat-raised-button
+    [disabled]="inFlightRequest !== undefined || scoreLower === undefined || scoreCategory === undefined"
+    class = "lessToxicButton"
+    (click)="browseByScore(scoreCategory, scoreLower, 0)" color="primary">Less Toxic</button>
+
+
   <div *ngFor="let comment of answerComments">
 
     <button class="collapsible-action" (click)="comment.isCollapsed = !comment.isCollapsed; submitCommentSearch(comment)">
+      <!-- {{submitParentSearch(comment.id)}} -->
      <table class="action">
        <tr>
          <td class="whenandwho">
            <div class="author" *ngIf="comment.user_text">{{comment.user_text}}</div>
            <div class="anonAuthor" *ngIf="!comment.user_text">Anonymous</div>
+           <br />
            <div class="timestamp">{{comment.timestamp}}</div>
+           <!-- TODO(yiqingh): add hyper link to show the previous comments -->
+           <div class="modification" *ngIf="comment.type == 'MODIFICATION'">Modification from Other Comments</div>
+           <div class="restoration" *ngIf="comment.type == 'RESTORATION'">Restored Comment</div>
          </td>
          <td class="content">{{comment.cleaned_content}}</td>
        </tr>
      </table>
+     <div class="score" *ngIf="comment.displayScore"> {{comment.displayScore}} </div>
     </button>
 
     <div id="collapseComment" *ngIf="comment.isCollapsed">
       <div *ngIf="errorMessage" class="errorMessage">{{errorMessage}}</div>
-      <div class="conversation" *ngIf="comment.rootComment">
+      <div class="collapsedConversation" *ngIf="comment.rootComment">
         <div *ngIf="showPageContext">
           <div>In page: <a href="https://en.wikipedia.org/w/index.php?oldid={{comment.rev_id}}"><b>{{comment.rootComment.page_title}}</b></a> </div>
           <div class="convid">
