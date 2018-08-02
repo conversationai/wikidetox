@@ -28,8 +28,8 @@ interface HashObj {
   searchBy?: string;
   searchFor?: string;
   browseBy?: string;
-  browseUpper?: string;
-  browseLower?: string;
+  browseUpper?: number;
+  browseLower?: number;
   embed: boolean;
   showPageContext: boolean;
   highlightId?: string;
@@ -228,12 +228,12 @@ export class AppComponent implements OnInit {
   submitBrowse() {
     console.log('model-based browse form submitted');
     console.log(this.browseForm.value);
+    this.updateLocationHash(null, null, this.browseForm.value.browseBy, this.browseForm.value.browseUppder, this.browseForm.value.browseLower);
     this.browseByScore(this.browseForm.value.browseBy, this.browseForm.value.browseUpper, this.browseForm.value.browseLower, 'DESC');
   }
 
   browseByScore(browseBy : string, browseUpper: number, browseLower: number, order: string) {
     this.errorMessage = null;
-    this.updateLocationHash();
     console.log(browseUpper, browseLower);
 
     this.inFlightBrowseRequest =
@@ -259,6 +259,7 @@ export class AppComponent implements OnInit {
                     this.scoreLower = (commentScore !== null && commentScore < this.scoreLower) ? commentScore : this.scoreLower;
                     this.scoreUpper = (commentScore !== null && commentScore > this.scoreUpper) ? commentScore : this.scoreUpper;
                   }
+                  this.updateLocationHash(null, null, browseBy, this.scoreUpper, this.scoreLower);
                   if (order == 'ASC') {comments = comments.reverse();}
                   this.scoreCategory = browseBy;
                   this.answerComments = comments;
