@@ -80,18 +80,25 @@ export class AppComponent implements OnInit {
   errorMessage?: string = null;
 
   constructor(private http: HttpClient, private formBuilder: FormBuilder) {
-    let searchBy = CONVERSATION_ID_TEXT;
-    let searchFor = '';
+    let searchBy : string | null = null;
+    let searchFor : string | null = null;
 
-    let browseBy = MOST_TOXIC_TEXT;
-    let browseUpper = 1;
-    let browseLower = 0;
+    let browseBy : string | null = null;
+    let browseUpper : number | null = null;
+    let browseLower : number | null = null;
 
     console.log(`init-hash: ${document.location.hash}`);
     try {
       const hashObj: HashObj = JSON.parse(document.location.hash.substr(1));
-      searchBy = hashObj.searchBy;
-      searchFor = hashObj.searchFor;
+      if (hashObj.searchBy) {
+        searchBy = hashObj.searchBy;
+        searchFor = hashObj.searchFor;
+      }
+      if (hashObj.browseBy) {
+        browseBy = hashObj.browseBy;
+        browseUpper = hashObj.browseUpper;
+        browseLower = hashObj.browseLower;
+      }
       this.embed = hashObj.embed === undefined ? false : hashObj.embed;
       this.showPageContext = hashObj.showPageContext === undefined ?
           true :
@@ -127,14 +134,14 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {}
 
-  updateLocationHash() {
+  updateLocationHash(searchBy : string | null, searchFor: string | null, browseBy: string | null, browseUpper: number | null, browseLower: number | null ) {
     console.log('updateLocationHash');
     const objToEncode: HashObj = {
-      searchBy: this.searchForm.value.searchBy,
-      searchFor: this.searchForm.value.searchFor,
-      browseBy: this.browseForm.value.browseBy,
-      browseUpper: this.browseForm.value.browseUpper,
-      browseLower: this.browseForm.value.browseLower,
+      searchBy: searchBy,
+      searchFor: searchFor,
+      browseBy: browseBy,
+      browseUpper: browseUpper,
+      browseLower: browseLower,
       embed: this.embed,
       showPageContext: this.showPageContext,
     };
@@ -164,7 +171,6 @@ export class AppComponent implements OnInit {
   submitCommentSearch(comment : wpconvlib.Comment) {
     console.log('model-based form submitted');
     this.errorMessage = null;
-    this.updateLocationHash();
 
     this.inFlightRequest =
         this.http
@@ -199,7 +205,7 @@ export class AppComponent implements OnInit {
     console.log('model-based form submitted');
     console.log(this.searchForm.value);
     this.errorMessage = null;
-    this.updateLocationHash();
+    this.updateLocationHash(this.searchForm.value.searchBy, this.searchForm.value.searchFor, null, null, null);
 
     this.inFlightRequest =
         this.http
@@ -222,10 +228,10 @@ export class AppComponent implements OnInit {
   submitBrowse() {
     console.log('model-based browse form submitted');
     console.log(this.browseForm.value);
-    this.browseByScore(this.browseForm.value.browseBy, this.browseForm.value.browseUpper, this.browseForm.value.browseLower);
+    this.browseByScore(this.browseForm.value.browseBy, this.browseForm.value.browseUpper, this.browseForm.value.browseLower, 'DESC');
   }
 
-  browseByScore(browseBy : string, browseUpper: number, browseLower: number) {
+  browseByScore(browseBy : string, browseUpper: number, browseLower: number, order: string) {
     this.errorMessage = null;
     this.updateLocationHash();
     console.log(browseUpper, browseLower);
@@ -234,7 +240,7 @@ export class AppComponent implements OnInit {
         this.http
             .get(encodeURI(
                 '/api/' + URL_PART_FOR_BROWSEBY[browseBy] +
-              '/' + browseUpper+ '/' + browseLower))
+              '/' + browseUpper+ '/' + browseLower + '/' + order))
             .subscribe(
                 (comments: wpconvlib.Comment[]) => {
                   console.log('got comments!');
@@ -253,6 +259,7 @@ export class AppComponent implements OnInit {
                     this.scoreLower = (commentScore !== null && commentScore < this.scoreLower) ? commentScore : this.scoreLower;
                     this.scoreUpper = (commentScore !== null && commentScore > this.scoreUpper) ? commentScore : this.scoreUpper;
                   }
+                  if (order == 'ASC') {comments = comments.reverse();}
                   this.scoreCategory = browseBy;
                   this.answerComments = comments;
                 },

@@ -89,12 +89,12 @@
   <button mat-raised-button
     [disabled]="inFlightRequest !== undefined || scoreUpper === undefined || scoreCategory === undefined"
     class = "moreToxicButton"
-    (click)="browseByScore(scoreCategory, 1, scoreUpper)" color="primary">More Toxic</button>
+    (click)="browseByScore(scoreCategory, 1, scoreUpper, 'ASC')" color="primary">More Toxic</button>
 
   <button mat-raised-button
     [disabled]="inFlightRequest !== undefined || scoreLower === undefined || scoreCategory === undefined"
     class = "lessToxicButton"
-    (click)="browseByScore(scoreCategory, scoreLower, 0)" color="primary">Less Toxic</button>
+    (click)="browseByScore(scoreCategory, scoreLower, 0, 'DESC')" color="primary">Less Toxic</button>
 
 
   <div *ngFor="let comment of answerComments">
