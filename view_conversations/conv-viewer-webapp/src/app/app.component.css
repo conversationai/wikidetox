@@ -26,6 +26,13 @@
   padding: 5px;
   background: #EEE;
 }
+.collapsedConversation {
+  border: 1px solid #CCC;
+  padding: 5px;
+  background: linen;
+  margin-bottom: 2em;
+}
+
 .convid {
   text-align: right;
 }
@@ -96,7 +103,7 @@ last {
 }
 
 .whenandwho {
-  width: 100px;
+  width: 150px;
   text-align: right;
   font-size: 80%;
   flex: none;
@@ -108,6 +115,7 @@ last {
 }
 
 .author {
+  max-width: 150;
   color: #44B;
   font-weight: bold;
 }
@@ -122,6 +130,24 @@ last {
   color: #BBB;
 }
 
+.modification{
+  font-size: 80%;
+  color: #BBB;
+  font-weight: bold
+}
+
+.restoration{
+  font-size: 80%;
+  color: #BBB;
+  font-weight: bold
+}
+
+.score{
+  font-size: 80%;
+  color: red;
+  font-weight: bold
+}
+
 .collapseComment{
   border: 1px solid #CCC;
   padding: 5px;
@@ -134,11 +160,23 @@ last {
   cursor: pointer;
   padding: 18px;
   width: 100%;
-  border-left: 6px solid cornflowerblue;
-  border-bottom: solid grey;
+  border-left: 6px solid linen;
+  border-bottom: 2px solid grey;
   text-align: left;
   outline: none;
   font-size: 15px;
 }
+
+.moreToxicButton{
+  float: left;
+  margin-bottom: 2em;
+}
+
+.lessToxicButton{
+  float: right;
+  margin-bottom: 2em;
+}
+
+
 
 
