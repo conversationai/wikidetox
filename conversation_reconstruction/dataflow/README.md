@@ -14,8 +14,7 @@ Rather than showing a snapshot of the conversation as in
 
 ![Figure1](slides/original_conv.png)
 
-, the resulted the dataset includes all the
-actions led to it, as shown in
+The resulted the dataset includes all the actions led to it, as shown in
 
 ![Figure2](slides/reconstructed.png).
 
