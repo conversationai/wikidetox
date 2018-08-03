@@ -17,3 +17,8 @@ service: conv-view
 
 env_variables:
   NODE_ENV: 'production'
+
+instance_class: F2
+automatic_scaling:
+  max_concurrent_requests: 20
+  max_instances: 5
