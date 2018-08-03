@@ -27,14 +27,14 @@ Args:
 ingestFrom: choose from the three options : {wikipedia, local, cloud}:
   - wikipedia: performs the downloading job from Wikipedia, run with:
                [python dataflow_main.py --setup_file ./setup.py\
-               --ingestFrom=wikipedia --download --language=YourLanguage --dumpdate=YourDumpdate --cloudBucket=YourCloudBucket]
+                   --ingestFrom=wikipedia --download --language=YourLanguage --dumpdate=YourDumpdate --cloudBucket=YourCloudBucket --project=YourGoogleCloudProject --bucket=TemporaryFileBucket]
   - local: Tests the pipeline locally, run the code with
            [python dataflow_main.py --setup_file ./setup.py\
-            --ingestFrom=local --localStorage=YourLocalStorage --testmode --output=YourOutputStorage]
+            --ingestFrom=local --localStorage=YourLocalStorage --testmode --output=YourOutputStorage --project=YourGoogleCloudProject --bucket=TemporaryFileBucket]
   - cloud: Reads from downloaded bz2 files on cloud, performs the ingestion job,
     run the code with
            [python dataflow_main.py --setup_file ./setup.py\
-           [--ingestFrom=cloud --output=YourOutputStorage --cloudBucket=YourCloudBucket]
+           [--ingestFrom=cloud --output=YourOutputStorage --cloudBucket=YourCloudBucket --project=YourGoogleCloudProject --bucket=TemporaryFileBucket]
 
 output: the data storage where you want to store the ingested results
 language: the language of the wikipedia data you want to extract, e.g. en, fr, zh
@@ -98,9 +98,9 @@ def run(known_args, pipeline_args, sections):
     pipeline_args.append('--runner=DataflowRunner')
 
   pipeline_args.extend([
-    '--project=wikidetox-viz',
-    '--staging_location=gs://wikidetox-viz-dataflow/staging',
-    '--temp_location=gs://wikidetox-viz-dataflow/tmp',
+      '--project={project}'.format(project=known_args.project),
+    '--staging_location=gs://{bucket}/staging'.format(bucket=known_args.bucket),
+    '--temp_location=gs://{bucket}/tmp'.format(bucket=known_args.bucket),
     '--job_name=ingest-latest-revisions-{lan}'.format(lan=known_args.language),
     '--num_workers=80',
   ])
@@ -227,6 +227,12 @@ if __name__ == '__main__':
   # Define parameters
   parser = argparse.ArgumentParser()
   # Options: local, cloud
+  parser.add_argument('--project',
+                      dest='project',
+                      help='Your google cloud project.')
+  parser.add_argument('--bucket',
+                      dest='bucket',
+                      help='Your google cloud bucket for temporary and staging files.')
   parser.add_argument('--ingestFrom',
                       dest='ingestFrom',
                       default='none')
@@ -235,23 +241,18 @@ if __name__ == '__main__':
                       action='store_true')
   parser.add_argument('--output',
                       dest='output',
-                      default='gs://wikidetox-viz-dataflow/ingested',
                       help='Specify the output storage in cloud.')
   parser.add_argument('--cloudBucket',
                       dest='bucket',
-                      default='wikidetox-viz-dataflow/raw-downloads/en-20180501/',
                       help='Specify the cloud storage location to store/stores the raw downloads.')
   parser.add_argument('--language',
                       dest='language',
-                      default='en',
                       help='Specify the language of the Wiki Talk Page you want to ingest.')
   parser.add_argument('--dumpdate',
                       dest='dumpdate',
-                      default='20180501',
                       help='Specify the date of the Wikipedia data dump.')
   parser.add_argument('--localStorage',
                       dest='localStorage',
-                      default='ingest_utils/testdata/test_wiki_dump.xml.bz2',
                       help='If ingest from local storage, please specify the location of the input file.')
   parser.add_argument('--testmode',
                       dest='testmode',

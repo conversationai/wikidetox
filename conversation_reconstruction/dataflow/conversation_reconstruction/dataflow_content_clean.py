@@ -19,7 +19,7 @@ A dataflow pipeline to clean MediaWiki formats in comments and convert nested ar
 
 Run with:
 
-  python dataflow_content_clean.py --setup_file ./setup.py --input=InputStorage --output=OutputStorage --jobname=YourJobName
+  python dataflow_content_clean.py --setup_file ./setup.py --input=InputStorage --output=OutputStorage --jobname=YourJobName --project=YourCloudProject --bucket=YourCloudBucket
 
 """
 from __future__ import absolute_import
@@ -50,9 +50,9 @@ def run(known_args, pipeline_args):
     pipeline_args.append('--runner=DataflowRunner')
 
   pipeline_args.extend([
-    '--project=wikidetox-viz',
-    '--staging_location=gs://wikidetox-viz-dataflow/staging',
-    '--temp_location=gs://wikidetox-viz-dataflow/tmp',
+    '--project={project}',
+    '--staging_location=gs://{bucket}/staging',
+    '--temp_location=gs://{bucket}/tmp',
     '--job_name=resultformatting-{}'.format(known_args.jobname),
     '--num_workers=80'])
   pipeline_options = PipelineOptions(pipeline_args)
