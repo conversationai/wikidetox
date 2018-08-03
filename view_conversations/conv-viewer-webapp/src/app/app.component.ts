@@ -11,11 +11,13 @@ const COMMENT_ID_TEXT = 'Comment ID';
 const REVISION_ID_TEXT = 'Revision ID';
 const PAGE_ID_TEXT = 'Page ID';
 const PAGE_TITLE_TEXT = 'Page Name';
+const ALL_TEXT = 'All';
 
 const MOST_TOXIC_TEXT = 'Toxicity';
 
 const URL_PART_FOR_SEARCHBY: {[text: string]: string} = {};
 const URL_PART_FOR_BROWSEBY: {[text: string]: string} = {};
+URL_PART_FOR_SEARCHBY[ALL_TEXT] = 'all';
 URL_PART_FOR_SEARCHBY[COMMENT_ID_TEXT] = 'comment-id';
 URL_PART_FOR_SEARCHBY[CONVERSATION_ID_TEXT] = 'conversation-id';
 URL_PART_FOR_SEARCHBY[REVISION_ID_TEXT] = 'revision-id';
@@ -58,6 +60,7 @@ function highlightComments(actions : wpconvlib.Comment[], highlightId: string | 
 export class AppComponent implements OnInit {
   browseBys = [MOST_TOXIC_TEXT];
   searchBys = [
+    ALL_TEXT,
     CONVERSATION_ID_TEXT, COMMENT_ID_TEXT, REVISION_ID_TEXT, PAGE_ID_TEXT,
     PAGE_TITLE_TEXT
   ];
@@ -118,14 +121,14 @@ export class AppComponent implements OnInit {
     });
     this.browseForm = formBuilder.group({
       browseBy: new FormControl(browseBy, Validators.required),
-      browseUpper: new FormControl(browseUpper, Validators.required),
-      browseLower: new FormControl(browseLower, Validators.required),
+      //      browseUpper: new FormControl(browseUpper, Validators.required),
+      //browseLower: new FormControl(browseLower, Validators.required),
+      searchBy: new FormControl(searchBy, Validators.required),
+      //      searchFor: new FormControl(searchFor, Validators.required),
     });
-
-
-    if (searchFor && searchBy && this.embed) {
-      this.submitSearch();
-    }
+    //    if (searchFor && searchBy && this.embed) {
+    //      this.submitSearch();
+    //    }
     if (browseUpper && browseLower && browseBy && this.embed) {
       this.submitBrowse();
     }
@@ -225,14 +228,15 @@ export class AppComponent implements OnInit {
                 });
   }
 
+
   submitBrowse() {
     console.log('model-based browse form submitted');
     console.log(this.browseForm.value);
-    this.updateLocationHash(null, null, this.browseForm.value.browseBy, this.browseForm.value.browseUppder, this.browseForm.value.browseLower);
-    this.browseByScore(this.browseForm.value.browseBy, this.browseForm.value.browseUpper, this.browseForm.value.browseLower, 'DESC');
+    this.updateLocationHash(this.browseForm.value.searchBy, this.browseForm.value.searchFor, this.browseForm.value.browseBy, this.browseForm.value.browseUppder, this.browseForm.value.browseLower);
+    this.browseByScore(this.browseForm.value.browseBy, this.browseForm.value.browseUpper, this.browseForm.value.browseLower, URL_PART_FOR_SEARCHBY[this.browseForm.value.searchBy], this.browseForm.value.searchFor, 'DESC');
   }
 
-  browseByScore(browseBy : string, browseUpper: number, browseLower: number, order: string) {
+  browseByScore(browseBy : string, browseUpper: number, browseLower: number, searchBy: string, searchFor: string, order: string) {
     this.errorMessage = null;
     console.log(browseUpper, browseLower);
 
@@ -240,7 +244,7 @@ export class AppComponent implements OnInit {
         this.http
             .get(encodeURI(
                 '/api/' + URL_PART_FOR_BROWSEBY[browseBy] +
-              '/' + browseUpper+ '/' + browseLower + '/' + order))
+              '/' + browseUpper+ '/' + browseLower + '/' + order + '/' + searchBy + '/' + searchFor))
             .subscribe(
                 (comments: wpconvlib.Comment[]) => {
                   console.log('got comments!');
