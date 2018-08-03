@@ -74,6 +74,8 @@ class TestWikiIngester(unittest.TestCase):
     for i, line in enumerate(wiki_ingester.parse_stream(input_file)):
         if i == 0:
           self.assertEqual(line['comment'], 'a test comment 1')
+          self.assertEqual(line['user_text'], '111.111.111.111')
+          self.assertEqual(line['user_id'], None)
         if i == 1:
           self.assertEqual(line['page_title'], 'Third Page (namespace 1)')
           self.assertEqual(line['text'], ' The first revision on the third page. Written by Tinker JJ. Has a comment.')
