@@ -9,7 +9,7 @@
   <form [formGroup]="browseForm" (submit)="submitBrowse()">
 
   <button mat-button type="button"
-    [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Browse by
+    [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Sort by
   </button>
   <mat-menu #menu="matMenu">
     <mat-radio-group class="browseby-radio-group"
@@ -22,17 +22,27 @@
   Score in the range of
 
   <mat-form-field class="browse-text">
-    <input matInput type="text" placeholder="Minimum value 0"
+    <input matInput type="text" [value]="0" placeholder="Minimum value 0"
           formControlName="browseLower">
   </mat-form-field>
 
   to
 
   <mat-form-field class="browse-text">
-    <input matInput type="text" placeholder="Maximum value 1"
+    <input matInput type="text" [value]="1" placeholder="Maximum value 1"
           formControlName="browseUpper">
   </mat-form-field>
 
+  <mat-select placeholder="Search in" formControlName="searchBy">
+    <mat-option *ngFor="let s of searchBys" [value]="s">
+       {{s}}
+    </mat-option>
+  </mat-select>
+
+  <mat-form-field class="search-text">
+    <input matInput type="text" [value]="'All'" placeholder="Default: all in Wikipedia"
+          formControlName="searchFor">
+  </mat-form-field> 
 
   <button mat-raised-button
     [disabled]="!browseForm.valid || inFlightBrowseRequest !== undefined"
@@ -40,36 +50,6 @@
   </form>
 
   <mat-progress-bar *ngIf="inFlightBrowseRequest" mode="query"></mat-progress-bar>
-</div>
-
-
-<div *ngIf="!embed">
-  <form [formGroup]="searchForm" (submit)="submitSearch()">
-
-
-  <button mat-button type="button"
-    [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Search by
-  </button>
-  <mat-menu #menu="matMenu">
-    <mat-radio-group class="searchby-radio-group"
-        (change)="updateLocationHash()"
-        formControlName="searchBy">
-      <mat-radio-button class="searchby-radio-button" *ngFor="let s of searchBys"
-        [value]="s">{{s}}</mat-radio-button>
-    </mat-radio-group>
-  </mat-menu>
-
-  <mat-form-field class="search-text">
-    <input matInput type="text" placeholder="{{searchForm.value.searchBy}}"
-          formControlName="searchFor">
-  </mat-form-field>
-
-  <button mat-raised-button
-    [disabled]="!searchForm.valid || inFlightRequest !== undefined"
-    type="submit" color="primary">Search</button>
-  </form>
-
-  <mat-progress-bar *ngIf="inFlightRequest" mode="query"></mat-progress-bar>
 </div>
 
 <div *ngIf="errorMessage" class="errorMessage">{{errorMessage}}</div>
