@@ -21,8 +21,8 @@
 # Specify the language and the dumpdate of the data you want to process, run
 # with ./run_pipeline.sh
 
-language=de
-dumpdate=20180601
+language=en
+dumpdate=20180701
 
 # Download the Dump
 
