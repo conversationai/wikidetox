@@ -68,9 +68,9 @@ def run(known_args, pipeline_args):
   else:
     pipeline_args.append('--runner=DataflowRunner')
   pipeline_args.extend([
-    '--project=wikidetox-viz',
-    '--staging_location=gs://wikidetox-viz-dataflow/staging',
-    '--temp_location=gs://wikidetox-viz-dataflow/tmp',
+    '--project={project}'.format(project=known_args.project),
+    '--staging_location=gs://{bucket}/staging'.format(bucket=known_args.bucket),
+    '--temp_location=gs://{bucket}/tmp'.format(bucket=known_args.bucket),
     '--job_name=reconstruction-{}'.format(known_args.output_name),
     '--num_workers=80'
   ])
@@ -82,10 +82,10 @@ def run(known_args, pipeline_args):
   with beam.Pipeline(options=pipeline_options) as p:
     # Identify Input Locations
     revision_location = known_args.input
-    tmp_input = "gs://wikidetox-viz-dataflow/%s/revs/" % known_args.process_file
-    last_revision_location = "gs://wikidetox-viz-dataflow/%s/current/last_rev*" % known_args.process_file
-    page_state_location = "gs://wikidetox-viz-dataflow/%s/current/page_states*" % known_args.process_file
-    error_log_location = "gs://wikidetox-viz-dataflow/%s/current/error_log*" % known_args.process_file
+    tmp_input = "gs://{bucket}/{process_file}/revs/".format(bucket=known_args.bucket, process_file=known_args.process_file)
+    last_revision_location = "gs://{bucket}/{process_file}/current/last_rev*".format(bucket=known_args.bucket, process_file=known_args.process_file)
+    page_state_location = "gs://{bucket}/{process_file}/current/page_states*".format(bucket=known_args.bucket, process_file=known_args.process_file)
+    error_log_location = "gs://{bucket}/{process_file}/current/error_log*".format(bucket=known_args.bucket, known_args.process_file=known_args.process_file)
 
     # Read from Cloud Storage
     revision_metadata = (p | 'ReadRevisionMetadata' >> beam.io.ReadFromText(revision_location)
@@ -114,10 +114,10 @@ def run(known_args, pipeline_args):
                    | beam.ParDo(ReconstructConversation(), tmp_input).with_outputs('page_states',\
                                'last_revision','error_log',  main = 'reconstruction_results'))
     # Main Result
-    reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://wikidetox-viz-dataflow/reconstructed_res/%s/revisions-" % jobname)
+    reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://{bucket}/reconstructed_res/{jobname}/revisions-".format(bucket=known_args.bucket, jobname))
 
     # Saving intermediate results to separate locations.
-    folder = "gs://wikidetox-viz-dataflow/%s/next_stage/" % known_args.process_file
+    folder = "gs://{bucket}/{process_file}/next_stage/".format(bucket=known_args.bucket, process_file=known_args.process_file)
     page_states | "WritePageStates" >> beam.io.WriteToText(folder + "page_states")
     last_rev_output | "WriteCollectedLastRevision" >> beam.io.WriteToText(folder + "last_rev")
     error_log | "WriteErrorLog" >> beam.io.WriteToText(folder + "error_log")
@@ -318,6 +318,12 @@ if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
   parser = argparse.ArgumentParser()
   # input/output parameters.
+  parser.add_argument('--project',
+                      dest='project',
+                      help='Google cloud project name.')
+  parser.add_argument('--bucket',
+                      dest='bucket',
+                      help='The bucket name for the conversation reconstruction process.')
   parser.add_argument('--input',
                       dest='input',
                       help='input storage.')
