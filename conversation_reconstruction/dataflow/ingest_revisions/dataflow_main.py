@@ -102,7 +102,7 @@ def run(known_args, pipeline_args, sections):
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
     '--job_name=ingest-latest-revisions-{lan}'.format(lan=known_args.language),
-    '--max_num_workers=80',
+    '--num_workers=80',
   ])
 
   pipeline_options = PipelineOptions(pipeline_args)
@@ -113,8 +113,8 @@ def run(known_args, pipeline_args, sections):
        pcoll = (pcoll | "DownloadDataDumps" >> beam.ParDo(DownloadDataDumps(), known_args.bucket))
     else:
        pcoll = ( pcoll | "Ingestion" >> beam.ParDo(WriteDecompressedFile(), known_args.bucket, known_args.ingestFrom)
-            | "AddGroupByKey" >> beam.Map(lambda x: ('{week}at{year}'.format(week=x['week'], year=x['year']), x))
-            | "ShardByWeek" >>beam.GroupByKey()
+            | "AddGroupByKey" >> beam.Map(lambda x: ('{year}'.format(year=x['year']), x))
+            | "ShardByYear" >>beam.GroupByKey()
             | "WriteToStorage" >> beam.ParDo(WriteToStorage(), known_args.output, known_args.dumpdate, known_args.language))
 
 class DownloadDataDumps(beam.DoFn):
@@ -157,11 +157,10 @@ class WriteDecompressedFile(beam.DoFn):
     cur_page_revision_cnt = 0
     for i, content in enumerate(parse_stream(bz2.BZ2File(chunk_name))):
       self.processed_revisions.inc()
-      # Add the week and year field for sharding
+      # Add the year field for sharding
       dt = datetime.strptime(content['timestamp'], "%Y-%m-%dT%H:%M:%SZ")
-      year, week = dt.isocalendar()[:2]
+      year = dt.isocalendar()[:1]
       content['year'] = year
-      content['week'] = week
       last_revision = content['rev_id']
       yield content
       logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=last_revision, time=time.time() - last_completed))
@@ -184,10 +183,10 @@ class WriteDecompressedFile(beam.DoFn):
 class WriteToStorage(beam.DoFn):
   def process(self, element, outputdir, dumpdate, language):
       (key, val) = element
-      week, year = [int(x) for x in key.split('at')]
+      year = int(key)
       cnt = 0
-      # Creates writing path given the week, year pair
-      date_path = "{outputdir}/{date}-{lan}/date-{week}at{year}/".format(outputdir=outputdir, date=dumpdate, lan=language, week=week, year=year)
+      # Creates writing path given the year pair
+      date_path = "{outputdir}/{date}-{lan}/date-{year}/".format(outputdir=outputdir, date=dumpdate, lan=language, year=year)
       file_path = 'revisions-{cnt:06d}.json'
       write_path = path.join(date_path, file_path.format(cnt=cnt))
       while filesystems.FileSystems.exists(write_path):

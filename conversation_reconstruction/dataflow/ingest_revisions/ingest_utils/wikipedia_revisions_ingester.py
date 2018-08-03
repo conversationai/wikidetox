@@ -29,7 +29,7 @@ import hashlib
 
 
 TALK_PAGE_NAMESPACE = ['1', '3', '5', '7', '9', '11', '13', '15', "101", "109", "119", "447", "711", "829", "2301", "2303"]
-FIELDS = ['comment', 'format', 'model', 'rev_id', 'timestamp', 'sha1', 'text', 'user_id', 'user_text', 'user_ip', 'page_id', 'page_title', 'page_namespace']
+FIELDS = ['comment', 'format', 'model', 'rev_id', 'timestamp', 'sha1', 'text', 'user_id', 'user_text', 'page_id', 'page_title', 'page_namespace']
 
 def process_revision(namespace_length, rev):
     """Extracts information from individual revision."""
@@ -41,7 +41,7 @@ def process_revision(namespace_length, rev):
            if tag == "id": ret['rev_id'] = ele.text
            else: ret[tag] = ele.text
         elif parent == "contributor" and tag in ['id', 'username', 'ip']:
-          if tag == 'username' or tag == 'ip': ret['user_text'] = ele.text
+          if (tag == 'username' or tag == 'ip'): ret['user_text'] = ele.text
           else: ret['user_' + tag] = ele.text
     return ret
 
