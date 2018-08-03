@@ -69,7 +69,7 @@ class FormatClean(beam.DoFn):
   def __init__(self):
     self.processed_records = Metrics.counter(self.__class__, 'processed_records')
     self.parsing_errors = Metrics.counter(self.__class__, 'parsing_errors')
-    self.schema = 'timestamp,user_id,cleaned_content,user_text,content,parent_id,replyTo_id,page_id,indentation,authors,conversation_id,page_title,type,id,ancestor_id,rev_id'
+    self.schema = 'ancestor_id,authors,cleaned_content,content,conversation_id,id,indentation,page_id,page_title,parent_id,replyTo_id,rev_id,timestamp,type,user_id,user_text'
     self.fields = self.schema.split(',')
 
   def clean_schema(self, x):
@@ -99,8 +99,9 @@ class FormatClean(beam.DoFn):
       # MediaWiki formats cleaned only in the case of a success run of subprocess.
       element['cleaned_content'] = content_clean(element['content'])
     # Avoid nested arrays.
-    temp = [u'{userid}:{username}'.format(userid=author[0] if author[0] is not None else 'ANONYMOUS',
-                                         username=author[1] if author[1] is not None else 'ANONYMOUS') for author in element['authors']]
+    temp = [u'{userid}:{username}'.format(
+        userid=author[0] if author[0] is not None else 'ANONYMOUS',
+        username=author[1] if author[1] is not None else 'ANONYMOUS') for author in element['authors']]
     element['authors'] = temp
     yield json.dumps(self.clean_schema(element))
 

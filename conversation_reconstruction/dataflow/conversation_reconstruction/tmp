@@ -1,0 +1,2 @@
+x = 'timestamp,user_id,cleaned_content,user_text,content,parent_id,replyTo_id,page_id,indentation,authors,conversation_id,page_title,type,id,ancestor_id,rev_id'.split(',')
+print(','.join(sorted(x)))

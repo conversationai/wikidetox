@@ -29,7 +29,7 @@ echo ${pathToVirtualEnv}
 cd ingest_revisions
 . ${pathToVirtualEnv}/bin/activate
 python dataflow_main.py --setup_file ./setup.py --download --ingestFrom=wikipedia --language=${language} --dumpdate=${dumpdate} --cloudBucket=${cloudBucket}/raw-downloads/${language}-${dumpdate} --project ${cloudProject} --bucket ${cloudBucket}|| exit 1
-. ${pathToVirtualEnv}/bin/deactivate
+deactivate
 cd ..
 
 # Ingest dump into Json
@@ -37,7 +37,7 @@ cd ..
 cd ingest_revisions
 . ${pathToVirtualEnv}/bin/activate
 python dataflow_main.py --setup_file ./setup.py --ingestFrom=cloud --language=${language} --dumpdate=${dumpdate} --cloudBucket=${cloudBucket}/raw-downloads/${language}-${dumpdate} --output=gs://${cloudBucket}/ingested --project ${cloudProject} --bucket ${cloudBucket}|| exit 1
-. ${pathToVirtualEnv}/bin/deactivate
+deactivate
 cd ..
 
 # Initialize Page States
@@ -54,7 +54,7 @@ gsutil -m cp empty_file gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/
 cd conversation_reconstruction
 . ${pathToVirtualEnv}/bin/activate
 python dataflow_main.py --input gs://${cloudBucket}/ingested/${dumpdate}-${language}/*/revisions*.json --setup_file ./setup.py --output_name ${language}${dumpdate} --process_file process_tmp_${language}_${dumpdate} --project ${cloudProject} --bucket ${cloudBucket}|| exit 1
-. ${pathToVirtualEnv}/bin/deactivate
+deactivate
 cd ..
 
 # Move results
@@ -66,5 +66,5 @@ gsutil -m mv gs://${cloudBucket}/reconstructed_res gs://${cloudBucket}/wikiconv_
 cd conversation_reconstruction
 . ${pathToVirtualEnv}/bin/activate
 python dataflow_content_clean.py --input gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/reconstructed_results/*/revisions* --setup_file ./setup.py --output gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/cleaned_results/wikiconv-${language}-${dumpdate}- --error_log=gs://${cloudBucket}/format-clean/error_log_${language}_${dumpdate}- --jobname=${language}${dumpdate} --project ${cloudProject} --bucket ${cloudBucket} || exit 1
-. ${pathToVirtualEnv}/bin/deactivate
+deactivate
 cd ..
