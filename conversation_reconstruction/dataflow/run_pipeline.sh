@@ -21,50 +21,50 @@
 # Specify the language and the dumpdate of the data you want to process, run
 # with ./run_pipeline.sh
 
-language=en
-dumpdate=20180701
+. config/wikiconv.config
+echo ${pathToVirtualEnv}
 
 # Download the Dump
 
 cd ingest_revisions
-source activate python2
-python dataflow_main.py --setup_file ./setup.py --download --ingestFrom=wikipedia --language=${language} --dumpdate=${dumpdate} --cloudBucket=wikidetox-viz-dataflow/raw-downloads/${language}-${dumpdate} || exit 1
-source deactivate
+. ${pathToVirtualEnv}/bin/activate
+python dataflow_main.py --setup_file ./setup.py --download --ingestFrom=wikipedia --language=${language} --dumpdate=${dumpdate} --cloudBucket=${cloudBucket}/raw-downloads/${language}-${dumpdate} --project ${cloudProject} --bucket ${cloudBucket}|| exit 1
+. ${pathToVirtualEnv}/bin/deactivate
 cd ..
 
 # Ingest dump into Json
 
 cd ingest_revisions
-source activate python2
-python dataflow_main.py --setup_file ./setup.py --ingestFrom=cloud --language=${language} --dumpdate=${dumpdate} --cloudBucket=wikidetox-viz-dataflow/raw-downloads/${language}-${dumpdate} --output=gs://wikidetox-viz-dataflow/ingested || exit 1
-source deactivate
+. ${pathToVirtualEnv}/bin/activate
+python dataflow_main.py --setup_file ./setup.py --ingestFrom=cloud --language=${language} --dumpdate=${dumpdate} --cloudBucket=${cloudBucket}/raw-downloads/${language}-${dumpdate} --output=gs://${cloudBucket}/ingested --project ${cloudProject} --bucket ${cloudBucket}|| exit 1
+. ${pathToVirtualEnv}/bin/deactivate
 cd ..
 
 # Initialize Page States
 
-gsutil -m rm -r gs://wikidetox-viz-dataflow/process_tmp_${language}_${dumpdate}/next_stage/*
-gsutil -m rm -r gs://wikidetox-viz-dataflow/process_tmp_${language}_${dumpdate}/current/*
-gsutil -m rm -r gs://wikidetox-viz-dataflow/process_tmp_${language}_${dumpdate}/bakup/*
+gsutil -m rm -r gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/next_stage/*
+gsutil -m rm -r gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/*
+gsutil -m rm -r gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/bakup/*
 
-gsutil -m cp empty_file gs://wikidetox-viz-dataflow/process_tmp_${language}_${dumpdate}/current/last_rev
-gsutil -m cp empty_file gs://wikidetox-viz-dataflow/process_tmp_${language}_${dumpdate}/current/page_states
-gsutil -m cp empty_file gs://wikidetox-viz-dataflow/process_tmp_${language}_${dumpdate}/current/error_log
+gsutil -m cp empty_file gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/last_rev
+gsutil -m cp empty_file gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/page_states
+gsutil -m cp empty_file gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/error_log
 
 # Start Reconstruction
 cd conversation_reconstruction
-source activate python2
-python dataflow_main.py --input gs://wikidetox-viz-dataflow/ingested/${dumpdate}-${language}/*/revisions*.json --setup_file ./setup.py --output_name ${language}${dumpdate} --process_file process_tmp_${language}_${dumpdate} || exit 1
-source deactivate
+. ${pathToVirtualEnv}/bin/activate
+python dataflow_main.py --input gs://${cloudBucket}/ingested/${dumpdate}-${language}/*/revisions*.json --setup_file ./setup.py --output_name ${language}${dumpdate} --process_file process_tmp_${language}_${dumpdate} --project ${cloudProject} --bucket ${cloudBucket}|| exit 1
+. ${pathToVirtualEnv}/bin/deactivate
 cd ..
 
 # Move results
-gsutil -m rm -r gs://wikidetox-viz-dataflow/process_tmp_${language}_${dumpdate}/revs
-gsutil -m mv gs://wikidetox-viz-dataflow/process_tmp_${language}_${dumpdate}/next_stage/ gs://wikidetox-viz-dataflow/wikiconv_v2/${language}-${dumpdate}/page_states
-gsutil -m mv gs://wikidetox-viz-dataflow/reconstructed_res gs://wikidetox-viz-dataflow/wikiconv_v2/${language}-${dumpdate}/reconstructed_results
+gsutil -m rm -r gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/revs
+gsutil -m mv gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/next_stage/ gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/page_states
+gsutil -m mv gs://${cloudBucket}/reconstructed_res gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/reconstructed_results
 
 # Clean Result Format
 cd conversation_reconstruction
-source activate python2
-python dataflow_content_clean.py --input gs://wikidetox-viz-dataflow/wikiconv_v2/${language}-${dumpdate}/reconstructed_results/*/revisions* --setup_file ./setup.py --output gs://wikidetox-viz-dataflow/wikiconv_v2/${language}-${dumpdate}/cleaned_results/wikiconv-${language}-${dumpdate}- --error_log=gs://wikidetox-viz-dataflow/format-clean/error_log_${language}_${dumpdate}- --jobname=${language}${dumpdate} || exit 1
-source deactivate
+. ${pathToVirtualEnv}/bin/activate
+python dataflow_content_clean.py --input gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/reconstructed_results/*/revisions* --setup_file ./setup.py --output gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/cleaned_results/wikiconv-${language}-${dumpdate}- --error_log=gs://${cloudBucket}/format-clean/error_log_${language}_${dumpdate}- --jobname=${language}${dumpdate} --project ${cloudProject} --bucket ${cloudBucket} || exit 1
+. ${pathToVirtualEnv}/bin/deactivate
 cd ..

@@ -19,7 +19,7 @@ A dataflow pipeline to clean scored outputs.
 
 Run with:
 
-  python dataflow_clean_output.py --setup_file ./setup.py --input=InputStorage --output=OutputStorage
+  python dataflow_clean_output.py --setup_file ./setup.py --input=InputStorage --output=OutputStorage --project=YourCloudProject --bucket=YourCloudBucket
 
 """
 from __future__ import absolute_import
@@ -48,9 +48,9 @@ def run(known_args, pipeline_args):
     pipeline_args.append('--runner=DataflowRunner')
 
   pipeline_args.extend([
-    '--project=wikidetox-viz',
-    '--staging_location=gs://wikidetox-viz-dataflow/staging',
-    '--temp_location=gs://wikidetox-viz-dataflow/tmp',
+    '--project={project}'.format(project=known_args.project),
+    '--staging_location=gs://{bucket}/staging'.format(bucket=known_args.bucket),
+    '--temp_location=gs://{bucket}/tmp'.format(bucket=known_args.bucket),
     '--job_name=scoring-formatting',
     '--num_workers=80'])
   pipeline_options = PipelineOptions(pipeline_args)
