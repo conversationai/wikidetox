@@ -74,7 +74,7 @@ export function setup(
     }
   });
 
-  app.get('/api/toxicity/:upper_score/:lower_score/:order', async (req, res) => {
+  app.get('/api/toxicity/:upper_score/:lower_score/:order/:searchBy/:searchFor', async (req, res) => {
     try {
       const upper_score: number = runtime_types.assertNumber(req.params.upper_score);
       const lower_score: number = runtime_types.assertNumber(req.params.lower_score);
@@ -83,11 +83,43 @@ export function setup(
       if (order === 'ASC') {
         index = index + '_ASC';
       }
-
+      let searchQuery = '';
+      switch (req.params.searchBy) {
+        case 'page_id': {
+          const page_id: runtime_types.PageId =
+              runtime_types.PageId.assert(req.params.page_id);
+          searchQuery = ` and page_id = ${page_id} `;
+          break;
+        }
+        case 'page_title': {
+          const page_title: runtime_types.PageTitle =
+            runtime_types.PageTitle.assert(req.params.page_title);
+          searchQuery = ` and page_title = "${page_title}" `;
+          break;
+        }
+        case 'rev_id': {
+          const rev_id: runtime_types.RevId =
+            runtime_types.RevId.assert(req.params.RevId);
+          searchQuery = ` and rev_id= ${rev_id} `;
+          break;
+        }
+        case 'comment_id': {
+          const comment_id: runtime_types.CommentId=
+            runtime_types.CommentId.assert(req.params.CommentId);
+          searchQuery = ` and comment_id= ${comment_id} `;
+          break;
+        }
+        case 'conversation_id': {
+          const conversation_id: runtime_types.ConversationId=
+            runtime_types.ConversationId.assert(req.params.ConversationId);
+          searchQuery = ` and conversation_id = ${conversation_id}`;
+          break;
+        }
+      }
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
              FROM ${table}@{FORCE_INDEX=${index}}
-             WHERE RockV6_1_TOXICITY < ${upper_score} and RockV6_1_TOXICITY > ${lower_score} and type != "DELETION"
+             WHERE RockV6_1_TOXICITY < ${upper_score} and RockV6_1_TOXICITY > ${lower_score} and type != "DELETION"${searchQuery}
              ORDER BY RockV6_1_TOXICITY ${order}
              LIMIT 20`;
       // Query options list:
