@@ -90,9 +90,9 @@ export class AppComponent implements OnInit {
     let browseUpper : number | null = null;
     let browseLower : number | null = null;
 
-    console.log(`init-hash: ${document.location.hash}`);
+    console.log(`init-hash: ${decodeURI(document.location.hash.substr(1))}`);
     try {
-      const hashObj: HashObj = JSON.parse(document.location.hash.substr(1));
+      const hashObj: HashObj = JSON.parse(decodeURI(document.location.hash.substr(1)));
       if (hashObj.searchBy) {
         searchBy = hashObj.searchBy;
         searchFor = hashObj.searchFor;
@@ -127,7 +127,8 @@ export class AppComponent implements OnInit {
       searchFor: new FormControl(searchFor, ),
     });
     this.searchScopeChanged();
-    if (browseUpper && browseLower && browseBy && this.embed) {
+    if (searchBy && browseUpper && browseLower && browseBy &&
+       this.embed && (searchFor || searchBy === 'All'))  {
       this.submitBrowse();
     }
 
@@ -244,7 +245,7 @@ export class AppComponent implements OnInit {
     console.log('model-based browse form submitted');
     console.log(this.browseForm.value);
     this.updateLocationHash(this.browseForm.value.searchBy, this.browseForm.value.searchFor, this.browseForm.value.browseBy, this.browseForm.value.browseUppder, this.browseForm.value.browseLower);
-    this.browseByScore(this.browseForm.value.browseBy, this.browseForm.value.browseUpper, this.browseForm.value.browseLower, URL_PART_FOR_SEARCHBY[this.browseForm.value.searchBy], this.browseForm.value.searchFor, 'DESC');
+    this.browseByScore(this.browseForm.value.browseBy, this.browseForm.value.browseUpper, this.browseForm.value.browseLower, this.browseForm.value.searchBy, this.browseForm.value.searchFor, 'DESC');
   }
 
   browseByScore(browseBy : string, browseUpper: number, browseLower: number, searchBy: string, searchFor: string, order: string) {
@@ -255,7 +256,7 @@ export class AppComponent implements OnInit {
         this.http
             .get(encodeURI(
                 '/api/' + URL_PART_FOR_BROWSEBY[browseBy] +
-              '/' + browseUpper+ '/' + browseLower + '/' + order + '/' + searchBy + '/' + searchFor))
+              '/' + browseUpper+ '/' + browseLower + '/' + order + '/' + URL_PART_FOR_SEARCHBY[searchBy] + '/' + searchFor))
             .subscribe(
                 (comments: wpconvlib.Comment[]) => {
                   console.log('got comments!');
@@ -274,7 +275,7 @@ export class AppComponent implements OnInit {
                     this.scoreLower = (commentScore !== null && commentScore < this.scoreLower) ? commentScore : this.scoreLower;
                     this.scoreUpper = (commentScore !== null && commentScore > this.scoreUpper) ? commentScore : this.scoreUpper;
                   }
-                  this.updateLocationHash(null, null, browseBy, this.scoreUpper, this.scoreLower);
+                  this.updateLocationHash(searchBy, searchFor, browseBy, this.scoreUpper, this.scoreLower);
                   if (order == 'ASC') {comments = comments.reverse();}
                   this.scoreCategory = browseBy;
                   this.answerComments = comments;
