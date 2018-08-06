@@ -15,11 +15,13 @@ limitations under the License.
 
 -------------------------------------------------------------------------------
 
-A dataflow pipeline to clean scored outputs.
+A dataflow pipeline to clean outputs scored by Perspective API internally, replacing
+':' in fields by '_'.
 
 Run with:
 
-  python dataflow_clean_output.py --setup_file ./setup.py --input=InputStorage --output=OutputStorage --project=YourCloudProject --bucket=YourCloudBucket
+"  python dataflow_clean_output.py --setup_file ./setup.py --input=InputStorage --output=OutputStorage
+   --project=YourCloudProject --bucket=YourCloudBucket"
 
 """
 from __future__ import absolute_import
@@ -59,10 +61,10 @@ def run(known_args, pipeline_args):
   # Queries extracting the data
   with beam.Pipeline(options=pipeline_options) as p:
        p = (p | beam.io.ReadFromText(known_args.input)
-            | beam.ParDo(FormatClean())
+            | beam.ParDo(FieldNameFormatCleanForBigQuery())
             | "WriteResult" >> beam.io.WriteToText(known_args.output))
 
-class FormatClean(beam.DoFn):
+class FieldNameFormatCleanForBigQuery(beam.DoFn):
 
   def process(self, element):
     """Replacing : in the field to _ for BigQuery loading."""
@@ -76,6 +78,9 @@ if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
   parser = argparse.ArgumentParser()
   # Input/Output parameters
+  parser.add_argument('--project',
+                      dest='project',
+                      help='The cloud project.')
   parser.add_argument('--input',
                       dest='input',
                       help='Input storage.')
