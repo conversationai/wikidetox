@@ -85,31 +85,31 @@ export function setup(
       }
       let searchQuery = '';
       switch (req.params.searchBy) {
-        case 'page_id': {
+        case 'page-id': {
           const page_id: runtime_types.PageId =
-              runtime_types.PageId.assert(req.params.page_id);
+              runtime_types.PageId.assert(req.params.searchFor);
           searchQuery = ` and page_id = ${page_id} `;
           break;
         }
-        case 'page_title': {
-          const page_title: runtime_types.PageTitle =
-            runtime_types.PageTitle.assert(req.params.page_title);
+        case 'page-title': {
+          const page_title: runtime_types.PageTitleSearch =
+            runtime_types.PageTitleSearch.assert(req.params.searchFor);
           searchQuery = ` and page_title = "${page_title}" `;
           break;
         }
-        case 'rev_id': {
-          const rev_id: runtime_types.RevId =
-            runtime_types.RevId.assert(req.params.RevId);
+        case 'rev-id': {
+          const rev_id: runtime_types.RevisionId =
+            runtime_types.RevisionId.assert(req.params.searchFor);
           searchQuery = ` and rev_id= ${rev_id} `;
           break;
         }
-        case 'comment_id': {
+        case 'comment-id': {
           const comment_id: runtime_types.CommentId=
-            runtime_types.CommentId.assert(req.params.CommentId);
+            runtime_types.CommentId.assert(req.params.searchFor);
           searchQuery = ` and comment_id= ${comment_id} `;
           break;
         }
-        case 'conversation_id': {
+        case 'conversation-id': {
           const conversation_id: runtime_types.ConversationId=
             runtime_types.ConversationId.assert(req.params.ConversationId);
           searchQuery = ` and conversation_id = ${conversation_id}`;

@@ -121,14 +121,12 @@ export class AppComponent implements OnInit {
     });
     this.browseForm = formBuilder.group({
       browseBy: new FormControl(browseBy, Validators.required),
-      //      browseUpper: new FormControl(browseUpper, Validators.required),
-      //browseLower: new FormControl(browseLower, Validators.required),
+      browseUpper: new FormControl(browseUpper, Validators.required),
+      browseLower: new FormControl(browseLower, Validators.required),
       searchBy: new FormControl(searchBy, Validators.required),
-      //      searchFor: new FormControl(searchFor, Validators.required),
+      searchFor: new FormControl(searchFor, ),
     });
-    //    if (searchFor && searchBy && this.embed) {
-    //      this.submitSearch();
-    //    }
+    this.searchScopeChanged();
     if (browseUpper && browseLower && browseBy && this.embed) {
       this.submitBrowse();
     }
@@ -152,6 +150,19 @@ export class AppComponent implements OnInit {
       objToEncode.highlightId = this.highlightId;
     }
     document.location.hash = JSON.stringify(objToEncode);
+  }
+
+  searchScopeChanged() {
+    const searchValue = this.browseForm.get('searchFor');
+    this.browseForm.get('searchBy').valueChanges.subscribe(
+      (scope: string) => {
+        if (scope === 'All') {
+          searchValue.clearValidators();
+        } else {
+          searchValue.setValidators([Validators.required]);
+        }
+        searchValue.updateValueAndValidity();
+      });
   }
 
   fetchConversations(actions: wpconvlib.Comment[]) {
@@ -238,7 +249,7 @@ export class AppComponent implements OnInit {
 
   browseByScore(browseBy : string, browseUpper: number, browseLower: number, searchBy: string, searchFor: string, order: string) {
     this.errorMessage = null;
-    console.log(browseUpper, browseLower);
+    console.log(browseUpper, browseLower, searchBy);
 
     this.inFlightBrowseRequest =
         this.http
