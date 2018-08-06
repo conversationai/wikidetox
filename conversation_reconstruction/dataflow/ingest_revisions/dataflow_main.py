@@ -164,7 +164,7 @@ class WriteDecompressedFile(beam.DoFn):
       self.processed_revisions.inc()
       # Add the year field for sharding
       dt = datetime.strptime(content['timestamp'], "%Y-%m-%dT%H:%M:%SZ")
-      conent['year'] = dt.isocalendar()[0]
+      content['year'] = dt.isocalendar()[0]
       last_revision = content['rev_id']
       yield content
       logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=last_revision, time=time.time() - last_completed))
