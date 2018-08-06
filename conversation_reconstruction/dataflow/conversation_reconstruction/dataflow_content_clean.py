@@ -53,11 +53,11 @@ def run(known_args, pipeline_args):
     pipeline_args.append('--runner=DataflowRunner')
 
   pipeline_args.extend([
-    '--project={project}',
-    '--staging_location=gs://{bucket}/staging',
-    '--temp_location=gs://{bucket}/tmp',
-    '--job_name=resultformatting-{}'.format(known_args.jobname),
-    '--num_workers=80'])
+      '--project={project}'.format(project=known_args.project),
+      '--staging_location=gs://{bucket}/staging'.format(bucket=known_args.bucket),
+      '--temp_location=gs://{bucket}/tmp'.format(bucket=known_args.bucket),
+      '--job_name=resultformatting-{}'.format(known_args.jobname),
+      '--num_workers=80'])
   pipeline_options = PipelineOptions(pipeline_args)
   pipeline_options.view_as(SetupOptions).save_main_session = True
 
