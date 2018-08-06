@@ -3,11 +3,8 @@
   white-space: pre;
 }
 
-.searchby-radio-group {
-
-}
-.searchby-radio-button {
-  display: block;
+.searchby-dropdown {
+  width: 200px;
 }
 
 .errorMessage {
