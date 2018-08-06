@@ -27,14 +27,19 @@ Args:
 ingestFrom: choose from the three options : {wikipedia, local, cloud}:
   - wikipedia: performs the downloading job from Wikipedia, run with:
                [python dataflow_main.py --setup_file ./setup.py\
-                   --ingestFrom=wikipedia --download --language=YourLanguage --dumpdate=YourDumpdate --cloudBucket=YourCloudBucket --project=YourGoogleCloudProject --bucket=TemporaryFileBucket]
+                   --ingestFrom=wikipedia --download --language=YourLanguage\
+                   --dumpdate=YourDumpdate --cloudBucket=YourCloudBucket\
+                   --project=YourGoogleCloudProject --bucket=TemporaryFileBucket]
   - local: Tests the pipeline locally, run the code with
            [python dataflow_main.py --setup_file ./setup.py\
-            --ingestFrom=local --localStorage=YourLocalStorage --testmode --output=YourOutputStorage --project=YourGoogleCloudProject --bucket=TemporaryFileBucket]
+            --ingestFrom=local --localStorage=YourLocalStorage --testmode\
+            --output=YourOutputStorage --project=YourGoogleCloudProject\
+            --bucket=TemporaryFileBucket]
   - cloud: Reads from downloaded bz2 files on cloud, performs the ingestion job,
     run the code with
            [python dataflow_main.py --setup_file ./setup.py\
-           [--ingestFrom=cloud --output=YourOutputStorage --cloudBucket=YourCloudBucket --project=YourGoogleCloudProject --bucket=TemporaryFileBucket]
+           [--ingestFrom=cloud --output=YourOutputStorage --cloudBucket=YourCloudBucket\
+           --project=YourGoogleCloudProject --bucket=TemporaryFileBucket]
 
 output: the data storage where you want to store the ingested results
 language: the language of the wikipedia data you want to extract, e.g. en, fr, zh
@@ -110,10 +115,10 @@ def run(known_args, pipeline_args, sections):
   with beam.Pipeline(options=pipeline_options) as p:
     pcoll = (p | "GetDataDumpList" >> beam.Create(sections))
     if known_args.download:
-       pcoll = (pcoll | "DownloadDataDumps" >> beam.ParDo(DownloadDataDumps(), known_args.bucket))
+       pcoll = (pcoll | "DownloadDataDumps" >> beam.ParDo(DownloadDataDumps(), known_args.cloudBucket))
     else:
-       pcoll = ( pcoll | "Ingestion" >> beam.ParDo(WriteDecompressedFile(), known_args.bucket, known_args.ingestFrom)
-            | "AddGroupByKey" >> beam.Map(lambda x: ('{year}'.format(year=x['year']), x))
+       pcoll = ( pcoll | "Ingestion" >> beam.ParDo(WriteDecompressedFile(), known_args.cloudBucket, known_args.ingestFrom)
+            | "AddGroupByKey" >> beam.Map(lambda x: (x['year'], x))
             | "ShardByYear" >>beam.GroupByKey()
             | "WriteToStorage" >> beam.ParDo(WriteToStorage(), known_args.output, known_args.dumpdate, known_args.language))
 
@@ -159,8 +164,7 @@ class WriteDecompressedFile(beam.DoFn):
       self.processed_revisions.inc()
       # Add the year field for sharding
       dt = datetime.strptime(content['timestamp'], "%Y-%m-%dT%H:%M:%SZ")
-      year = dt.isocalendar()[:1]
-      content['year'] = year
+      conent['year'] = dt.isocalendar()[0]
       last_revision = content['rev_id']
       yield content
       logging.info('CHUNK {chunk}: revision {revid} ingested, time elapsed: {time}.'.format(chunk=chunk_name, revid=last_revision, time=time.time() - last_completed))
@@ -243,7 +247,7 @@ if __name__ == '__main__':
                       dest='output',
                       help='Specify the output storage in cloud.')
   parser.add_argument('--cloudBucket',
-                      dest='bucket',
+                      dest='cloudBucket',
                       help='Specify the cloud storage location to store/stores the raw downloads.')
   parser.add_argument('--language',
                       dest='language',
@@ -273,8 +277,8 @@ if __name__ == '__main__':
         sections = directory(mirror)
   if known_args.ingestFrom == "cloud":
      sections = []
-     uri = boto.storage_uri(known_args.bucket, GOOGLE_STORAGE)
-     prefix = known_args.bucket[known_args.bucket.find('/')+1:]
+     uri = boto.storage_uri(known_args.cloudBucket, GOOGLE_STORAGE)
+     prefix = known_args.cloudBucket[known_args.cloudBucket.find('/')+1:]
      for obj in uri.list_bucket(prefix=prefix):
         sections.append(obj.name[obj.name.rfind('/') + 1:])
   if known_args.ingestFrom == 'local':

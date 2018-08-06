@@ -15,11 +15,14 @@ limitations under the License.
 
 -------------------------------------------------------------------------------
 
-A dataflow pipeline to clean MediaWiki formats in comments and convert nested array type to acceptable type in BigQuery.
+A dataflow pipeline to clean MediaWiki formats in comments and convert nested
+array type to acceptable type in BigQuery.
 
 Run with:
 
-  python dataflow_content_clean.py --setup_file ./setup.py --input=InputStorage --output=OutputStorage --jobname=YourJobName --project=YourCloudProject --bucket=YourCloudBucket
+   python dataflow_content_clean.py --setup_file ./setup.py --input=InputStorage\
+   --output=OutputStorage --jobname=YourJobName --project=YourCloudProject\
+   --bucket=YourCloudBucket
 
 """
 from __future__ import absolute_import
@@ -110,6 +113,12 @@ if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
   parser = argparse.ArgumentParser()
   # Input/Output parameters
+  parser.add_argument('--project',
+                      dest='project',
+                      help='The cloud project.')
+  parser.add_argument('--bucket',
+                      dest='bucket',
+                      help='The cloud bucket.')
   parser.add_argument('--input',
                       dest='input',
                       help='Input storage.')

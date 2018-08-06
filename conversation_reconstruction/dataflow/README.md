@@ -9,8 +9,9 @@ creating this dataset. The corresponding slides can be found
 [here](slides/WikiConv\ --\ wikishowcase.pdf).
 
 This reconstruction tool aims to show the wikipedia conversations with its full
-history.
-Rather than showing a snapshot of the conversation as in
+history; namely also including not just new posts, but also modifications, 
+deletions and reverts to them.
+For example, rather than showing a snapshot of the conversation as in
 
 ![Figure1](slides/original_conv.png)
 
@@ -20,6 +21,8 @@ The resulted the dataset includes all the actions led to it, as shown in
 
 ## Setup the environment
 
+In the current directory
+
 - Setup [your cloud project](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-python)
 - Setup [boto](https://cloud.google.com/storage/docs/boto-plugin#setup-python)
 - Setup your python environment:
@@ -28,6 +31,9 @@ The resulted the dataset includes all the actions led to it, as shown in
     - pip install -r requirements.txt
 
 ## Run the pipeline
-- Copy the config-template to config/wikiconv.config.
+- Copy template.config to config/wikiconv.config using
+```
+rsync --ignore-existing ./template.config ./config/wikiconv.config
+```
 - Fill in your own configuration.
 - Run run_pipeline.sh.

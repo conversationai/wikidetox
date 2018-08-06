@@ -22,16 +22,15 @@
 # with ./run_pipeline.sh
 
 . config/wikiconv.config
-echo ${pathToVirtualEnv}
 
-# Download the Dump
-
-cd ingest_revisions
-. ${pathToVirtualEnv}/bin/activate
-python dataflow_main.py --setup_file ./setup.py --download --ingestFrom=wikipedia --language=${language} --dumpdate=${dumpdate} --cloudBucket=${cloudBucket}/raw-downloads/${language}-${dumpdate} --project ${cloudProject} --bucket ${cloudBucket}|| exit 1
-deactivate
-cd ..
-
+## Download the Dump
+#
+#cd ingest_revisions
+#. ${pathToVirtualEnv}/bin/activate
+#python dataflow_main.py --setup_file ./setup.py --download --ingestFrom=wikipedia --language=${language} --dumpdate=${dumpdate} --cloudBucket=${cloudBucket}/raw-downloads/${language}-${dumpdate} --project ${cloudProject} --bucket ${cloudBucket}|| exit 1
+#deactivate
+#cd ..
+#
 # Ingest dump into Json
 
 cd ingest_revisions

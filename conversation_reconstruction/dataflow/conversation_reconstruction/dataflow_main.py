@@ -85,7 +85,7 @@ def run(known_args, pipeline_args):
     tmp_input = "gs://{bucket}/{process_file}/revs/".format(bucket=known_args.bucket, process_file=known_args.process_file)
     last_revision_location = "gs://{bucket}/{process_file}/current/last_rev*".format(bucket=known_args.bucket, process_file=known_args.process_file)
     page_state_location = "gs://{bucket}/{process_file}/current/page_states*".format(bucket=known_args.bucket, process_file=known_args.process_file)
-    error_log_location = "gs://{bucket}/{process_file}/current/error_log*".format(bucket=known_args.bucket, known_args.process_file=known_args.process_file)
+    error_log_location = "gs://{bucket}/{process_file}/current/error_log*".format(bucket=known_args.bucket, process_file=known_args.process_file)
 
     # Read from Cloud Storage
     revision_metadata = (p | 'ReadRevisionMetadata' >> beam.io.ReadFromText(revision_location)
@@ -114,7 +114,7 @@ def run(known_args, pipeline_args):
                    | beam.ParDo(ReconstructConversation(), tmp_input).with_outputs('page_states',\
                                'last_revision','error_log',  main = 'reconstruction_results'))
     # Main Result
-    reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://{bucket}/reconstructed_res/{jobname}/revisions-".format(bucket=known_args.bucket, jobname))
+    reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://{bucket}/reconstructed_res/{jobname}/revisions-".format(bucket=known_args.bucket, jobname=jobname))
 
     # Saving intermediate results to separate locations.
     folder = "gs://{bucket}/{process_file}/next_stage/".format(bucket=known_args.bucket, process_file=known_args.process_file)
