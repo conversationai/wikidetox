@@ -28,10 +28,12 @@ describe('loading express', function () {
     let serverConfig: config.Config = {
       port: '8080',
       isProduction: false,
-      staticPath: "static",
-      bigQueryProjectId: "wikidetox-viz",
-      bigQueryDataSetId: "wikidetox_conversations",
-      bigQueryTable: "conversation_with_score"
+      staticPath: 'build/static',
+
+      cloudProjectId: 'wikidetox-viz',
+      spannerInstanceId: 'wikiconv',
+      spannerDatabaseName: 'convdata',
+      spannerTableName: 'zh_20180601_conv'
     };
     server = new serving.Server(serverConfig);
     server.start().then(done);

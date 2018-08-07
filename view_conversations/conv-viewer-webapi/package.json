@@ -3,7 +3,6 @@
   "description": "Web server API to support viewing Wikipedia Talk page conversations using BigQuery.",
   "repository": "https://github.com/conversationai/wikidetox",
   "version": "0.0.1",
-  "engines" : { "node" : "9.x" },
   "license": "Apache-2.0",
   "scripts": {
     "setup": "mkdir -p build/server/ && mkdir -p build/config/ && rsync --ignore-existing server_config.template.json build/config/server_config.json",
@@ -19,11 +18,11 @@
   },
   "dependencies": {
     "@conversationai/wpconvlib": "^0.0.2",
-    "@google-cloud/bigquery": "^0.11.1",
-    "@google-cloud/debug-agent": "^1.0.0",
-    "@google-cloud/logging": "^1.0.0",
-    "@google-cloud/spanner": "^0.7.1",
-    "@google-cloud/trace-agent": "^1.0.3",
+    "@google-cloud/debug-agent": "^2.6.0",
+    "@google-cloud/logging": "^2.0.0",
+    "@google-cloud/spanner": "^1.4.0",
+    "@google-cloud/trace-agent": "^3.0.0",
+    "arraybuffer-to-string": "^1.0.2",
     "body-parser": "^1.17.1",
     "byline": "^5.0.0",
     "compression": "^1.6.2",
@@ -37,7 +36,6 @@
     "express-recaptcha": "^2.1.0",
     "express-session": "^1.15.1",
     "form-data": "^2.1.2",
-    "google-cloud": "^0.56.0",
     "googleapis": "^23.0.0",
     "gstore-node": "^1.3.1",
     "hash.js": "^1.1.3",
@@ -71,6 +69,6 @@
     "supertest": "^3.0.0",
     "tslint": "^4.5.1",
     "typedoc": "^0.5.7",
-    "typescript": "^2.4.2"
+    "typescript": "^3.0.1"
   }
 }
