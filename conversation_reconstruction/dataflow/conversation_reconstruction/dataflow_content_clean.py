@@ -15,11 +15,14 @@ limitations under the License.
 
 -------------------------------------------------------------------------------
 
-A dataflow pipeline to clean MediaWiki formats in comments and convert nested array type to acceptable type in BigQuery.
+A dataflow pipeline to clean MediaWiki formats in comments and convert nested
+array type to acceptable type in BigQuery.
 
 Run with:
 
-  python dataflow_content_clean.py --setup_file ./setup.py --input=InputStorage --output=OutputStorage
+   python dataflow_content_clean.py --setup_file ./setup.py --input=InputStorage\
+   --output=OutputStorage --jobname=YourJobName --project=YourCloudProject\
+   --bucket=YourCloudBucket
 
 """
 from __future__ import absolute_import
@@ -35,6 +38,7 @@ import multiprocessing
 from construct_utils.utils.third_party.clean import content_clean
 
 import apache_beam as beam
+from apache_beam.metrics.metric import Metrics
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 
@@ -43,13 +47,17 @@ TIMEOUT = 2
 def run(known_args, pipeline_args):
   """Main entry point; defines and runs the sharding pipeline."""
 
+  if known_args.testmode:
+    pipeline_args.append('--runner=DirectRunner')
+  else:
+    pipeline_args.append('--runner=DataflowRunner')
+
   pipeline_args.extend([
-    '--runner=DataflowRunner',
-    '--project=wikidetox-viz',
-    '--staging_location=gs://wikidetox-viz-dataflow/staging',
-    '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=resultformatting',
-    '--num_workers=20'])
+      '--project={project}'.format(project=known_args.project),
+      '--staging_location=gs://{bucket}/staging'.format(bucket=known_args.bucket),
+      '--temp_location=gs://{bucket}/tmp'.format(bucket=known_args.bucket),
+      '--job_name=resultformatting-{}'.format(known_args.jobname),
+      '--num_workers=80'])
   pipeline_options = PipelineOptions(pipeline_args)
   pipeline_options.view_as(SetupOptions).save_main_session = True
 
@@ -61,17 +69,19 @@ def run(known_args, pipeline_args):
        error_log | "WriteErrorLog" >> beam.io.WriteToText(known_args.error_log)
 
 class FormatClean(beam.DoFn):
-  def start_bundle(self):
-    self.schema = 'user_id,cleaned_content,user_text,content,parent_id,replyTo_id,page_id,indentation,authors,conversation_id,page_title,type,id,ancestor_id,rev_id'
+  def __init__(self):
+    self.processed_records = Metrics.counter(self.__class__, 'processed_records')
+    self.parsing_errors = Metrics.counter(self.__class__, 'parsing_errors')
+    self.schema = 'ancestor_id,authors,cleaned_content,content,conversation_id,id,indentation,page_id,page_title,parent_id,replyTo_id,rev_id,timestamp,type,user_id,user_text'
     self.fields = self.schema.split(',')
 
   def clean_schema(self, x):
       res = {}
       for f in self.fields:
           if f in x:
-             res[f] = x[f]
+            res[f] = x[f]
           else:
-             res[f] = None
+            res[f] = None
       return res
 
   def process(self, element):
@@ -82,23 +92,33 @@ class FormatClean(beam.DoFn):
     p.start()
     p.join(TIMEOUT)
     if p.is_alive():
+      self.parsing_errors.inc()
       p.terminate()
       p.join()
       yield beam.pvalue.TaggedOutput('error_log', json.dumps(element))
       element['cleaned_content'] = element['content']
     else:
+      self.processed_records.inc()
       # MediaWiki formats cleaned only in the case of a success run of subprocess.
       element['cleaned_content'] = content_clean(element['content'])
-    # Only keep the username in the author list.
-    temp = [author[1] for author in element['authors']]
+    # Avoid nested arrays.
+    temp = [u'{userid}:{username}'.format(
+        userid=author[0] if author[0] is not None else 'ANONYMOUS',
+        username=author[1] if author[1] is not None else 'ANONYMOUS') for author in element['authors']]
     element['authors'] = temp
-    yield self.clean_schema(element)
+    yield json.dumps(self.clean_schema(element))
 
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
   parser = argparse.ArgumentParser()
   # Input/Output parameters
+  parser.add_argument('--project',
+                      dest='project',
+                      help='The cloud project.')
+  parser.add_argument('--bucket',
+                      dest='bucket',
+                      help='The cloud bucket.')
   parser.add_argument('--input',
                       dest='input',
                       help='Input storage.')
@@ -108,6 +128,13 @@ if __name__ == '__main__':
   parser.add_argument('--error_log',
                       dest='error_log',
                       help='Cloud storage location to write error log.')
+  parser.add_argument('--jobname',
+                      dest='jobname',
+                      help='The dataflow jobname.')
+  parser.add_argument('--testmode',
+                      dest='testmode',
+                      action='store_true',
+                      help='Runs the dataflow pipeline using DirectRunner.')
 
   known_args, pipeline_args = parser.parse_known_args()
   run(known_args, pipeline_args)
