@@ -29,7 +29,7 @@ from __future__ import division
 from __future__ import print_function
 
 from dataflow_main import WriteDecompressedFile
-from dataflow_main import DownloadDataDumps 
+from dataflow_main import DownloadDataDumps
 
 import json
 import tempfile
@@ -42,7 +42,7 @@ from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 
 from apache_beam.testing.test_pipeline import TestPipeline
-from apache_beam.testing.util import open_shards 
+from apache_beam.testing.util import open_shards
 from apache_beam.testing.util import equal_to
 from apache_beam.testing.test_utils import compute_hash
 
@@ -50,11 +50,7 @@ class TestParDo(unittest.TestCase):
     def init(self):
         pipeline_args = [
             '--runner=DirectRunner',
-            '--project=wikidetox-viz',
-            '--staging_location=gs://wikidetox-viz-dataflow/staging',
-            '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-            '--job_name=test-ingestion-pipeline', 
-            '--num_workers=30',
+            '--job_name=test-ingestion-pipeline',
         ]
         test_url  = [('http://dumps.wikimedia.your.org/chwiki/latest', 'chwiki-latest-pages-meta-history.xml.bz2')]
         return pipeline_args, test_url
@@ -95,9 +91,6 @@ class TestParDo(unittest.TestCase):
         for line in result_file:
           results.append(line[:-1])
       self.assertEqual(len(results), 5)
-    def test_full(self):
-      # Test Full Pipeline
-      os.system('python dataflow_main.py --ingestFrom=local --localStorage=ingest_utils/testdata/test_wiki_dump.xml.bz2 --testmode --output gs://wikidetox-viz-dataflow/test/')
 
 if __name__ == '__main__':
    logging.getLogger().setLevel(logging.INFO)
