@@ -38,8 +38,13 @@ declare module '@google-cloud/spanner' {
       // A fake field to make this type unique: fake nominal typing using npm namespace.
       __type__: '@google-cloud/spanner:SpannerTimestamp';
     }
+    export interface SpannerBytes {
+      // A fake field to make this type unique: fake nominal typing using npm namespace.
+      __type__: '@google-cloud/spanner:SpannerBytes';
+    }
+
     export type InputField = string | null | SpannerDate | SpannerFloat
-                           | SpannerInt | SpannerTimestamp;
+                           | SpannerInt | SpannerTimestamp | SpannerBytes;
     export interface InputRow {
       [columnKey:string] : InputField;
     }
@@ -53,9 +58,11 @@ declare module '@google-cloud/spanner' {
     // library is pretty surprising: INT64s are converted into
     // Objects with a value field that is the string representation of the number.
     // Strings on the other hand are just strings.
-    export type ResultField = string | { value: string } | null | Date;
+    export type ResultValue = { value: string }
+    // TODO(yiqingh): decompose ResultField into subtypes.
+    export type ResultField = string | ResultValue | null | Date | Uint8Array | string[];
     // Rows and Columns (Fields) in that row.
-    export type ResultRow = { name:string; value: ResultField; }[]
+    export type ResultRow = Array<{ name:string; value: ResultField }>
     export type QueryResult = ResultRow[];
     type StreamingQuery = stream.Readable;
     // export interface StreamingQuery {
@@ -100,6 +107,7 @@ declare module '@google-cloud/spanner' {
       timestamp(x: string | Date | null) : SpannerTimestamp;
       float(x: number | string | null) : SpannerFloat;
       int(x: number | string | null) : SpannerInt;
+      bytes(x: number | string | null) : SpannerBytes;
       //
       createInstance(name: string, config : Object) : Promise<void>;
       // https://cloud.google.com/spanner/docs/reference/rpc/google.spanner.admin.instance.v1#google.spanner.admin.instance.v1.InstanceAdmin.ListInstances

@@ -60,7 +60,7 @@ last {
 }
 
 .whenandwho {
-  width: 100px;
+  width: 150px;
   text-align: right;
   font-size: 80%;
   flex: none;
@@ -72,9 +72,17 @@ last {
 }
 
 .author {
+  width: 150px;
   color: #44B;
   font-weight: bold;
 }
+
+.anonAuthor {
+  width: 150px;
+  color: Crimson;
+  font-weight: bold;
+}
+
 
 .timestamp {
   font-size: 80%;

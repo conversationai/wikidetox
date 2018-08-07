@@ -1,0 +1,549 @@
+<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://www.mediawiki.org/xml/export-0.10/ http://www.mediawiki.org/xml/export-0.10.xsd"
+           version="0.10" xml:lang="en">
+  <siteinfo>
+    <sitename>Wikipedia</sitename>
+    <dbname>enwiki</dbname>
+    <base>https://en.wikipedia.org/wiki/Main_Page</base>
+    <generator>MediaWiki 1.30.0-wmf.1</generator>
+    <case>first-letter</case>
+    <namespaces>
+      <namespace key="-2" case="first-letter">Media</namespace>
+      <namespace key="-1" case="first-letter">Special</namespace>
+      <namespace key="0" case="first-letter" />
+      <namespace key="1" case="first-letter">Talk</namespace>
+      <namespace key="2" case="first-letter">User</namespace>
+      <namespace key="3" case="first-letter">User talk</namespace>
+      <namespace key="4" case="first-letter">Wikipedia</namespace>
+      <namespace key="5" case="first-letter">Wikipedia talk</namespace>
+    </namespaces>
+  </siteinfo>
+  <page>
+    <title>fake title</title>
+    <ns>1</ns>
+    <id>123456789</id>
+    <revision>
+      <id>12345678</id>
+      <timestamp>2017-01-04T15:40:52Z</timestamp>
+      <contributor>
+        <username>fake user name</username>
+        <id>1234567</id>
+      </contributor>
+      <comment>a test comment</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve">testing encoding of &lt; and &gt; and ¥ and the four-byte utf-8 character: '𠱸'.</text>
+      <sha1>fake sha 1</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>File:Spring Stampede 1994 poster.jpg</title>
+    <ns>1</ns>
+    <id>53686505</id>
+    <revision>
+      <id>773814886</id>
+      <timestamp>2017-04-04T15:40:52Z</timestamp>
+      <contributor>
+        <username>Lukejordan02</username>
+        <id>20882708</id>
+      </contributor>
+      <comment>Uploading a piece of non-free cover art using [[Wikipedia:File_Upload_Wizard|File Upload Wizard]]</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve">==Summary==
+{{Non-free use rationale 2
+|Description = Spring Stampede (1994) Poster
+|Source = Google
+|Author = WCW
+|Article = Spring Stampede (1994)
+|Purpose = to serve as the primary means of visual identification at the top of the article dedicated to the work in question.
+|Replaceability = n.a.
+|Minimality = To illustrate the infobox
+|Commercial = n.a.
+}}
+
+==Licensing==
+{{Non-free poster}}</text>
+      <sha1>abny3gzyctwflpkzjou2t9k867c36g6</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>User:Tinker JJ/sandbox</title>
+    <ns>2</ns>
+    <id>53686506</id>
+    <revision>
+      <id>773814906</id>
+      <timestamp>2017-04-04T15:41:03Z</timestamp>
+      <contributor>
+        <username>Tinker JJ</username>
+        <id>30247263</id>
+      </contributor>
+      <comment>[[WP:AES|←]]Created page with 'Nigel Briers Personal information Full name       Nigel Edwin Briers   Southfields, Leicester, Leicestershire, England Education       Lutterworth Grammar School...'</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve">Nigel Briers
+Personal information
+Full name       Nigel Edwin Briers
+Southfields, Leicester, Leicestershire, England
+Education       Lutterworth Grammar School
+                Borough Road College
+Batting style   Right-handed
+Bowling style   Right-arm medium-pace
+Career statistics
+Competition     First-class     List A
+Matches 381     338
+Runs scored     18,726  8216
+Batting average 33.02   27.66
+100s/50s        31/95   6/40
+Top score       201*    119*
+Balls bowled    2047    896
+Wickets 32      19
+Bowling average 30.87   38.15
+5 wickets in innings    –       –
+10 wickets in match     –       n/a
+Best bowling    4/29    3/29
+Catches/stumpings       152/–   96/–
+Source: CricInfo, 18 September 2013</text>
+      <sha1>sobs7gw6qzygiq1hlnu3jvuplvs8s7x</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>File:IyanyaMrOreo.jpg</title>
+    <ns>3</ns>
+    <id>54197571</id>
+    <revision>
+      <id>783307758</id>
+      <timestamp>2017-06-01T12:50:19Z</timestamp>
+      <contributor>
+        <username>Eurofan88</username>
+        <id>19127634</id>
+      </contributor>
+      <comment>Uploading a non-free work, as object of commentary using [[Wikipedia:File_Upload_Wizard|File Upload Wizard]]</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve">==Summary==
+{{Non-free use rationale 2
+|Description = Dsafvds
+|Source = DVfsvfds
+|Author = DScsv
+|Article = Mr Oreo
+|Purpose = For visual identification of the object of the article. The article as a whole is dedicated specifically to a discussion of this work.
+|Replaceability = n.a.
+|Minimality = Dsffv
+|Commercial = n.a.
+}}
+
+==Licensing==
+{{Non-free 2D art}}
+{{Category ordered by date|Non-free files uploaded as object of commentary|2017|06|01}}</text>
+      <sha1>k2mkz7cavwz75m94v9rrknq7h6zkhih</sha1>
+    </revision>
+    <revision>
+      <id>783307892</id>
+      <parentid>783307758</parentid>
+      <timestamp>2017-06-01T12:51:24Z</timestamp>
+      <contributor>
+        <username>Eurofan88</username>
+        <id>19127634</id>
+      </contributor>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+            <format>text/x-wiki</format>
+      <text xml:space="preserve">== Summary ==
+{{album cover fur
+&lt;!-- REQUIRED --&gt;
+|Article= Mr Oreo
+|Use=Infobox
+&lt;!-- HIGHLY RECOMMENDED --&gt;
+|Source=
+&lt;!-- ADDITIONAL INFORMATION --&gt;
+|Name= Mr Oreo
+|Artist= Iyanya
+|Label= Made Men Music Group
+|Graphic Artist=
+|Item=
+|Type=
+|Website=
+|Owner=
+|Commentary=
+&lt;!-- OVERRIDE FIELDS --&gt;
+|Description=
+|Portion=
+|Low_resolution=
+|Purpose=
+|Replaceability=
+|other_information=
+}}
+== Licensing ==
+{{Non-free album cover}}</text>
+      <sha1>6j6ltpujg2p4uczvg73wimvt3amq3g5</sha1>
+    </revision>
+  </page>
+</mediawiki>
+<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://www.mediawiki.org/xml/export-0.10/ http://www.mediawiki.org/xml/export-0.10.xsd"
+           version="0.10" xml:lang="en">
+  <siteinfo>
+    <sitename>Wikipedia</sitename>
+    <dbname>enwiki</dbname>
+    <base>https://en.wikipedia.org/wiki/Main_Page</base>
+    <generator>MediaWiki 1.30.0-wmf.1</generator>
+    <case>first-letter</case>
+    <namespaces>
+      <namespace key="-2" case="first-letter">Media</namespace>
+      <namespace key="-1" case="first-letter">Special</namespace>
+      <namespace key="0" case="first-letter" />
+      <namespace key="1" case="first-letter">Talk</namespace>
+      <namespace key="2" case="first-letter">User</namespace>
+      <namespace key="3" case="first-letter">User talk</namespace>
+      <namespace key="4" case="first-letter">Wikipedia</namespace>
+      <namespace key="5" case="first-letter">Wikipedia talk</namespace>
+    </namespaces>
+  </siteinfo>
+  <page>
+    <title>fake title</title>
+    <ns>1</ns>
+    <id>123456789</id>
+    <revision>
+      <id>12345678</id>
+      <timestamp>2017-01-04T15:40:52Z</timestamp>
+      <contributor>
+        <username>fake user name</username>
+        <id>1234567</id>
+      </contributor>
+      <comment>a test comment</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve">testing encoding of &lt; and &gt; and ¥ and the four-byte utf-8 character: '𠱸'.</text>
+      <sha1>fake sha 1</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>File:Spring Stampede 1994 poster.jpg</title>
+    <ns>1</ns>
+    <id>53686505</id>
+    <revision>
+      <id>773814886</id>
+      <timestamp>2017-04-04T15:40:52Z</timestamp>
+      <contributor>
+        <username>Lukejordan02</username>
+        <id>20882708</id>
+      </contributor>
+      <comment>Uploading a piece of non-free cover art using [[Wikipedia:File_Upload_Wizard|File Upload Wizard]]</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve">==Summary==
+{{Non-free use rationale 2
+|Description = Spring Stampede (1994) Poster
+|Source = Google
+|Author = WCW
+|Article = Spring Stampede (1994)
+|Purpose = to serve as the primary means of visual identification at the top of the article dedicated to the work in question.
+|Replaceability = n.a.
+|Minimality = To illustrate the infobox
+|Commercial = n.a.
+}}
+
+==Licensing==
+{{Non-free poster}}</text>
+      <sha1>abny3gzyctwflpkzjou2t9k867c36g6</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>User:Tinker JJ/sandbox</title>
+    <ns>2</ns>
+    <id>53686506</id>
+    <revision>
+      <id>773814906</id>
+      <timestamp>2017-04-04T15:41:03Z</timestamp>
+      <contributor>
+        <username>Tinker JJ</username>
+        <id>30247263</id>
+      </contributor>
+      <comment>[[WP:AES|←]]Created page with 'Nigel Briers Personal information Full name       Nigel Edwin Briers   Southfields, Leicester, Leicestershire, England Education       Lutterworth Grammar School...'</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve">Nigel Briers
+Personal information
+Full name       Nigel Edwin Briers
+Southfields, Leicester, Leicestershire, England
+Education       Lutterworth Grammar School
+                Borough Road College
+Batting style   Right-handed
+Bowling style   Right-arm medium-pace
+Career statistics
+Competition     First-class     List A
+Matches 381     338
+Runs scored     18,726  8216
+Batting average 33.02   27.66
+100s/50s        31/95   6/40
+Top score       201*    119*
+Balls bowled    2047    896
+Wickets 32      19
+Bowling average 30.87   38.15
+5 wickets in innings    –       –
+10 wickets in match     –       n/a
+Best bowling    4/29    3/29
+Catches/stumpings       152/–   96/–
+Source: CricInfo, 18 September 2013</text>
+      <sha1>sobs7gw6qzygiq1hlnu3jvuplvs8s7x</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>File:IyanyaMrOreo.jpg</title>
+    <ns>3</ns>
+    <id>54197571</id>
+    <revision>
+      <id>783307758</id>
+      <timestamp>2017-06-01T12:50:19Z</timestamp>
+      <contributor>
+        <username>Eurofan88</username>
+        <id>19127634</id>
+      </contributor>
+      <comment>Uploading a non-free work, as object of commentary using [[Wikipedia:File_Upload_Wizard|File Upload Wizard]]</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve">==Summary==
+{{Non-free use rationale 2
+|Description = Dsafvds
+|Source = DVfsvfds
+|Author = DScsv
+|Article = Mr Oreo
+|Purpose = For visual identification of the object of the article. The article as a whole is dedicated specifically to a discussion of this work.
+|Replaceability = n.a.
+|Minimality = Dsffv
+|Commercial = n.a.
+}}
+
+==Licensing==
+{{Non-free 2D art}}
+{{Category ordered by date|Non-free files uploaded as object of commentary|2017|06|01}}</text>
+      <sha1>k2mkz7cavwz75m94v9rrknq7h6zkhih</sha1>
+    </revision>
+    <revision>
+      <id>783307892</id>
+      <parentid>783307758</parentid>
+      <timestamp>2017-06-01T12:51:24Z</timestamp>
+      <contributor>
+        <username>Eurofan88</username>
+        <id>19127634</id>
+      </contributor>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+            <format>text/x-wiki</format>
+      <text xml:space="preserve">== Summary ==
+{{album cover fur
+&lt;!-- REQUIRED --&gt;
+|Article= Mr Oreo
+|Use=Infobox
+&lt;!-- HIGHLY RECOMMENDED --&gt;
+|Source=
+&lt;!-- ADDITIONAL INFORMATION --&gt;
+|Name= Mr Oreo
+|Artist= Iyanya
+|Label= Made Men Music Group
+|Graphic Artist=
+|Item=
+|Type=
+|Website=
+|Owner=
+|Commentary=
+&lt;!-- OVERRIDE FIELDS --&gt;
+|Description=
+|Portion=
+|Low_resolution=
+|Purpose=
+|Replaceability=
+|other_information=
+}}
+== Licensing ==
+{{Non-free album cover}}</text>
+      <sha1>6j6ltpujg2p4uczvg73wimvt3amq3g5</sha1>
+    </revision>
+  </page>
+</mediawiki>
+<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://www.mediawiki.org/xml/export-0.10/ http://www.mediawiki.org/xml/export-0.10.xsd"
+           version="0.10" xml:lang="en">
+  <siteinfo>
+    <sitename>Wikipedia</sitename>
+    <dbname>enwiki</dbname>
+    <base>https://en.wikipedia.org/wiki/Main_Page</base>
+    <generator>MediaWiki 1.30.0-wmf.1</generator>
+    <case>first-letter</case>
+    <namespaces>
+      <namespace key="-2" case="first-letter">Media</namespace>
+      <namespace key="-1" case="first-letter">Special</namespace>
+      <namespace key="0" case="first-letter" />
+      <namespace key="1" case="first-letter">Talk</namespace>
+      <namespace key="2" case="first-letter">User</namespace>
+      <namespace key="3" case="first-letter">User talk</namespace>
+      <namespace key="4" case="first-letter">Wikipedia</namespace>
+      <namespace key="5" case="first-letter">Wikipedia talk</namespace>
+    </namespaces>
+  </siteinfo>
+  <page>
+    <title>fake title</title>
+    <ns>1</ns>
+    <id>123456789</id>
+    <revision>
+      <id>12345678</id>
+      <timestamp>2017-01-04T15:40:52Z</timestamp>
+      <contributor>
+        <username>fake user name</username>
+        <id>1234567</id>
+      </contributor>
+      <comment>a test comment</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve">testing encoding of &lt; and &gt; and ¥ and the four-byte utf-8 character: '𠱸'.</text>
+      <sha1>fake sha 1</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>File:Spring Stampede 1994 poster.jpg</title>
+    <ns>1</ns>
+    <id>53686505</id>
+    <revision>
+      <id>773814886</id>
+      <timestamp>2017-04-04T15:40:52Z</timestamp>
+      <contributor>
+        <username>Lukejordan02</username>
+        <id>20882708</id>
+      </contributor>
+      <comment>Uploading a piece of non-free cover art using [[Wikipedia:File_Upload_Wizard|File Upload Wizard]]</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve">==Summary==
+{{Non-free use rationale 2
+|Description = Spring Stampede (1994) Poster
+|Source = Google
+|Author = WCW
+|Article = Spring Stampede (1994)
+|Purpose = to serve as the primary means of visual identification at the top of the article dedicated to the work in question.
+|Replaceability = n.a.
+|Minimality = To illustrate the infobox
+|Commercial = n.a.
+}}
+
+==Licensing==
+{{Non-free poster}}</text>
+      <sha1>abny3gzyctwflpkzjou2t9k867c36g6</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>User:Tinker JJ/sandbox</title>
+    <ns>2</ns>
+    <id>53686506</id>
+    <revision>
+      <id>773814906</id>
+      <timestamp>2017-04-04T15:41:03Z</timestamp>
+      <contributor>
+        <username>Tinker JJ</username>
+        <id>30247263</id>
+      </contributor>
+      <comment>[[WP:AES|←]]Created page with 'Nigel Briers Personal information Full name       Nigel Edwin Briers   Southfields, Leicester, Leicestershire, England Education       Lutterworth Grammar School...'</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve">Nigel Briers
+Personal information
+Full name       Nigel Edwin Briers
+Southfields, Leicester, Leicestershire, England
+Education       Lutterworth Grammar School
+                Borough Road College
+Batting style   Right-handed
+Bowling style   Right-arm medium-pace
+Career statistics
+Competition     First-class     List A
+Matches 381     338
+Runs scored     18,726  8216
+Batting average 33.02   27.66
+100s/50s        31/95   6/40
+Top score       201*    119*
+Balls bowled    2047    896
+Wickets 32      19
+Bowling average 30.87   38.15
+5 wickets in innings    –       –
+10 wickets in match     –       n/a
+Best bowling    4/29    3/29
+Catches/stumpings       152/–   96/–
+Source: CricInfo, 18 September 2013</text>
+      <sha1>sobs7gw6qzygiq1hlnu3jvuplvs8s7x</sha1>
+    </revision>
+  </page>
+  <page>
+    <title>File:IyanyaMrOreo.jpg</title>
+    <ns>3</ns>
+    <id>54197571</id>
+    <revision>
+      <id>783307758</id>
+      <timestamp>2017-06-01T12:50:19Z</timestamp>
+      <contributor>
+        <username>Eurofan88</username>
+        <id>19127634</id>
+      </contributor>
+      <comment>Uploading a non-free work, as object of commentary using [[Wikipedia:File_Upload_Wizard|File Upload Wizard]]</comment>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+      <text xml:space="preserve">==Summary==
+{{Non-free use rationale 2
+|Description = Dsafvds
+|Source = DVfsvfds
+|Author = DScsv
+|Article = Mr Oreo
+|Purpose = For visual identification of the object of the article. The article as a whole is dedicated specifically to a discussion of this work.
+|Replaceability = n.a.
+|Minimality = Dsffv
+|Commercial = n.a.
+}}
+
+==Licensing==
+{{Non-free 2D art}}
+{{Category ordered by date|Non-free files uploaded as object of commentary|2017|06|01}}</text>
+      <sha1>k2mkz7cavwz75m94v9rrknq7h6zkhih</sha1>
+    </revision>
+    <revision>
+      <id>783307892</id>
+      <parentid>783307758</parentid>
+      <timestamp>2017-06-01T12:51:24Z</timestamp>
+      <contributor>
+        <username>Eurofan88</username>
+        <id>19127634</id>
+      </contributor>
+      <model>wikitext</model>
+      <format>text/x-wiki</format>
+            <format>text/x-wiki</format>
+      <text xml:space="preserve">== Summary ==
+{{album cover fur
+&lt;!-- REQUIRED --&gt;
+|Article= Mr Oreo
+|Use=Infobox
+&lt;!-- HIGHLY RECOMMENDED --&gt;
+|Source=
+&lt;!-- ADDITIONAL INFORMATION --&gt;
+|Name= Mr Oreo
+|Artist= Iyanya
+|Label= Made Men Music Group
+|Graphic Artist=
+|Item=
+|Type=
+|Website=
+|Owner=
+|Commentary=
+&lt;!-- OVERRIDE FIELDS --&gt;
+|Description=
+|Portion=
+|Low_resolution=
+|Purpose=
+|Replaceability=
+|other_information=
+}}
+== Licensing ==
+{{Non-free album cover}}</text>
+      <sha1>6j6ltpujg2p4uczvg73wimvt3amq3g5</sha1>
+    </revision>
+  </page>
+</mediawiki>
