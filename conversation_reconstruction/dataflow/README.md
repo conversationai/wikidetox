@@ -21,12 +21,12 @@ The resulted the dataset includes all the actions led to it, as shown in
 
 ## Setup the environment
 
-In the current directory
+In the *current directory*:
 
-- Setup [your cloud project](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-python)
+- Follow the steps in section 1 to set up [your cloud project](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-python). Note that *do not proceed* to install the newest google cloud dataflow, which may be in-compatible with some of the packages listed in requirements.txt.
 - Setup [boto](https://cloud.google.com/storage/docs/boto-plugin#setup-python)
 - Setup your python environment:
-    - Please follow the guide in the first step to set up a virtualenv environment.
+    - Set up a virtualenv environment.
     - Do . /path/to/directory/bin/activate
     - pip install -r requirements.txt
 
