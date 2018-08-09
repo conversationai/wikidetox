@@ -25,14 +25,20 @@ from __future__ import print_function
 import datetime
 from google.cloud import spanner
 import base64
+import json
 
 
 class SpannerWriter():
     @staticmethod
     def convert_data_format(datatype, data):
         if datatype == 'STRING':
-          return data
+          if not(isinstance(data, basestring) or isinstance(data, int)):
+            return json.dumps(data)
+          else:
+            return data
         elif datatype == 'BYTES':
+          if not(isinstance(data, basestring) or isinstance(data, int)):
+            data = json.dumps(data)
           # Convert strings to byte type.
           return base64.b64encode(data.encode('utf-8'))
         elif datatype == 'FLOAT':

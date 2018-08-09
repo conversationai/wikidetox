@@ -1,0 +1,1 @@
+CREATE TABLE page_states (timestamp TIMESTAMP, page_state STRING(MAX), authors STRING(MAX), conversation_id STIRNG(MAX), page_id STRING(MAX), ancestor_id STRING(MAX), rev_id INT64, ) PRIMARY KEY (page_id)

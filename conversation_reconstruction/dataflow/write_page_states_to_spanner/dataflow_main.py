@@ -24,6 +24,7 @@ Run with:
          --spanner_instance=SpannerInstanceID
          --spanner_database=SpannerDatabaseID --spanner_table=SpannerTableID
          --spanner_table_columns_config=JsonConfigFile
+         --insert_deleted_comments****
          --testmode***
          --setup_file=./setup.py
 
@@ -31,6 +32,8 @@ Note:
   **Storage options: There are two ways to provide storage options: via input_storage or bigquery_table
   ***--testmode: optional on-off button that enables testmode of the dataflow pipeline,
               running on DirectRunner instead of DataflowRunner when turned on.
+  ****--A special spanner writing tool for a specific purpose, writing deleted comments genereated from
+      conversation reconstruction process.
 """
 # -*- coding: utf-8 -*-
 
@@ -39,6 +42,7 @@ from __future__ import absolute_import
 import argparse
 import logging
 import json
+from datetime import *
 
 import apache_beam as beam
 from apache_beam.metrics.metric import Metrics
@@ -58,24 +62,27 @@ def run(known_args, pipeline_args):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=write-data-into-spanner',
-    '--max_num_workers=20'
+    '--job_name=write-data-to-spanner',
+    '--max_num_workers=100'
   ])
   pipeline_options = PipelineOptions(pipeline_args)
   pipeline_options.view_as(SetupOptions).save_main_session = True
   logging.info("PIPELINE STARTED")
+  print(pipeline_args)
 
   with beam.Pipeline(options=pipeline_options) as p:
-    if known_args.input_storage is not None:
-      # Read from cloud storage.
-      input_data = (p | beam.io.ReadFromText(known_args.input_storage))
-    else:
-      # Read from BigQuery, the table has to already exist.
-      input_data = (p | beam.io.Read(beam.io.BigQuerySource(
-          query="SELECT * FROM %s" % known_args.bigquery_table, use_standard_sql=True)))
-    # Main pipeline.
-    p = (input_data | beam.ParDo(WriteToSpanner(known_args.spanner_instance, known_args.spanner_database,
-                                     known_args.spanner_table, known_args.spanner_table_columns), known_args.input_storage))
+    pass
+#    if known_args.input_storage is not None:
+#      # Read from cloud storage.
+#      input_data = (p | beam.io.ReadFromText(known_args.input_storage))
+#    else:
+#      # Read from BigQuery, the table has to already exist.
+#      input_data = (p | beam.io.Read(beam.io.BigQuerySource(
+#          query="SELECT * FROM %s" % known_args.bigquery_table, use_standard_sql=True)))
+#   # Main pipeline.
+#    p = (input_data | beam.ParDo(WriteToSpanner(known_args.spanner_instance, known_args.spanner_database,
+#                                                known_args.spanner_table, known_args.spanner_table_columns),
+#                                                known_args.insert_deleted_comments, known_args.input_storage))
 
 class WriteToSpanner(beam.DoFn):
   def __init__(self, instance_id, database_id, table_id, table_columns):
@@ -94,19 +101,43 @@ class WriteToSpanner(beam.DoFn):
     self.writer.create_table(self.table_id, self.table_columns)
 
 
-  def process(self, element, input_storage):
+  def process(self, element,insert_deleted_comments, input_storage):
     if input_storage is not None:
       # Data from cloud storage may be json incoded.
       element = json.loads(element)
-    try:
-       self.writer.insert_data(self.table_id, element)
-       self.inserted_record.inc()
-    except Exception as e:
-      if 'StatusCode.ALREADY_EXISTS' in str(e):
-         self.already_exists.inc()
-         pass
-      else:
-        raise Exception(e)
+    if insert_deleted_comments:
+      # Add an artificial timestamp to the previously deleted comments to
+      # preserve ordering
+      delta = timedelta(seconds=1)
+      timestamp = date(2001, 1, 1)
+      for record in element['deleted_comments']:
+        data = {'page_id': element['page_id'],
+                'content': record[0],
+                'parent_id': record[1],
+                'indentation': record[2],
+                'timestamp': date.strftime(timestamp, "%Y-%m-%dT%H-%M-%ZZ")}
+        timestamp = timestamp + delta
+        try:
+           self.writer.insert_data(self.table_id, data)
+           self.inserted_record.inc()
+        except Exception as e:
+          if 'StatusCode.ALREADY_EXISTS' in str(e):
+             self.already_exists.inc()
+             pass
+          else:
+            raise Exception(e)
+    else:
+      try:
+         self.writer.insert_data(self.table_id, element)
+         self.inserted_record.inc()
+      except Exception as e:
+        if 'StatusCode.ALREADY_EXISTS' in str(e):
+           self.already_exists.inc()
+           pass
+        else:
+          raise Exception(e)
+
+
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
@@ -138,6 +169,12 @@ if __name__ == '__main__':
                       action='store_true',
                       default=None,
                       help='(Optional) Run the pipeline in testmode.')
+  parser.add_argument('--insert_deleted_comments',
+                      dest='insert_deleted_comments',
+                      action='store_true',
+                      default=False,
+                      help='(Optional) Run the pipeline for deleted comments.')
+
 
   known_args, pipeline_args = parser.parse_known_args()
   if known_args.input_storage is None and known_args.bigquery_table is None:

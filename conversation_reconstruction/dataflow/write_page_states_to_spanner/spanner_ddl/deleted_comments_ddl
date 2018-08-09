@@ -1,0 +1,1 @@
+CREATE TABLE deleted_comments (content BYTES(MAX), action_id STRING(MAX), indentation INT64, page_id STRING(MAX), timstamp TIMESTAMP, ) PRIMARY KEY (page_id)

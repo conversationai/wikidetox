@@ -1,0 +1,1 @@
+CREATE TABLE last_revision (text BYTES(MAX), page_id STRING(MAX), ) PRIMARY KEY (page_id)
