@@ -23,6 +23,7 @@ Run with:
          --bigquery_table=YourBigQueryTable**
          --spanner_instance=SpannerInstanceID
          --spanner_database=SpannerDatabaseID --spanner_table=SpannerTableID
+         --jobname=YourJobName
          --spanner_table_columns_config=JsonConfigFile
          --insert_deleted_comments****
          --testmode***
@@ -42,7 +43,7 @@ from __future__ import absolute_import
 import argparse
 import logging
 import json
-from datetime import *
+import datetime
 
 import apache_beam as beam
 from apache_beam.metrics.metric import Metrics
@@ -62,7 +63,7 @@ def run(known_args, pipeline_args):
     '--project=wikidetox-viz',
     '--staging_location=gs://wikidetox-viz-dataflow/staging',
     '--temp_location=gs://wikidetox-viz-dataflow/tmp',
-    '--job_name=write-data-to-spanner',
+    '--job_name=write-data-to-spanner-{jobname}'.format(jobname=known_args.jobname),
     '--max_num_workers=100'
   ])
   pipeline_options = PipelineOptions(pipeline_args)
@@ -71,18 +72,17 @@ def run(known_args, pipeline_args):
   print(pipeline_args)
 
   with beam.Pipeline(options=pipeline_options) as p:
-    pass
-#    if known_args.input_storage is not None:
-#      # Read from cloud storage.
-#      input_data = (p | beam.io.ReadFromText(known_args.input_storage))
-#    else:
-#      # Read from BigQuery, the table has to already exist.
-#      input_data = (p | beam.io.Read(beam.io.BigQuerySource(
-#          query="SELECT * FROM %s" % known_args.bigquery_table, use_standard_sql=True)))
-#   # Main pipeline.
-#    p = (input_data | beam.ParDo(WriteToSpanner(known_args.spanner_instance, known_args.spanner_database,
-#                                                known_args.spanner_table, known_args.spanner_table_columns),
-#                                                known_args.insert_deleted_comments, known_args.input_storage))
+    if known_args.input_storage is not None:
+      # Read from cloud storage.
+      input_data = (p | beam.io.ReadFromText(known_args.input_storage))
+    else:
+      # Read from BigQuery, the table has to already exist.
+      input_data = (p | beam.io.Read(beam.io.BigQuerySource(
+          query="SELECT * FROM %s" % known_args.bigquery_table, use_standard_sql=True)))
+   # Main pipeline.
+    p = (input_data | beam.ParDo(WriteToSpanner(known_args.spanner_instance, known_args.spanner_database,
+                                                known_args.spanner_table, known_args.spanner_table_columns),
+                                                known_args.insert_deleted_comments, known_args.input_storage))
 
 class WriteToSpanner(beam.DoFn):
   def __init__(self, instance_id, database_id, table_id, table_columns):
@@ -108,14 +108,14 @@ class WriteToSpanner(beam.DoFn):
     if insert_deleted_comments:
       # Add an artificial timestamp to the previously deleted comments to
       # preserve ordering
-      delta = timedelta(seconds=1)
-      timestamp = date(2001, 1, 1)
+      delta = datetime.timedelta(seconds=1)
+      timestamp = datetime.date(2001, 1, 1)
       for record in element['deleted_comments']:
         data = {'page_id': element['page_id'],
                 'content': record[0],
                 'parent_id': record[1],
                 'indentation': record[2],
-                'timestamp': date.strftime(timestamp, "%Y-%m-%dT%H-%M-%ZZ")}
+                'timestamp': datetime.date.strftime(timestamp, "%Y-%m-%dT%H:%M:%SZ")}
         timestamp = timestamp + delta
         try:
            self.writer.insert_data(self.table_id, data)
@@ -174,8 +174,10 @@ if __name__ == '__main__':
                       action='store_true',
                       default=False,
                       help='(Optional) Run the pipeline for deleted comments.')
-
-
+  parser.add_argument('--jobname',
+                      dest='jobname',
+                      default='',
+                      help='The name of the dataflow job.')
   known_args, pipeline_args = parser.parse_known_args()
   if known_args.input_storage is None and known_args.bigquery_table is None:
     raise Exception("Please provide input storage/BigQuery table to run the pipeline.")
