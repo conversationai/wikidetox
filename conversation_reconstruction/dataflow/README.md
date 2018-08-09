@@ -1,7 +1,8 @@
 # Conversation Constructor for Wikipedia Talk Pages
 
-This is a python2 package that contains reconstruction tools to extract the conversation structure
+This package contains reconstruction tools to extract the conversation structure
 from Wikipedia talk pages.
+Please note that this package used Python 2.7.
 
 You can find the Wikipedia [research
 showcase](https://www.mediawiki.org/wiki/Wikimedia_Research/Showcase#June_2018) that explains the effort of
@@ -24,9 +25,10 @@ The resulted the dataset includes all the actions led to it, as shown in
 In the *current directory*:
 
 - Follow the steps in section 1 to set up [your cloud project](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-python). Note that *do not proceed* to install the newest google cloud dataflow, which may be in-compatible with some of the packages listed in requirements.txt.
-- Setup [boto](https://cloud.google.com/storage/docs/boto-plugin#setup-python)
+- Use your service account to set up boto:
+  `gsutil config -e`
 - Setup your python environment:
-    - Set up a virtualenv environment.
+    - Set up a [virtualenv environment](https://packaging.python.org/guides/installing-using-pip-and-virtualenv/)
     - Do . /path/to/directory/bin/activate
     - pip install -r requirements.txt
 
