@@ -52,7 +52,7 @@ gsutil -m cp empty_file gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/
 # Start Reconstruction
 cd conversation_reconstruction
 . ${pathToVirtualEnv}/bin/activate
-python dataflow_main.py --input gs://${cloudBucket}/ingested/${dumpdate}-${language}/date-201[6-8]/revisions*.json --setup_file ./setup.py --output_name ${language}${dumpdate} --process_file process_tmp_${language}_${dumpdate} --project ${cloudProject} --bucket ${cloudBucket}|| exit 1
+python dataflow_main.py --input gs://${cloudBucket}/ingested/${dumpdate}-${language}/*/revisions*.json --setup_file ./setup.py --output_name ${language}${dumpdate} --process_file process_tmp_${language}_${dumpdate} --project ${cloudProject} --bucket ${cloudBucket}|| exit 1
 deactivate
 cd ..
 
