@@ -52,14 +52,14 @@ gsutil -m cp empty_file gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/
 # Start Reconstruction
 cd conversation_reconstruction
 . ${pathToVirtualEnv}/bin/activate
-python dataflow_main.py --input gs://${cloudBucket}/ingested/${dumpdate}-${language}/*/revisions*.json --setup_file ./setup.py --output_name ${language}${dumpdate} --process_file process_tmp_${language}_${dumpdate} --project ${cloudProject} --bucket ${cloudBucket}|| exit 1
+python dataflow_main.py --input gs://${cloudBucket}/ingested/${dumpdate}-${language}/date-201[6-8]/revisions*.json --setup_file ./setup.py --output_name ${language}${dumpdate} --process_file process_tmp_${language}_${dumpdate} --project ${cloudProject} --bucket ${cloudBucket}|| exit 1
 deactivate
 cd ..
 
 # Move results
 gsutil -m mv gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/next_stage/ gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/page_states
 gsutil -m rm -r gs://${cloudBucket}/process_tmp_${language}_${dumpdate}
-gsutil -m mv gs://${cloudBucket}/reconstructed_res/reconstruction-pages-${language}-${dumpdate} gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/reconstructed_results
+gsutil -m mv gs://${cloudBucket}/reconstructed_res/reconstruction-pages-${language}${dumpdate} gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/reconstructed_results
 
 # Clean Result Format
 cd conversation_reconstruction
