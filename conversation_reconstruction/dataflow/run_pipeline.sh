@@ -59,7 +59,7 @@ cd ..
 # Move results
 gsutil -m mv gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/next_stage/ gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/page_states
 gsutil -m rm -r gs://${cloudBucket}/process_tmp_${language}_${dumpdate}
-gsutil -m mv gs://${cloudBucket}/reconstructed_res/reconstruction-pages-${language}-${dumpdate} gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/reconstructed_results
+gsutil -m mv gs://${cloudBucket}/reconstructed_res/reconstruction-pages-${language}${dumpdate} gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/reconstructed_results
 
 # Clean Result Format
 cd conversation_reconstruction
