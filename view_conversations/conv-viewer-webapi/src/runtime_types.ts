@@ -64,6 +64,14 @@ export interface UserId extends String {
       '@conversationai/wikidetox/conv-viewer-webapi:runtime_types.UserId';
 }
 
+export interface apiRequest {
+  upper_score: number;
+  lower_score: number;
+  order: string;
+
+  [key : string]: any;
+}
+
 
 
 export class RuntimeStringType<T extends String> {
@@ -106,8 +114,6 @@ export let UserTextSearch =
 export let UserId =
     new RuntimeStringType<UserId>('UserId', /^(\d+)$/);
 
-
-
 export function assertNumber(score : number) {
   if (isNaN(score)) {
     throw new Error(`Wanted number but got: NaN.`);
@@ -115,10 +121,10 @@ export function assertNumber(score : number) {
   return score;
 }
 
-export function assertBoolean(bool : string) {
-  if (bool === 'true') {return true;}
-  if (bool === 'false') {return false;}
-  throw new Error(`Wanted boolean but got: ${bool}.`);
+export function assertBoolean(bool : boolean) {
+  if (bool === true) {return true;}
+  if (bool === false) {return undefined;}
+  throw new Error(`Wanted boolean but got: +${typeof(bool)}+.`);
 }
 
 export function assertOrder(order : string) {
@@ -126,6 +132,20 @@ export function assertOrder(order : string) {
     throw new Error(`Wanted ASC or DESC but got ${order}`);
   }
   return order;
+}
+
+export function assertAPIRequest(req : apiRequest) {
+  let ret : apiRequest = {upper_score: assertNumber(req.upper_score), lower_score: assertNumber(req.lower_score), order: assertOrder(req.order)};
+  if (req.isAlive) {ret.isAlive = assertBoolean(req.isAlive);}
+  if (req.page_id) {ret.page_id = PageId.assert(req.page_id);}
+  if (req.page_title) {ret.page_title = PageTitleSearch.assert(req.page_title);}
+  if (req.user_id) {ret.user_id = UserId.assert(req.user_id);}
+  if (req.user_text) {ret.user_text = UserTextSearch.assert(req.user_text);}
+  if (req.comment_id) {ret.comment_id = CommentId.assert(req.comment_id);}
+  if (req.rev_id) {ret.rev_id = RevisionId.assert(req.rev_id);}
+  if (req.conversation_id) {ret.conversation_id = ConversationId.assert(req.conversation_id);}
+  console.log(ret);
+  return ret;
 }
 
 
