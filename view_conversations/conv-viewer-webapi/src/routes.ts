@@ -74,16 +74,19 @@ export function setup(
     }
   });
 
-  app.get('/api/toxicity/:upper_score/:lower_score/:order/:searchBy/:searchFor', async (req, res) => {
+  app.get('/api/toxicity/:upper_score/:lower_score/:order/:searchBy/:searchFor/:isAlive', async (req, res) => {
     try {
+      console.log("RECEVED REQUEST")
       const upper_score: number = runtime_types.assertNumber(req.params.upper_score);
       const lower_score: number = runtime_types.assertNumber(req.params.lower_score);
+      const isAlive: boolean = runtime_types.assertBoolean(req.params.isAlive);
       const order: string = runtime_types.assertOrder(req.params.order);
       let index = conf.spannerTableName + toxicityIndex;
       if (order === 'ASC') {
         index = index + '_ASC';
       }
       let searchQuery = '';
+      let isAliveStatement = '';
       switch (req.params.searchBy) {
         case 'page-id': {
           const page_id: runtime_types.PageId =
@@ -95,6 +98,18 @@ export function setup(
           const page_title: runtime_types.PageTitleSearch =
             runtime_types.PageTitleSearch.assert(req.params.searchFor);
           searchQuery = ` and page_title = "${page_title}" `;
+          break;
+        }
+        case 'user-name': {
+          const user_text: runtime_types.UserTextSearch =
+            runtime_types.UserTextSearch.assert(req.params.searchFor);
+          searchQuery = ` and user_text= "${user_text}" `;
+          break;
+        }
+        case 'user-id': {
+          const user_id: runtime_types.UserId =
+            runtime_types.UserId.assert(req.params.searchFor);
+          searchQuery = ` and user_id = "${user_id}" `;
           break;
         }
         case 'rev-id': {
@@ -116,10 +131,15 @@ export function setup(
           break;
         }
       }
+      if (isAlive) {
+        isAliveStatement = ' and isAlive = true';
+      } else {
+        isAliveStatement = '';
+      }
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
              FROM ${table}@{FORCE_INDEX=${index}}
-             WHERE RockV6_1_TOXICITY < ${upper_score} and RockV6_1_TOXICITY > ${lower_score} and type != "DELETION"${searchQuery}
+             WHERE RockV6_1_TOXICITY < ${upper_score} and RockV6_1_TOXICITY > ${lower_score} and type != "DELETION"${searchQuery}${isAliveStatement}
              ORDER BY RockV6_1_TOXICITY ${order}
              LIMIT 20`;
       // Query options list:
@@ -127,10 +147,16 @@ export function setup(
       const query: spanner.Query = {
         sql: sqlQuery
       };
+      console.log("QUERY SPANNER");
 
       await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        res.status(httpcodes.OK).send(JSON.stringify(db_types.parseOutputRows<db_types.OutputRow>(rows), null, 2));
+        console.log("RECVED ANSWER FROM SPANNER");
+        try {
+          res.status(httpcodes.OK).send(JSON.stringify(db_types.parseOutputRows<db_types.OutputRow>(rows), null, 2));
+        } catch (e) {
+         console.log(`*** Failed: `, e);
+        }
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
@@ -177,6 +203,7 @@ export function setup(
 
   app.get('/api/comment-id/:comment_id', async (req, res) => {
     try {
+      console.log("COMMENT_ID RECVED  REQUEST");
       const comment_id: runtime_types.CommentId =
           runtime_types.CommentId.assert(req.params.comment_id);
       const index = conf.spannerTableName + conversationIdIndex;
@@ -195,8 +222,10 @@ export function setup(
       const query: spanner.Query = {
         sql: sqlQuery
       };
+      console.log("QUERY TO SPANNER");
 
       await spannerDatabase.run(query).then(results => {
+        console.log("GOT ANSWER FROM SPANNER");
         const rows = results[0];
         res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow>(rows));
       });
