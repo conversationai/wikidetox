@@ -139,6 +139,14 @@ last {
   font-weight: bold
 }
 
+.isAlive{
+  font-size: 80%;
+  color: #BBB;
+  font-weight: bold
+}
+
+
+
 .score{
   font-size: 80%;
   color: red;
