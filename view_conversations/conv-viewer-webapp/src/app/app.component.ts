@@ -42,6 +42,14 @@ interface HashObj {
   isHistorical?: boolean;
 }
 
+interface APIRequest {
+  upper_score: number;
+  lower_score: number;
+  order: string;
+
+  [key : string] : any;
+}
+
 function highlightComments(actions : wpconvlib.Comment[], highlightId: string | undefined){
   const conversation: wpconvlib.Conversation = {};
   for (const a of actions) {
@@ -237,12 +245,13 @@ export class AppComponent implements OnInit {
   browseByScore(browseBy : string, browseUpper: number, browseLower: number, searchBy: string, searchFor: string, order: string, isHistorical: boolean) {
     this.errorMessage = null;
     console.log(browseUpper, browseLower, searchBy);
+    let apiRequest: APIRequest = {upper_score: browseUpper, lower_score: browseLower, order: order, isAlive: !isHistorical};
+    apiRequest[URL_PART_FOR_SEARCHBY[searchBy]] = searchFor
 
     this.inFlightBrowseRequest =
         this.http
             .get(encodeURI(
-                '/api/' + URL_PART_FOR_BROWSEBY[browseBy] +
-              '/' + browseUpper+ '/' + browseLower + '/' + order + '/' + URL_PART_FOR_SEARCHBY[searchBy] + '/' + searchFor + '/' + !isHistorical))
+              '/api/' + URL_PART_FOR_BROWSEBY[browseBy] + '/' + JSON.stringify(apiRequest, null, 2)))
             .subscribe(
                 (comments: wpconvlib.Comment[]) => {
                   console.log('got comments!');

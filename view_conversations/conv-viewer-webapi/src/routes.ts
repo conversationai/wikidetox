@@ -36,6 +36,7 @@ const SQL_SAFE_STRING =
 const parentIdIndex = '_by_parent_id';
 const conversationIdIndex = '_by_conversation_id';
 const toxicityIndex = '_by_toxicity';
+const whereConditions = ['page_id', 'page_title', 'user_id', 'user_title', 'rev_id', 'comment_id', 'conversation_id', 'isAlive']
 
 // TODO(ldixon): consider using passport auth
 // for google cloud project.
@@ -74,74 +75,28 @@ export function setup(
     }
   });
 
-  app.get('/api/toxicity/:upper_score/:lower_score/:order/:searchBy/:searchFor/:isAlive', async (req, res) => {
+  app.get('/api/toxicity/:options', async (req, res) => {
     try {
       console.log("RECEVED REQUEST")
-      const upper_score: number = runtime_types.assertNumber(req.params.upper_score);
-      const lower_score: number = runtime_types.assertNumber(req.params.lower_score);
-      const isAlive: boolean = runtime_types.assertBoolean(req.params.isAlive);
-      const order: string = runtime_types.assertOrder(req.params.order);
+      const options: runtime_types.apiRequest = runtime_types.assertAPIRequest(JSON.parse(decodeURI(req.params.options)));
+      console.log(options);
       let index = conf.spannerTableName + toxicityIndex;
-      if (order === 'ASC') {
+      if (options.order === 'ASC') {
         index = index + '_ASC';
       }
-      let searchQuery = '';
-      let isAliveStatement = '';
-      switch (req.params.searchBy) {
-        case 'page-id': {
-          const page_id: runtime_types.PageId =
-              runtime_types.PageId.assert(req.params.searchFor);
-          searchQuery = ` and page_id = ${page_id} `;
-          break;
+      let whereQueryConditions : string[] = [];
+      for (let condition of whereConditions) {
+        if (options[condition] !== undefined) {
+          whereQueryConditions.push(` and ${condition} = ${options[condition]}`);
         }
-        case 'page-title': {
-          const page_title: runtime_types.PageTitleSearch =
-            runtime_types.PageTitleSearch.assert(req.params.searchFor);
-          searchQuery = ` and page_title = "${page_title}" `;
-          break;
-        }
-        case 'user-name': {
-          const user_text: runtime_types.UserTextSearch =
-            runtime_types.UserTextSearch.assert(req.params.searchFor);
-          searchQuery = ` and user_text= "${user_text}" `;
-          break;
-        }
-        case 'user-id': {
-          const user_id: runtime_types.UserId =
-            runtime_types.UserId.assert(req.params.searchFor);
-          searchQuery = ` and user_id = "${user_id}" `;
-          break;
-        }
-        case 'rev-id': {
-          const rev_id: runtime_types.RevisionId =
-            runtime_types.RevisionId.assert(req.params.searchFor);
-          searchQuery = ` and rev_id= ${rev_id} `;
-          break;
-        }
-        case 'comment-id': {
-          const comment_id: runtime_types.CommentId=
-            runtime_types.CommentId.assert(req.params.searchFor);
-          searchQuery = ` and comment_id= ${comment_id} `;
-          break;
-        }
-        case 'conversation-id': {
-          const conversation_id: runtime_types.ConversationId=
-            runtime_types.ConversationId.assert(req.params.ConversationId);
-          searchQuery = ` and conversation_id = ${conversation_id}`;
-          break;
-        }
-      }
-      if (isAlive) {
-        isAliveStatement = ' and isAlive = true';
-      } else {
-        isAliveStatement = '';
       }
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
              FROM ${table}@{FORCE_INDEX=${index}}
-             WHERE RockV6_1_TOXICITY < ${upper_score} and RockV6_1_TOXICITY > ${lower_score} and type != "DELETION"${searchQuery}${isAliveStatement}
-             ORDER BY RockV6_1_TOXICITY ${order}
+             WHERE RockV6_1_TOXICITY < ${options.upper_score} and RockV6_1_TOXICITY > ${options.lower_score} and type != "DELETION"${whereQueryConditions.join('')}
+             ORDER BY RockV6_1_TOXICITY ${options.order}
              LIMIT 20`;
+      console.log(sqlQuery);
       // Query options list:
       // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
       const query: spanner.Query = {
