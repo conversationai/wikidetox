@@ -141,15 +141,13 @@ last {
 
 .isAlive{
   font-size: 80%;
-  color: #BBB;
+  color: red;
   font-weight: bold
 }
 
-
-
 .score{
   font-size: 80%;
-  color: red;
+  color: navy;
   font-weight: bold
 }
 
