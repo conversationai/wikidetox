@@ -51,6 +51,20 @@ export interface PageTitleSearch extends String {
   __type__:
       '@conversationai/wikidetox/conv-viewer-webapi:runtime_types.PageTitleSearch';
 }
+export interface UserTextSearch extends String {
+  // A fake field to make this type unique: fake nominal typing using npm
+  // namespace.
+  __type__:
+      '@conversationai/wikidetox/conv-viewer-webapi:runtime_types.UserTextSearch';
+}
+export interface UserId extends String {
+  // A fake field to make this type unique: fake nominal typing using npm
+  // namespace.
+  __type__:
+      '@conversationai/wikidetox/conv-viewer-webapi:runtime_types.UserId';
+}
+
+
 
 export class RuntimeStringType<T extends String> {
   constructor(public name: string, regexp: string|RegExp) {
@@ -87,12 +101,24 @@ export let PageId = new RuntimeStringType<PageId>('PageId', /^(\d+)$/);
 // TODO(ldixon): support escaping for double quotes, or force quote them.
 export let PageTitleSearch =
     new RuntimeStringType<PageTitleSearch>('PageTitleSearch', /^([^"]+)$/);
+export let UserTextSearch =
+    new RuntimeStringType<UserTextSearch>('UserTextSearch', /^([^"]+)$/);
+export let UserId =
+    new RuntimeStringType<UserId>('UserId', /^(\d+)$/);
+
+
 
 export function assertNumber(score : number) {
   if (isNaN(score)) {
     throw new Error(`Wanted number but got: NaN.`);
   }
   return score;
+}
+
+export function assertBoolean(bool : string) {
+  if (bool === 'true') {return true;}
+  if (bool === 'false') {return false;}
+  throw new Error(`Wanted boolean but got: ${bool}.`);
 }
 
 export function assertOrder(order : string) {

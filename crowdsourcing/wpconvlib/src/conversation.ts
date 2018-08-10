@@ -66,6 +66,8 @@ export interface Comment {
   isCollapsed?: boolean,
   rootComment?: Comment,
   currentState?: string,
+  // True if this comment is not modified nor deleted in the database.
+  isAlive?: boolean;
 }
 
 export interface Conversation { [id: string]: Comment }
