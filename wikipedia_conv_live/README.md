@@ -37,3 +37,26 @@ JSON, and then JSON to JSON-Schema to TS, starting from [the Wikimedia github
 event schema for
 recentchange](https://github.com/wikimedia/mediawiki-event-schemas/tree/master/jsonschema/mediawiki/recentchange)
 
+#### Streaming delete actions
+
+```
+ts-node src/print_recentchanges.ts > tmp/deletes.jsonl
+```
+
+#### Examining the delete actions for .log_action == "revision" deletes
+
+```
+cat tmp/deletes.jsonl | tail -n +4 | jq '. | select(.log_action == "revision")'
+```
+
+Note: `tail -n +4` is used to skip the first few printed lines.
+
+Similarly, but to restrict to enflish wikipedia:
+
+```
+cat tmp/deletes.jsonl | tail -n +4 | jq '. | select(.wiki == "enwiki", .log_action == "revision")'
+```
+
+```
+cat tmp/deletes.jsonl | tail -n +4 | jq '. | select(.wiki == "enwiki" and .log_action == "revision" and .log_params.nfield != 0)'
+```
