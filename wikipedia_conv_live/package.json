@@ -1,0 +1,25 @@
+{
+  "name": "@conversationai/wikidetox-wikipedia-conv-live",
+  "version": "0.0.1",
+  "description": "JS/TS library for working with live conversations on Wikipedia.",
+  "main": "./build/tsc/conversation.js",
+  "types": "./build/tsc/conversation.d.ts",
+  "scripts": {
+    "test": "node fuse",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@types/eventsource": "^1.0.2",
+    "eventsource": "^1.0.5",
+    "fuse-box": "^3.4.0",
+    "fuse-test-runner": "^1.0.16",
+    "json-schema-to-typescript": "^5.5.0",
+    "ts-node": "^7.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^3.0.1"
+  },
+  "type": "git",
+  "url": "https://github.com/conversationai/wikidetox.git",
+  "license": "Apache-2.0"
+}
