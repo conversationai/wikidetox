@@ -34,9 +34,10 @@ const SEARCH_OP_TYPE =
 const SQL_SAFE_STRING =
     new runtime_types.RuntimeStringType<string>('SearchBy', /^[^"]+$/);
 const parentIdIndex = '_by_parent_id';
+const usernameIndex = '_by_user_text';
 const conversationIdIndex = '_by_conversation_id';
 const toxicityIndex = '_by_toxicity';
-const whereConditions = ['page_id', 'page_title', 'user_id', 'user_title', 'rev_id', 'comment_id', 'conversation_id', 'isAlive']
+const whereConditions = ['page_id', 'page_title', 'user_id', 'user_text', 'rev_id', 'comment_id', 'conversation_id', 'isAlive']
 
 // TODO(ldixon): consider using passport auth
 // for google cloud project.
@@ -81,13 +82,20 @@ export function setup(
       const options: runtime_types.apiRequest = runtime_types.assertAPIRequest(JSON.parse(decodeURI(req.params.options)));
       console.log(options);
       let index = conf.spannerTableName + toxicityIndex;
+      if (options['user_text'] !== undefined) {
+        index = conf.spannerTableName + usernameIndex;
+      }
       if (options.order === 'ASC') {
         index = index + '_ASC';
       }
       let whereQueryConditions : string[] = [];
       for (let condition of whereConditions) {
         if (options[condition] !== undefined) {
-          whereQueryConditions.push(` and ${condition} = ${options[condition]}`);
+          if (condition !== 'isAlive' && condition !== 'rev_id') {
+            whereQueryConditions.push(` and ${condition} = "${options[condition]}"`);
+          } else {
+            whereQueryConditions.push(` and ${condition} = ${options[condition]}`);
+          }
         }
       }
       // TODO remove outer try wrapper unless it get used.
