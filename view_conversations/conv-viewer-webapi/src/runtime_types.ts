@@ -145,6 +145,7 @@ export function assertAPIRequest(req : apiRequest) {
   if (req.rev_id) {ret.rev_id = RevisionId.assert(req.rev_id);}
   if (req.conversation_id) {ret.conversation_id = ConversationId.assert(req.conversation_id);}
   console.log(ret);
+  console.log(req);
   return ret;
 }
 
