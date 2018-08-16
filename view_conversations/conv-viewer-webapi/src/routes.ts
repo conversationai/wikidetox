@@ -34,8 +34,10 @@ const SEARCH_OP_TYPE =
 const SQL_SAFE_STRING =
     new runtime_types.RuntimeStringType<string>('SearchBy', /^[^"]+$/);
 const parentIdIndex = '_by_parent_id';
+const usernameIndex = '_by_user_text';
 const conversationIdIndex = '_by_conversation_id';
 const toxicityIndex = '_by_toxicity';
+const whereConditions = ['page_id', 'page_title', 'user_id', 'user_text', 'rev_id', 'comment_id', 'conversation_id', 'isAlive']
 
 // TODO(ldixon): consider using passport auth
 // for google cloud project.
@@ -74,27 +76,50 @@ export function setup(
     }
   });
 
-  app.get('/api/toxicity/:upper_score/:lower_score', async (req, res) => {
+  app.get('/api/toxicity/:options', async (req, res) => {
     try {
-      const upper_score: number = runtime_types.assertNumber(req.params.upper_score);
-      const lower_score: number = runtime_types.assertNumber(req.params.lower_score);
-      const index = conf.spannerTableName + toxicityIndex;
-
+      console.log("RECEVED REQUEST")
+      const options: runtime_types.apiRequest = runtime_types.assertAPIRequest(JSON.parse(decodeURI(req.params.options)));
+      console.log(options);
+      let index = conf.spannerTableName + toxicityIndex;
+      if (options['user_text'] !== undefined) {
+        index = conf.spannerTableName + usernameIndex;
+      }
+      if (options.order === 'ASC') {
+        index = index + '_ASC';
+      }
+      let whereQueryConditions : string[] = [];
+      for (let condition of whereConditions) {
+        if (options[condition] !== undefined) {
+          if (condition !== 'isAlive' && condition !== 'rev_id') {
+            whereQueryConditions.push(` and ${condition} = "${options[condition]}"`);
+          } else {
+            whereQueryConditions.push(` and ${condition} = ${options[condition]}`);
+          }
+        }
+      }
       // TODO remove outer try wrapper unless it get used.
       const sqlQuery = `SELECT *
              FROM ${table}@{FORCE_INDEX=${index}}
-             WHERE RockV6_1_TOXICITY < ${upper_score} and RockV6_1_TOXICITY > ${lower_score} and type != "DELETION"
-             ORDER BY RockV6_1_TOXICITY DESC
+             WHERE RockV6_1_TOXICITY < ${options.upper_score} and RockV6_1_TOXICITY > ${options.lower_score} and type != "DELETION"${whereQueryConditions.join('')}
+             ORDER BY RockV6_1_TOXICITY ${options.order}
              LIMIT 20`;
+      console.log(sqlQuery);
       // Query options list:
       // https://cloud.google.com/spanner/docs/getting-started/nodejs/#query_data_using_sql
       const query: spanner.Query = {
         sql: sqlQuery
       };
+      console.log("QUERY SPANNER");
 
       await spannerDatabase.run(query).then(results => {
         const rows = results[0];
-        res.status(httpcodes.OK).send(JSON.stringify(db_types.parseOutputRows<db_types.OutputRow>(rows), null, 2));
+        console.log("RECVED ANSWER FROM SPANNER");
+        try {
+          res.status(httpcodes.OK).send(JSON.stringify(db_types.parseOutputRows<db_types.OutputRow>(rows), null, 2));
+        } catch (e) {
+         console.log(`*** Failed: `, e);
+        }
       });
     } catch (e) {
       console.error(`*** Failed: `, e);
@@ -141,6 +166,7 @@ export function setup(
 
   app.get('/api/comment-id/:comment_id', async (req, res) => {
     try {
+      console.log("COMMENT_ID RECVED  REQUEST");
       const comment_id: runtime_types.CommentId =
           runtime_types.CommentId.assert(req.params.comment_id);
       const index = conf.spannerTableName + conversationIdIndex;
@@ -159,8 +185,10 @@ export function setup(
       const query: spanner.Query = {
         sql: sqlQuery
       };
+      console.log("QUERY TO SPANNER");
 
       await spannerDatabase.run(query).then(results => {
+        console.log("GOT ANSWER FROM SPANNER");
         const rows = results[0];
         res.status(httpcodes.OK).send(db_types.parseOutputRows<db_types.OutputRow>(rows));
       });
