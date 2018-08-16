@@ -35,6 +35,9 @@ with open("data/own_page_coord.json", "w") as w:
               data = json.loads(line)
               user = data['user_text']
               content = get_words(data["content"])
+              # Some data are repeated short phrases (for example, 50K
+              # continuous 'w's) that will potentially break
+              # the nltk parsing.
               if cnt == 1157357 or cnt == 2973467:
                  data['replyTo_content'] = "Hey dude"
               if cnt == 3140491 or cnt == 2578020:
