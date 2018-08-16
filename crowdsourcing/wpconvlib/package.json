@@ -1,6 +1,6 @@
 {
   "name": "@conversationai/wpconvlib",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "description": "JS/TS library for working with talk page conversations on Wikipedia.",
   "main": "./build/tsc/conversation.js",
   "types": "./build/tsc/conversation.d.ts",
