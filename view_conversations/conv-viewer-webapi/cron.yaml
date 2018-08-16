@@ -1,0 +1,4 @@
+cron:
+- description: stream wikipedia data every hour
+  url: /stream
+  schedule: every 1 hours

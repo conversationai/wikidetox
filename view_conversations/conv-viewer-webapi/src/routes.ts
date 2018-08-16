@@ -21,6 +21,8 @@ import * as httpcodes from './http-status-codes';
 import * as runtime_types from './runtime_types';
 import * as db_types from './db_types';
 
+import { ScheduleTask } from "./cronJobs";
+
 export class NoResultsError extends Error {}
 
 const SEARCH_BY_TYPE = new runtime_types.RuntimeStringType<string>(
@@ -43,6 +45,16 @@ export function setup(
     app: express.Express, conf: config.Config,
     spannerDatabase: spanner.Database) {
   const table = `\`${conf.spannerTableName}\``;
+
+  app.get("/stream", (req, res) => {
+    console.log("Received cron call at : ", new Date());
+    if (req.get("X-Appengine-Cron")) {
+      scheduleCronJobs.runJob(conf);
+    } else {
+      console.log("Received cron call from unknown : ", new Date());
+    }
+    res.sendStatus(200);
+  }
 
   app.get('/api/conversation-id/:conv_id', async (req, res) => {
     try {

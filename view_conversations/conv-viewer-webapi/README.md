@@ -67,7 +67,7 @@ To deploy, make sure your cloud project is set appropriately, and run;
 
 ```
 yarn run build
-gcloud app deploy
+gcloud app deploy cron.yaml
 ```
 
 ## Development
