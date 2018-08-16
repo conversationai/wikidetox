@@ -36,6 +36,7 @@ export interface OutputRow {
   parent_id: runtime_types.CommentId;
   replyTo_id: runtime_types.CommentId;
   rev_id: runtime_types.RevisionId;
+  isAlive: boolean | null;
   timestamp: Date | null;
   type: string;
   user_id: number | null;
@@ -60,6 +61,19 @@ class StringFieldHandler extends SpannerFieldHandler<string> {
     return field;
   }
 }
+
+class BoolFieldHandler extends SpannerFieldHandler<boolean> {
+  public fromSpannerResultField(field:spanner.ResultField) : boolean | null {
+    if(!(field === null || typeof(field) === 'boolean')) {
+      console.error('Error: field:');
+      console.dir(field);
+      throw Error(`For ${this.fieldName}: expected field:boolean, not: ${typeof(field)}`);
+    }
+    return field;
+  }
+}
+
+
 
 class BytesFieldHandler extends SpannerFieldHandler<string> {
   public fromSpannerResultField(field:spanner.ResultField) : string | null {
@@ -126,13 +140,14 @@ class TimestampFieldHandler extends SpannerFieldHandler<Date> {
   }
 }
 
-interface HandlerSet { [fieldName:string] : SpannerFieldHandler<Date | number | string | string[]>; };
-interface ParsedOutput { [fieldName:string] : string | string[] | Date | number | null; };
+interface HandlerSet { [fieldName:string] : SpannerFieldHandler<Date | number | string | string[] | boolean>; };
+interface ParsedOutput { [fieldName:string] : string | string[] | Date | number | null | boolean; };
 const scoreSubstrings = 'RockV6_1|Smirnoff_2';
 const scoreType = 'score';
 
-const handlers : Array<SpannerFieldHandler<Date | number | string | string[]>> = [
+const handlers : Array<SpannerFieldHandler<Date | number | string | string[] | boolean>> = [
   new StringFieldHandler('id'),
+  new BoolFieldHandler('isAlive'),
   new StringFieldHandler('ancestor_id'),
   new ArrayFieldHandler('authors'),
   new BytesFieldHandler('cleaned_content'),
@@ -151,7 +166,7 @@ const handlers : Array<SpannerFieldHandler<Date | number | string | string[]>> =
   new FloatFieldHandler(scoreType),
 ];
 
-function addHandler(inputHandlers : HandlerSet, handler : SpannerFieldHandler<Date | number | string | string[]>)
+function addHandler(inputHandlers : HandlerSet, handler : SpannerFieldHandler<Date | number | string | string[] | boolean>)
     : HandlerSet {
   inputHandlers[handler.fieldName] = handler;
   return inputHandlers;
@@ -161,7 +176,7 @@ const handlerSet = handlers.reduce<HandlerSet>(addHandler, {});
 export function parseOutputRows<T>(rows: spanner.ResultRow[]) : T[] {
   const output : ParsedOutput[] = []
   for (const row of rows) {
-    const ret:  { [fieldName:string] : string | string[] | Date | number | null } = {};
+    const ret:  { [fieldName:string] : string | string[] | Date | number | null  | boolean} = {};
     for (const field of row) {
       const testname = new RegExp(scoreSubstrings).test(field.name) ? scoreType : field.name;
       if(!(testname in handlerSet)) {
