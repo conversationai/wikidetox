@@ -61,6 +61,21 @@ The schema for the table is then:
     provides the id of first creation of the action that was modified, removed,
     or restored respectively.
 
+## Visualization of the English Dataset
+
+Play with our [visualization of the English
+Dataset](http://conv-view.wikidetox-viz.appspot.com/) with the support from
+[Perspective API](https://www.perspectiveapi.com/), you can now browse the
+comments posted to Wikipedia by Toxicity.
+Click on the comment and you can find the whole conversation with it, click on
+the link you'll be directed to the revision when this comment was posted.
+You can also search comments by page or user.
+
+*If there's any comment you found containing personal information (PII), please
+do not hesitate contacting us at yiqing(dot)cs(dot)cornell(dot)edu.*
+
+This system is still under development, any suggestions are welcome!
+
 
 ## Conversation Constructor for Wikipedia Talk Pages
 
