@@ -68,6 +68,7 @@ export interface Comment {
   currentState?: string,
   // True if this comment is not modified nor deleted in the database.
   isAlive?: boolean;
+  //TODO(yiqingh) : change this to isUnchanged in all data sources
 }
 
 export interface Conversation { [id: string]: Comment }
