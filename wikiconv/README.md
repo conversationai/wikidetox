@@ -63,16 +63,16 @@ The schema for the table is then:
 
 ## Visualization of the English Dataset
 
-Play with our [visualization of the English
-Dataset](http://conv-view.wikidetox-viz.appspot.com/) with the support from
-[Perspective API](https://www.perspectiveapi.com/), you can now browse the
-comments posted to Wikipedia by Toxicity.
-Click on the comment and you can find the whole conversation with it, click on
-the link you'll be directed to the revision when this comment was posted.
+You can play with our [visualization of the English
+Dataset](http://conv-view.wikidetox-viz.appspot.com/). This data has been scored by the
+[Perspective API](https://www.perspectiveapi.com/) so you can now browse the
+comments by Toxicity. 
+Click on the comment to see the whole conversation in which it occurs; click on
+the link to be directed to the revision when this comment was posted.
 You can also search comments by page or user.
 
-*If there's any comment you found containing personal information (PII), please
-do not hesitate contacting us at yiqing(dot)cs(dot)cornell(dot)edu.*
+*If you find a comment that contains personal information, please
+contacting us at yiqing(dot)cs(dot)cornell(dot)edu and we will notify Wikipedia, as well as remove it from this dataset.*
 
 This system is still under development, any suggestions are welcome!
 
