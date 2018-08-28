@@ -3,18 +3,18 @@
 WikiConv is a set of corpora encompassing conversations happens on Wikipedia.
 The reconstruction process of this corpus has been published in EMNLP 2018
 [WikiConv: A Corpus of the Complete Conversational History of a Large Online
-Collaborative Community](TBA).
+Collaborative Community](paper/wikiconv-corpus-complete.pdf).
 The second half of [this Wikipedia reasearch
 showcase](https://www.mediawiki.org/wiki/Wikimedia_Research/Showcase#June_2018) presents the corpus and
 the methodology.
 
 WikiConv is a multi-language corpus, it currently includes:
 
-- [English (20180701 data dump)]()
-- [Chinese (20180701 data dump)]()
-- [German (20180701 data dump)]()
-- [Greek (20180701 data dump)]()
-- [Russian (20180701 data dump)]()
+- [English (20180701 data dump)](TBA)
+- [Chinese (20180701 data dump)](TBA)
+- [German (20180701 data dump)](TBA)
+- [Greek (20180701 data dump)](TBA)
+- [Russian (20180701 data dump)](TBA)
 
 ## Format of the reconstruction actions
 
