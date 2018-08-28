@@ -64,6 +64,6 @@ gsutil -m mv gs://${cloudBucket}/reconstructed_res/reconstruction-pages-${langua
 # Clean Result Format
 cd conversation_reconstruction
 . ${pathToVirtualEnv}/bin/activate
-python dataflow_content_clean.py --input gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/reconstructed_results/*/revisions* --setup_file ./setup.py --output gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/cleaned_results/wikiconv-${language}-${dumpdate}- --error_log=gs://${cloudBucket}/format-clean/error_log_${language}_${dumpdate}- --jobname=${language}${dumpdate} --project ${cloudProject} --bucket ${cloudBucket} || exit 1
+python dataflow_content_clean.py --input gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/reconstructed_results/revisions* --setup_file ./setup.py --output gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/cleaned_results/wikiconv-${language}-${dumpdate}- --error_log=gs://${cloudBucket}/format-clean/error_log_${language}_${dumpdate}- --jobname=${language}${dumpdate} --project ${cloudProject} --bucket ${cloudBucket} || exit 1
 deactivate
 cd ..
