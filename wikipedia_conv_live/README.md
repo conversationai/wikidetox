@@ -28,6 +28,9 @@ yarn run build
 
 ## Notes
 ### Suppression/Deletion monitoring
+
+ * [Revision Deletion](https://en.wikipedia.org/wiki/Wikipedia:Revision_deletion)
+
 #### Creating the ts Schema for RecentChanges
 
 The [Wikipedia EventStream
@@ -60,3 +63,8 @@ cat tmp/deletes.jsonl | tail -n +4 | jq '. | select(.wiki == "enwiki", .log_acti
 ```
 cat tmp/deletes.jsonl | tail -n +4 | jq '. | select(.wiki == "enwiki" and .log_action == "revision" and .log_params.nfield != 0)'
 ```
+
+```
+cat tmp/deletes.jsonl | tail -n +4 | jq '. | select(.log_type == "suppress")'
+```
+
