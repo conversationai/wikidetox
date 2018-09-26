@@ -1,26 +1,26 @@
 # -*- coding: utf-8 -*-
+# Copyright 2017 Google Inc.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """
-Copyright 2017 Google Inc.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
--------------------------------------------------------------------------------
-
-A dataflow pipeline to reconstruct conversations on Wikipedia talk pages from ingested json files.
+A dataflow pipeline to reconstruct conversations on Wikipedia talk pages from
+ingested json files.
 
 Run with:
 
-reconstruct*.sh in helper_shell
-
+  ```
+  cd helper_shell
+  ./reconstruct.sh
+  ```
 """
 from __future__ import absolute_import
 import argparse
@@ -47,6 +47,7 @@ from construct_utils.conversation_constructor import Conversation_Constructor
 
 
 LOG_INTERVAL = 100
+# The max memory used in of this process KB, before warning are logged.
 MEMORY_THERESHOLD = 1000000
 REVISION_THERESHOLD = 250000000
 SAVE_TO_MEMORY = 0
@@ -82,10 +83,14 @@ def run(known_args, pipeline_args):
   with beam.Pipeline(options=pipeline_options) as p:
     # Identify Input Locations
     revision_location = known_args.input
-    tmp_input = "gs://{bucket}/{process_file}/revs/".format(bucket=known_args.bucket, process_file=known_args.process_file)
-    last_revision_location = "gs://{bucket}/{process_file}/current/last_rev*".format(bucket=known_args.bucket, process_file=known_args.process_file)
-    page_state_location = "gs://{bucket}/{process_file}/current/page_states*".format(bucket=known_args.bucket, process_file=known_args.process_file)
-    error_log_location = "gs://{bucket}/{process_file}/current/error_log*".format(bucket=known_args.bucket, process_file=known_args.process_file)
+    tmp_input = "gs://{bucket}/{process_file}/revs/".format(
+      bucket=known_args.bucket, process_file=known_args.process_file)
+    last_revision_location = "gs://{bucket}/{process_file}/current/last_rev*".format(
+      bucket=known_args.bucket, process_file=known_args.process_file)
+    page_state_location = "gs://{bucket}/{process_file}/current/page_states*".format(
+      bucket=known_args.bucket, process_file=known_args.process_file)
+    error_log_location = "gs://{bucket}/{process_file}/current/error_log*".format(
+      bucket=known_args.bucket, process_file=known_args.process_file)
 
     # Read from Cloud Storage
     revision_metadata = (p | 'ReadRevisionMetadata' >> beam.io.ReadFromText(revision_location)
@@ -114,10 +119,13 @@ def run(known_args, pipeline_args):
                    | beam.ParDo(ReconstructConversation(), tmp_input).with_outputs('page_states',\
                                'last_revision','error_log',  main = 'reconstruction_results'))
     # Main Result
-    reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText("gs://{bucket}/reconstructed_res/{jobname}/revisions-".format(bucket=known_args.bucket, jobname=jobname))
+    reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText(
+      "gs://{bucket}/reconstructed_res/{jobname}/revisions-".format(
+        bucket=known_args.bucket, jobname=jobname))
 
     # Saving intermediate results to separate locations.
-    folder = "gs://{bucket}/{process_file}/next_stage/".format(bucket=known_args.bucket, process_file=known_args.process_file)
+    folder = "gs://{bucket}/{process_file}/next_stage/".format(
+      bucket=known_args.bucket, process_file=known_args.process_file)
     page_states | "WritePageStates" >> beam.io.WriteToText(folder + "page_states")
     last_rev_output | "WriteCollectedLastRevision" >> beam.io.WriteToText(folder + "last_rev")
     error_log | "WriteErrorLog" >> beam.io.WriteToText(folder + "error_log")
@@ -203,6 +211,12 @@ class ReconstructConversation(beam.DoFn):
        return ret_p
 
   def process(self, info, tmp_input):
+    """
+    Args:
+      tmp_input: a cloud storage path to copy JSON revision files from. This
+        allows data to be copied to this local machine's disk for external
+        sorting (when there are more revisions than can fit in memory).
+    """
     (page_id, data) = info
     if (page_id == None): return
     logging.info('USERLOG: Reconstruction work start on page: %s' % page_id)
@@ -259,7 +273,7 @@ class ReconstructConversation(beam.DoFn):
     last_revision_id = 'None'
     page_state_bak = None
     cnt = 0
-    # Sort revisions by temporal order.
+    # Sort revisions by temporal order in memory.
     revision_lst = sorted(rev_ids, key=lambda x: (x['timestamp'], x['rev_id']))
     last_loading = 0
     logging.info('Reconstruction on page %s started.' % (page_id))
@@ -292,7 +306,8 @@ class ReconstructConversation(beam.DoFn):
             yield json.dumps(action)
         memory_used = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         if memory_used >= MEMORY_THERESHOLD:
-          logging.info("MEMORY USED MORE THAN THERESHOLD in PAGE %s REVISION %d : %d KB" % (revision['page_id'], revision['rev_id'], memory_used))
+          logging.warn("MEMORY USED MORE THAN THERESHOLD in PAGE %s REVISION %d : %d KB" %
+            (revision['page_id'], revision['rev_id'], memory_used))
         if (cnt % LOG_INTERVAL == 0 and cnt) and page_state:
           # Reload after every LOG_INTERVAL revisions to keep the low memory
           # usage.
@@ -310,8 +325,10 @@ class ReconstructConversation(beam.DoFn):
     if error_log:
        yield beam.pvalue.TaggedOutput('error_log', json.dumps(error_log))
     yield beam.pvalue.TaggedOutput('page_states', json.dumps(page_state))
-    yield beam.pvalue.TaggedOutput('last_revision', json.dumps({'page_id': page_id, 'text': latest_content}))
-    logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' % (page_id, last_revision_id))
+    yield beam.pvalue.TaggedOutput('last_revision', json.dumps(
+      {'page_id': page_id, 'text': latest_content}))
+    logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' %
+      (page_id, last_revision_id))
 
 if __name__ == '__main__':
 #  logging.basicConfig(filename="debug.log", level=logging.INFO)
