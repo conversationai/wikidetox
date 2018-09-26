@@ -12,6 +12,19 @@ The workflow can be seen in the following picture:
 
 ![conversation_construction_workflow](docs/dataflow_pipeline.png)
 
+## Setup Requirements
+
+This codebase is built on `python2.7` and assumes you are using a `virtualenv`
+setup.
+
+```shell
+virtualenv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+# ... do stuff ...
+deactivate
+```
+
 ## Parameters for `dataflow_main.py`
 
   Flag | Description
