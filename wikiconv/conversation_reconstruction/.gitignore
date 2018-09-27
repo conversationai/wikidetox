@@ -10,3 +10,6 @@ debug
 
 # Output directory should not be checked in.
 dist
+
+# Temporary data
+tmp
