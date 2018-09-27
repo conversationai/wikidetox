@@ -20,7 +20,7 @@ Run on local test data with:
 ```
 # Run locally:
 python dataflow_main.py \
-  --setup_file ./local_setup.py \
+  --setup_file ./setup.py \
   --input_state './testdata/empty_init_state' \
   --input_revisions './testdata/edgecases_28_convs/revs*' \
   --output_state ./tmp/ \
@@ -29,7 +29,7 @@ python dataflow_main.py \
 
 # Run on the cloud with:
 python dataflow_main.py \
-  --setup_file ./local_setup.py \
+  --setup_file ./setup.py \
   --input_state 'gs://YOUR_BUCKET/PATH_TO_INIT_STATE' \
   --input_revisions 'gs://YOUR_BUCKET/PATH_TO_REVS*' \
   --output_state 'gs://YOUR_BUCKET/PATH_TO_OUTPUT_STATE_TO' \
