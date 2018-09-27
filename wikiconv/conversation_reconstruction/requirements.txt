@@ -2,7 +2,7 @@ noaho
 mwtypes
 yamlconf
 deltas
-google-cloud-bigquery==0.28.0
 future
 bs4
 mwparserfromhell
+apache-beam
