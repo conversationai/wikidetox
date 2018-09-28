@@ -15,139 +15,230 @@
 A dataflow pipeline to reconstruct conversations on Wikipedia talk pages from
 ingested json files.
 
-Run with:
+Run on local test data with:
 
-  ```
-  cd helper_shell
-  ./reconstruct.sh
-  ```
+```
+# Run locally:
+python dataflow_main.py \
+  --setup_file ./setup.py \
+  --input_state './testdata/empty_init_state' \
+  --input_revisions './testdata/edgecases_28_convs/revs*' \
+  --output_state ./tmp/ \
+  --output_conversations ./tmp/ \
+  --runner DirectRunner
+
+# Run on the cloud with:
+python dataflow_main.py \
+  --setup_file ./setup.py \
+  --input_state 'gs://YOUR_BUCKET/PATH_TO_INIT_STATE' \
+  --input_revisions 'gs://YOUR_BUCKET/PATH_TO_REVS*' \
+  --output_state 'gs://YOUR_BUCKET/PATH_TO_OUTPUT_STATE_TO' \
+  --output_conversations 'gs://YOUR_BUCKET/PATH_TO_OUTPUT_CONVS_TO' \
+  --runner DirectRunner
+  --project $YOUR_GCLOUD_PROJECT \
+  --job_name $NAME_OF_YOUR_JOB
+  --num_workers $NUMBER_OF_WORKERS_SUCH_AS_80
+```
+
+Note: Don't forget the quotes on the local paths, otherwise bash will interpret
+them and dataflow fails to see all the files.
+TODO(ldixon): make the input parser smarter so that it can handle this.
+
 """
 from __future__ import absolute_import
 import argparse
 import logging
 import traceback
 import subprocess
-import resource
 import json
 import os
 from os import path
 import urllib2
-import tempfile
 import ast
-import copy
 import sys
 import time
 
 import apache_beam as beam
 from apache_beam.io import filesystems
 from apache_beam.metrics.metric import Metrics
+from apache_beam.metrics.metric import MetricsFilter
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
-from construct_utils.conversation_constructor import Conversation_Constructor
+from construct_utils.reconstruct_conversation import ReconstructConversation
 
+# The max cumulative size of a page's revisions to be considered to try and
+# keep in memory when processing.
+# Measured by python string length. approx 250 MB
+CUMULATIVE_REVISION_SIZE_THERESHOLD = 250 * 1024 * 1024
 
-LOG_INTERVAL = 100
-# The max memory used in of this process KB, before warning are logged.
-MEMORY_THERESHOLD = 1000000
-REVISION_THERESHOLD = 250000000
+# Constants used
 SAVE_TO_MEMORY = 0
 SAVE_TO_STORAGE = 1
+
+# Number of times to DataFlow should retry a failed worker.
 RETRY_LIMIT = 10
 
-def get_metadata(x):
-  record_size = len(x)
-  record = json.loads(x)
+# Custom logging level so we don't have to read all the info messages, but we
+# see our printed summary statistics.
+LOG_LEVEL_OUTPUT_INFO = 25
+
+def page_indexed_metadata_of_revstring(rev_string):
+  record_size = len(rev_string)
+  record = json.loads(rev_string)
   return (record['page_id'], {'page_id': record['page_id'], 'rev_id': record['rev_id'],
                               'timestamp': record['timestamp'], 'record_size': record_size})
 
 
-def run(known_args, pipeline_args):
-  """Main entry point; defines and runs the reconstruction pipeline."""
+def index_by_page_id(s):
+  """Given a json string of a dict with a page_id key, pair the page_id with
+  the object."""
+  return (json.loads(s)["page_id"], json.loads(s))
 
-  if known_args.testmode:
-    pipeline_args.append('--runner=DirectRunner')
+
+def index_by_rev_id(s):
+  """Given a json string of a dict with a rev_id key, pair the rev_id with
+  the string"""
+  return (json.loads(s)["rev_id"], s)
+
+
+def get_counter_metric(result, counter_name):
+  metrics_filter = MetricsFilter().with_name(counter_name)
+  query_result = result.metrics().query(metrics_filter)
+  if query_result['counters']:
+    return query_result['counters'][0].committed
   else:
-    pipeline_args.append('--runner=DataflowRunner')
+    return None
+
+def get_distributions_metric(result, counter_name):
+  metrics_filter = MetricsFilter().with_name(counter_name)
+  query_result = result.metrics().query(metrics_filter)
+  if query_result['distributions']:
+    return query_result['distributions'][0].committed
+  else:
+    return None
+
+# TODO(ldixon): pull these into a class, and output to JSON as a job summary for better
+# debugging.
+def print_metrics(result):
+  """Print metrics we might be interested in.
+  Args:
+    result: dataflow result.
+  """
+  logging.log(LOG_LEVEL_OUTPUT_INFO, '------------------------------------------------')
+  logging.log(LOG_LEVEL_OUTPUT_INFO, ' KEY METRICS: ')
+  logging.log(LOG_LEVEL_OUTPUT_INFO, '------------------------------------------------')
+  logging.log(LOG_LEVEL_OUTPUT_INFO, '* pages_count: %d', get_counter_metric(result, 'pages_count'))
+  logging.log(LOG_LEVEL_OUTPUT_INFO, '* revisions_count: %d', get_counter_metric(result, 'revisions_count'))
+  logging.log(LOG_LEVEL_OUTPUT_INFO, '* very_long_page_histories_count: %d', get_counter_metric(result, 'very_long_page_histories_count'))
+  revisions_per_page_distr = get_distributions_metric(result, 'revisions_per_page_distr')
+  logging.log(LOG_LEVEL_OUTPUT_INFO, '* revisions_per_page_distr.mean: %d', revisions_per_page_distr.mean)
+  logging.log(LOG_LEVEL_OUTPUT_INFO, '* revisions_per_page_distr.sum: %d', revisions_per_page_distr.sum)
+  cumulative_page_rev_size_distr = get_distributions_metric(result, 'cumulative_page_rev_size_distr')
+  logging.log(LOG_LEVEL_OUTPUT_INFO, '* cumulative_page_rev_size_distr.mean: %d', cumulative_page_rev_size_distr.mean)
+  logging.log(LOG_LEVEL_OUTPUT_INFO, '* cumulative_page_rev_size_distr.sum: %d', cumulative_page_rev_size_distr.sum)
+
+
+
+def run(locations, pipeline_args):
+  """Main entry point; runs the reconstruction pipeline.
+  Args:
+    locations: Locations instance with the various input/output locations.
+    pipeline_args: flags for PipelineOptions, detailing how to run the job.
+      See: https://cloud.google.com/dataflow/pipelines/specifying-exec-params
+  """
+
   pipeline_args.extend([
-    '--project={project}'.format(project=known_args.project),
-    '--staging_location=gs://{bucket}/staging'.format(bucket=known_args.bucket),
-    '--temp_location=gs://{bucket}/tmp'.format(bucket=known_args.bucket),
-    '--job_name=reconstruction-{}'.format(known_args.output_name),
-    '--num_workers=80'
+    '--staging_location={dataflow_staging}'.format(
+      dataflow_staging=locations.dataflow_staging),
+    '--temp_location={dataflow_temp}'.format(
+      dataflow_temp=locations.dataflow_temp),
   ])
   pipeline_options = PipelineOptions(pipeline_args)
+  # TODO(ldixon): investigate why/where we use global objects, and remove them
+  # by adding them as command line arguments/config.
+  # See: https://cloud.google.com/dataflow/faq#how-do-i-handle-nameerrors
   pipeline_options.view_as(SetupOptions).save_main_session = True
-  jobname = 'reconstruction-pages-{}'.format(known_args.output_name)
 
-  json_mapping = lambda x: (json.loads(x)["page_id"], json.loads(x))
   with beam.Pipeline(options=pipeline_options) as p:
-    # Identify Input Locations
-    revision_location = known_args.input
-    tmp_input = "gs://{bucket}/{process_file}/revs/".format(
-      bucket=known_args.bucket, process_file=known_args.process_file)
-    last_revision_location = "gs://{bucket}/{process_file}/current/last_rev*".format(
-      bucket=known_args.bucket, process_file=known_args.process_file)
-    page_state_location = "gs://{bucket}/{process_file}/current/page_states*".format(
-      bucket=known_args.bucket, process_file=known_args.process_file)
-    error_log_location = "gs://{bucket}/{process_file}/current/error_log*".format(
-      bucket=known_args.bucket, process_file=known_args.process_file)
-
-    # Read from Cloud Storage
-    revision_metadata = (p | 'ReadRevisionMetadata' >> beam.io.ReadFromText(revision_location)
-                         | 'MapToMetaData' >> beam.Map(lambda x: get_metadata(x))
-                         | beam.GroupByKey()
-                         | beam.ParDo(Count()))
-    raw_revisions = (p | 'ReadRawRevisions' >> beam.io.ReadFromText(revision_location)
-                       | 'assign_rev_id_as_key' >>beam.Map(lambda x: (json.loads(x)['rev_id'], x)))
-    to_be_processed = ({'metadata': revision_metadata, 'raw': raw_revisions}
-                       | 'GroupbyRevID' >> beam.CoGroupByKey()
-                       | 'WriteToStroage' >> beam.ParDo(WriteToStorage(), tmp_input))
-
-    last_revision = (p | 'Retrieve_last_revision' >> beam.io.ReadFromText(last_revision_location)
-                       | 'LASTREV_assign_page_id_as_key' >> beam.Map(json_mapping))
-    page_state = (p | 'Retrieve_page_state' >> beam.io.ReadFromText(page_state_location)
-                    | 'PAGESTATE_assign_page_id_as_key' >> beam.Map(json_mapping))
-    error_log = (p | 'Retrieve_error_log' >> beam.io.ReadFromText(error_log_location)
-                    | 'ERRORLOG_assign_page_id_as_key' >> beam.Map(json_mapping))
+    # Find which revisions are from pages with histories so long we'll need to
+    # process them on disk instead of in memory.
+    # TODO(ldixon): probably better to simply extend the meta-data with a mark
+    # for its part of a big page.
+    rev_marks = (p
+      | 'input_revisions-for-metadata' >> beam.io.ReadFromText(locations.input_revisions)
+      | 'metadata_of_revstring' >> beam.Map(page_indexed_metadata_of_revstring)
+      | beam.GroupByKey()
+      | beam.ParDo(MarkRevisionsOfBigPages()))
+    raw_revision_ids = (p
+      | 'input_revisions' >> beam.io.ReadFromText(locations.input_revisions)
+      | 'input_revisions-by-rev_id' >> beam.Map(index_by_rev_id))
+    revs_with_marks_by_id = ({'metadata': rev_marks, 'raw': raw_revision_ids}
+      | 'GroupbyRevID' >> beam.CoGroupByKey()
+      | 'output_revs_with_marks' >> beam.ParDo(WriteToStorage(), locations.output_revs_with_marks))
+    last_revisions = (p
+      | 'input_last_revisions' >> beam.io.ReadFromText(locations.input_last_revisions)
+      | 'input_last_revisions-by-page_id' >> beam.Map(index_by_page_id))
+    page_state = (p
+      | 'input_page_states' >> beam.io.ReadFromText(locations.input_page_states)
+      | 'input_page_states-by-page_id' >> beam.Map(index_by_page_id))
+    error_log = (p
+      | 'input_error_logs' >> beam.io.ReadFromText(locations.input_error_logs)
+      | 'input_error_logs-by-page_id' >> beam.Map(index_by_page_id))
 
     # Main Pipeline
-    reconstruction_results, page_states, last_rev_output, error_log\
-                   = ({'to_be_processed': to_be_processed, 'last_revision': last_revision, \
-                       'page_state': page_state, 'error_log': error_log}
-                   # Join information based on page_id.
-                   | 'GroupBy_page_id' >> beam.CoGroupByKey()
-                   | beam.ParDo(ReconstructConversation(), tmp_input).with_outputs('page_states',\
-                               'last_revision','error_log',  main = 'reconstruction_results'))
+    reconstruction_results, page_states, last_rev_output, error_log = (
+      {'to_be_processed': revs_with_marks_by_id, 'last_revision': last_revisions,
+       'page_state': page_state, 'error_log': error_log}
+      # Join information based on page_id.
+      | 'GroupBy_page_id' >> beam.CoGroupByKey()
+      | beam.ParDo(ReconstructConversation(), locations.output_revs_with_marks).with_outputs(
+        'page_states', 'last_revision', 'error_log',  main = 'reconstruction_results'))
     # Main Result
-    reconstruction_results | "WriteReconstructedResults" >> beam.io.WriteToText(
-      "gs://{bucket}/reconstructed_res/{jobname}/revisions-".format(
-        bucket=known_args.bucket, jobname=jobname))
+    reconstruction_results | "output_conversations" >> beam.io.WriteToText(
+      locations.output_conversations)
 
     # Saving intermediate results to separate locations.
-    folder = "gs://{bucket}/{process_file}/next_stage/".format(
-      bucket=known_args.bucket, process_file=known_args.process_file)
-    page_states | "WritePageStates" >> beam.io.WriteToText(folder + "page_states")
-    last_rev_output | "WriteCollectedLastRevision" >> beam.io.WriteToText(folder + "last_rev")
-    error_log | "WriteErrorLog" >> beam.io.WriteToText(folder + "error_log")
+    page_states | "output_page_states" >> beam.io.WriteToText(locations.output_page_states)
+    last_rev_output | "output_last_revisions" >> beam.io.WriteToText(locations.output_last_revisions)
+    error_log | "output_error_logs" >> beam.io.WriteToText(locations.output_error_logs)
+
+    result = p.run()
+    result.wait_until_finish()
+    if (not hasattr(result, 'has_job')    # direct runner
+        or result.has_job):               # not just a template creation
+      print_metrics(result)
 
 
-class Count(beam.DoFn):
+# TODO(ldixon): Instead of requiring the history of a page's revisions'
+# meta-data to fit in memory to be counted, we could instead tag the pages that
+# are too big by simply streaming revisions for each page, counting as we go,
+# and then re-joining to the page-ids to then re-tag the stream of revisions.
+class MarkRevisionsOfBigPages(beam.DoFn):
   def __init__(self):
-      self.pages_to_storage = Metrics.counter(self.__class__, 'pages_to_storage')
-      self.pages = Metrics.counter(self.__class__, 'pages')
+    self.very_long_page_histories_count = Metrics.counter(self.__class__, 'very_long_page_histories_count')
+    self.pages_count = Metrics.counter(self.__class__, 'pages_count')
+    self.revisions_count = Metrics.counter(self.__class__, 'revisions_count')
+    self.revisions_per_page_distr = Metrics.distribution(self.__class__, 'revisions_per_page_distr')
+    self.cumulative_page_rev_size_distr = Metrics.distribution(self.__class__, 'cumulative_page_rev_size_distr')
 
-  def process(self, element):
-    (page_id, metadata) = element
+  def process(self, (page_id, metadata)):
     flag = SAVE_TO_MEMORY
-    revision_sum = 0
-    self.pages.inc()
     metadata = list(metadata)
+    # Update metrics.
+    self.pages_count.inc()
+    revisions_for_this_page = len(metadata)
+    self.revisions_count.inc(revisions_for_this_page)
+    self.revisions_per_page_distr.update(revisions_for_this_page)
+    # Hack to make sure its defined.
+    self.very_long_page_histories_count.inc(0)
+
+    revision_size_sum = 0
     for s in metadata:
-      revision_sum += s['record_size']
-      if revision_sum > REVISION_THERESHOLD:
-         flag = SAVE_TO_STORAGE
-         self.pages_to_storage.inc()
-         break
+      revision_size_sum += s['record_size']
+    self.cumulative_page_rev_size_distr.update(revision_size_sum)
+    if revision_size_sum > CUMULATIVE_REVISION_SIZE_THERESHOLD:
+        flag = SAVE_TO_STORAGE
+        self.very_long_page_histories_count.inc()
     for rev in metadata:
       yield (rev['rev_id'], flag)
 
@@ -190,173 +281,59 @@ class WriteToStorage(beam.DoFn):
     yield (page_id, ret)
 
 
-class ReconstructConversation(beam.DoFn):
-  def merge(self, ps1, ps2):
-       # Merge two page states, ps1 is the later one
-       deleted_ids_ps2 = {d[1]:d for d in ps2['deleted_comments']}
-       deleted_ids_ps1 = {d[1]:d for d in ps1['deleted_comments']}
-       deleted_ids_ps2.update(deleted_ids_ps1)
-       extra_ids = [key for key in deleted_ids_ps2.keys() if key not in deleted_ids_ps1]
-       ret_p = copy.deepcopy(ps1)
-       ret_p['deleted_comments'] = list(deleted_ids_ps2.values())
-       conv_ids = ps2['conversation_id']
-       auth = ps2['authors']
-       ret_p['conversation_id'] = ret_p['conversation_id']
-       ret_p['authors'] = ret_p['authors']
-       for i in extra_ids:
-           ret_p['conversation_id'][i] = conv_ids[i]
-           ret_p['authors'][i] = auth[i]
-       ret_p['conversation_id'] = ret_p['conversation_id']
-       ret_p['authors'] = ret_p['authors']
-       return ret_p
+class Locations:
+  """A simple class to construct the various locations.
 
-  def process(self, info, tmp_input):
-    """
-    Args:
-      tmp_input: a cloud storage path to copy JSON revision files from. This
-        allows data to be copied to this local machine's disk for external
-        sorting (when there are more revisions than can fit in memory).
-    """
-    (page_id, data) = info
-    if (page_id == None): return
-    logging.info('USERLOG: Reconstruction work start on page: %s' % page_id)
-    # Load input from cloud
-    last_revision = data['last_revision']
-    page_state = data['page_state']
-    error_log = data['error_log']
-    # Clean type formatting
-    if last_revision != []:
-       assert(len(last_revision) == 1)
-       last_revision = last_revision[0]
-    else:
-       last_revision = None
-    if page_state != []:
-       assert(len(page_state) == 1)
-       page_state = page_state[0]
-       page_state['page_state']['actions'] = \
-           {int(pos) : tuple(val) for pos, val in page_state['page_state']['actions'].iteritems()}
-       page_state['authors'] = \
-           {action_id: [tuple(author) for author in authors] \
-            for action_id, authors in page_state['authors'].iteritems()}
-    else:
-       page_state = None
-    if error_log != []:
-       assert(len(error_log) == 1)
-       error_log = error_log[0]
-    else:
-       error_log = None
-    rev_ids = []
-    rev_ids = data['to_be_processed']
-    # Return when the page doesn't have updates to be processed
-    if len(rev_ids) == 0  or (error_log and
-                              error_log['rev_id'] <= min(r['rev_id'] for r in rev_ids)):
-       assert((last_revision and page_state) or \
-              ((last_revision is None) and (page_state is None)))
-       if last_revision:
-          yield beam.pvalue.TaggedOutput('last_revision', json.dumps(last_revision))
-          yield beam.pvalue.TaggedOutput('page_states', json.dumps(page_state))
-       if error_log:
-          yield beam.pvalue.TaggedOutput('error_log', json.dumps(error_log))
-       logging.info('Page %s has no sufficient input in this time period.' % (page_id))
-       return
+  Constructs locations, which can be file paths, google
+  cloud storage bucket paths, or other locations readable by Google Cloud
+  DataFlow.
+  """
+  def __init__(self, known_args):
+    self.input_revisions = known_args.input_revisions
+    self.input_last_revisions = (
+      known_args.input_state + "/last_revisions/last_rev*")
+    self.input_page_states = (
+      known_args.input_state + "/page_states/page_states*")
+    # TODO(ldixon): why do we take in errors? remove?
+    self.input_error_logs = (
+      known_args.input_state + "/error_logs/error_log*")
 
-    processor = Conversation_Constructor()
-    if page_state:
-       logging.info('Page %s existed: loading page state.' % (page_id))
-       # Load previous page state.
-       processor.load(page_state['deleted_comments'])
-       latest_content = last_revision['text']
-    else:
-       latest_content = ""
+    self.dataflow_staging = (
+      known_args.output_state + "/dataflow_tmp/staging/")
+    self.dataflow_temp = (
+      known_args.output_state + "/dataflow_tmp/temp/")
 
-    # Initialize
-    last_revision_id = 'None'
-    page_state_bak = None
-    cnt = 0
-    # Sort revisions by temporal order in memory.
-    revision_lst = sorted(rev_ids, key=lambda x: (x['timestamp'], x['rev_id']))
-    last_loading = 0
-    logging.info('Reconstruction on page %s started.' % (page_id))
-    if 'text' not in revision_lst[0]:
-      tempfile_path = tempfile.mkdtemp()
-      os.system("gsutil -m cp -r %s %s" % (path.join(tmp_input, page_id), tempfile_path + '/'))
-    for key in revision_lst:
-        if 'text' not in key:
-           with open(path.join(tempfile_path, page_id, str(key['rev_id'])), 'r') as f:
-              revision = json.load(f)
-           os.system("rm %s" % path.join(tempfile_path, page_id, str(key['rev_id'])))
-        else:
-           revision = key
-        revision['rev_id'] = int(revision['rev_id'])
-        # Process revision by revision.
-        if 'rev_id' not in revision: continue
-        cnt += 1
-        last_revision_id = revision['rev_id']
-        if revision['text'] == None: revision['text'] = ""
-        logging.debug("REVISION CONTENT: %s" % revision['text'])
-        try:
-           page_state, actions, latest_content = \
-               processor.process(page_state, latest_content, revision)
-        except AssertionError:
-           yield beam.pvalue.TaggedOutput('error_log', \
-                      json.dumps({'page_id': page_id, 'rev_id': last_revision_id}))
-           break
+    self.output_revs_with_marks = (
+      known_args.output_state + "/revs_with_marks/revs_with_marks")
+    self.output_page_states = (
+      known_args.output_state + "/page_states/page_states")
+    self.output_last_revisions = (
+      known_args.output_state + "/last_revisions/last_rev")
+    self.output_error_logs = (
+      known_args.output_state + "/error_logs/error_log")
 
-        for action in actions:
-            yield json.dumps(action)
-        memory_used = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        if memory_used >= MEMORY_THERESHOLD:
-          logging.warn("MEMORY USED MORE THAN THERESHOLD in PAGE %s REVISION %d : %d KB" %
-            (revision['page_id'], revision['rev_id'], memory_used))
-        if (cnt % LOG_INTERVAL == 0 and cnt) and page_state:
-          # Reload after every LOG_INTERVAL revisions to keep the low memory
-          # usage.
-           processor = Conversation_Constructor()
-           page_state_bak = copy.deepcopy(page_state)
-           last_loading = cnt
-           processor.load(page_state['deleted_comments'])
-           page_state['deleted_comments'] = []
-        revision = None
-    if page_state_bak and cnt != last_loading:
-       # Merge the last two page states if a reload happens while processing,
-       # otherwise in a situation where a week's data contains LOG_INTERVAL + 1
-       # revisions, the page state may only contain data from one revision.
-       page_state = self.merge(page_state, page_state_bak)
-    if error_log:
-       yield beam.pvalue.TaggedOutput('error_log', json.dumps(error_log))
-    yield beam.pvalue.TaggedOutput('page_states', json.dumps(page_state))
-    yield beam.pvalue.TaggedOutput('last_revision', json.dumps(
-      {'page_id': page_id, 'text': latest_content}))
-    logging.info('USERLOG: Reconstruction on page %s complete! last revision: %s' %
-      (page_id, last_revision_id))
+    self.output_conversations = (
+      known_args.output_conversations + "/conversations/conversations")
 
 if __name__ == '__main__':
-#  logging.basicConfig(filename="debug.log", level=logging.INFO)
-  logging.getLogger().setLevel(logging.INFO)
+  # logging.basicConfig(filename="debug.log", level=logging.INFO)
+  # logging.getLogger().setLevel(logging.INFO)
+  logging.getLogger().setLevel(LOG_LEVEL_OUTPUT_INFO)
   parser = argparse.ArgumentParser()
-  # input/output parameters.
-  parser.add_argument('--project',
-                      dest='project',
-                      help='Google cloud project name.')
-  parser.add_argument('--bucket',
-                      dest='bucket',
-                      help='The bucket name for the conversation reconstruction process.')
-  parser.add_argument('--input',
-                      dest='input',
-                      help='input storage.')
-  parser.add_argument('--output_name',
-                      dest='output_name',
-                      default=1,
-                      help='Name of the result file.')
-  parser.add_argument('--process_file',
-                      dest='process_file',
-                      default='process_tmp',
-                      help='Cloud storage for intermediate processing file.')
-  parser.add_argument('--testmode',
-                      dest='testmode',
-                      action='store_true',
-                      help='Wheather to run in testmode.')
+  parser.add_argument('--input_state',
+                      dest='input_state',
+                      help='Location of input page state to start from.')
+  parser.add_argument('--input_revisions',
+                      dest='input_revisions',
+                      help='Location of the input revisions to process.')
+  parser.add_argument('--output_state',
+                      dest='output_state',
+                      help='Location for intermediate outputs.')
+  parser.add_argument('--output_conversations',
+                      dest='output_conversations',
+                      help='Location to output conversations.')
 
+  # All unknown flags are considered to be pipeline arguments.
   known_args, pipeline_args = parser.parse_known_args()
-  run(known_args, pipeline_args)
+  run(Locations(known_args), pipeline_args)
 
