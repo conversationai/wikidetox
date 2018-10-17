@@ -1,0 +1,23 @@
+{
+  "name": "wiki_categorize",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "compile": "tsc",
+    "watch": "nodemon --watch src -e ts --exec 'yarn run compile'",
+    "start": "node --max-old-space-size=8192 build/main.js"
+  },
+  "author": "Iris Qu",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/bigquery": "^1.3.0",
+    "@google-cloud/language": "^2.0.0",
+    "fs": "^0.0.1-security",
+    "node-fetch": "^2.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.4",
+    "typescript": "^3.1.2"
+  }
+}
