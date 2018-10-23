@@ -72,7 +72,7 @@ the link to be directed to the revision when this comment was posted.
 You can also search comments by page or user.
 
 *If you find a comment that contains personal information, please
-contacting us at yiqing(dot)cs(dot)cornell(dot)edu and we will notify Wikipedia, as well as remove it from this dataset.*
+contacting us at yiqing(dot)cs(dot)cornell(dot)edu and we will notify the Wikimedia Foundation, as well as remove it from this dataset.*
 
 This system is still under development, any suggestions are welcome!
 
@@ -83,19 +83,18 @@ This package contains reconstruction tools to extract the conversation structure
 from Wikipedia talk pages.
 Please note that this package used Python 2.7.
 
-You can find the Wikipedia [research
-showcase](https://www.mediawiki.org/wiki/Wikimedia_Research/Showcase#June_2018) that explains the effort of
+You can find the Wikipedia [Research
+Showcase](https://www.mediawiki.org/wiki/Wikimedia_Research/Showcase#June_2018) that explains the effort of
 creating this dataset. The corresponding slides can be found
-[here](slides/WikiConv\ --\ wikishowcase.pdf).
+[here](slides/WikiConv%20--%20wikishowcase.pdf).
 
-This reconstruction tool aims to show the wikipedia conversations with its full
-history; namely also including not just new posts, but also modifications, 
-deletions and reverts to them.
+This reconstruction tool aims to show Wikipedia conversations with their full
+history; namely also including not just new posts, but also modifications, deletions and reverts to them.
 For example, rather than showing a snapshot of the conversation as in
 
 ![Figure1](slides/original_conv.png)
 
-The resulted the dataset includes all the actions led to it, as shown in
+The resulting dataset includes all the actions led to it, as shown in
 
 ![Figure2](slides/reconstructed.png).
 
