@@ -1,3 +1,15 @@
+# Temporary dbeug and logging files.
 debug
 *.log
-*.json
+
+# Python compiled files.
+.pyc
+
+# Python virtual environment files should be ignored.
+.venv
+
+# Output directory should not be checked in.
+dist
+
+# Temporary data
+tmp
