@@ -12,14 +12,14 @@ WikiConv is a multi-language corpus, it currently includes data dumps from the 2
 
 ## License
 
-The meta-data is goverened by the [CC0 license](http://creativecommons.org/publicdomain/zero/1.0/), and the content of the comments is goverened by the [CC-SA license](https://creativecommons.org/licenses/by-sa/4.0/).
+The meta-data is goverened by the [CC0 license v1.0](http://creativecommons.org/publicdomain/zero/1.0/), and the content of the comments is goverened by the [CC-SA license v3.0](https://creativecommons.org/licenses/by-sa/3.0/).
 
 ## Downloading the dataset
 
 You can find the dataset on Google Cloud storge:
 * https://console.cloud.google.com/storage/browser/wikidetox-wikiconv-public-dataset
 
-We are in the process of uploading the dataset to [Kaggle](https://www.kaggle.com/datasets) and [Figshare](https://figshare.com), and will add links here to those once they are available. 
+We are in the process of uploading the dataset to [Kaggle](https://www.kaggle.com/datasets) and [Figshare](https://figshare.com), and will add links here to those once they are available.
 
 If you believe there is information in this dataset that should be removed, you can file an github issue or contact `conversationai-questions@google.com`
 
@@ -75,7 +75,7 @@ The schema for the table is then:
 You can play with our [visualization of the English
 Dataset](http://conv-view.wikidetox-viz.appspot.com/). This data has been scored by the
 [Perspective API](https://www.perspectiveapi.com/) so you can now browse the
-comments by Toxicity. 
+comments by Toxicity.
 Click on the comment to see the whole conversation in which it occurs; click on
 the link to be directed to the revision when this comment was posted.
 You can also search comments by page or user.
