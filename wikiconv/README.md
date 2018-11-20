@@ -1,22 +1,31 @@
 # WikiConv
 
 WikiConv is a set of corpora encompassing conversations happens on Wikipedia.
-The reconstruction process of this corpus has been published in EMNLP 2018
-[WikiConv: A Corpus of the Complete Conversational History of a Large Online
-Collaborative Community](paper/wikiconv-corpus-complete.pdf).
-The second half of [this Wikipedia reasearch
-showcase](https://www.mediawiki.org/wiki/Wikimedia_Research/Showcase#June_2018) presents the corpus and
-the methodology.
 
-WikiConv is a multi-language corpus, it currently includes:
+The dataset and reconstruction process for the corpra has been published in the paper [WikiConv: A Corpus of the Complete Conversational History of a Large Online
+Collaborative Community](https://arxiv.org/abs/1810.13181), presented at [EMNLP 2018](http://EMNLP2018.org).
 
-- [English (20180701 data dump)](TBA)
-- [Chinese (20180701 data dump)](TBA)
-- [German (20180701 data dump)](TBA)
-- [Greek (20180701 data dump)](TBA)
-- [Russian (20180701 data dump)](TBA)
+The work has also been presented at [the June 2018 Wikipedia reasearch
+showcase](https://www.mediawiki.org/wiki/Wikimedia_Research/Showcase#June_2018) (the first half describes our work, using an earlier version of this dataset to predict [conversations going awry](https://arxiv.org/abs/1805.05345).
 
-## Format of the reconstruction actions
+WikiConv is a multi-language corpus, it currently includes data dumps from the 20180701 Wikipedia dumps of: English, Chinese, German, Greek, Russian.
+
+## License
+
+The meta-data is goverened by the [CC0 license v1.0](http://creativecommons.org/publicdomain/zero/1.0/), and the content of the comments is goverened by the [CC-SA license v3.0](https://creativecommons.org/licenses/by-sa/3.0/).
+
+## Downloading the dataset
+
+You can find the dataset on Google Cloud storge:
+* https://console.cloud.google.com/storage/browser/wikidetox-wikiconv-public-dataset
+
+We are in the process of uploading the dataset to [Kaggle](https://www.kaggle.com/datasets) and [Figshare](https://figshare.com), and will add links here to those once they are available.
+
+If you believe there is information in this dataset that should be removed, you can file an github issue or contact `conversationai-questions@google.com`
+
+## Dataset format
+
+### Format of the reconstruction actions
 
 Due to Wikipedia's format and editing style, conversations are just snapshots of
 a history of edits (called revisions) that take place on a given Talk Page. We
@@ -29,7 +38,7 @@ a number of different kinds of 'actions':
 *   `DELETION`: An edit that removes a comment from a Talk Page.
 *   `RESOTRATION`: An edit or revert that restores a previously removed comment.
 
-## Schema
+### Schema
 
 Each row of the table corresponds to an action as defined in the section above.
 The schema for the table is then:
@@ -66,7 +75,7 @@ The schema for the table is then:
 You can play with our [visualization of the English
 Dataset](http://conv-view.wikidetox-viz.appspot.com/). This data has been scored by the
 [Perspective API](https://www.perspectiveapi.com/) so you can now browse the
-comments by Toxicity. 
+comments by Toxicity.
 Click on the comment to see the whole conversation in which it occurs; click on
 the link to be directed to the revision when this comment was posted.
 You can also search comments by page or user.
@@ -76,25 +85,20 @@ contacting us at yiqing(dot)cs(dot)cornell(dot)edu and we will notify the Wikime
 
 This system is still under development, any suggestions are welcome!
 
+## The Conversation Reconstruction Process
 
-## Conversation Constructor for Wikipedia Talk Pages
-
-This package contains reconstruction tools to extract the conversation structure
+The code in this repository contains a python package that has reconstruction tools to extract the conversation structure
 from Wikipedia talk pages.
-Please note that this package used Python 2.7.
 
-You can find the Wikipedia [Research
-Showcase](https://www.mediawiki.org/wiki/Wikimedia_Research/Showcase#June_2018) that explains the effort of
-creating this dataset. The corresponding slides can be found
-[here](slides/WikiConv%20--%20wikishowcase.pdf).
+Please note that this package (currently) uses Python 2.7.
 
 This reconstruction tool aims to show Wikipedia conversations with their full
-history; namely also including not just new posts, but also modifications, deletions and reverts to them.
-For example, rather than showing a snapshot of the conversation as in
+history; namely also including not just new posts, but also modifications, deletions and reverts.
+For example, rather than showing a snapshot of a conversation, such as:
 
 ![Figure1](slides/original_conv.png)
 
-The resulting dataset includes all the actions led to it, as shown in
+The WikiConv dataset includes all the actions led to its final state:
 
 ![Figure2](slides/reconstructed.png).
 
@@ -111,9 +115,9 @@ In the *current directory*:
     - pip install -r requirements.txt
 
 ### Run the pipeline
-- Copy template.config to config/wikiconv.config using
-```
-rsync --ignore-existing ./template.config ./config/wikiconv.config
-```
-- Fill in your own configuration.
-- Run run_pipeline.sh.
+- Copy the template configuration `template.config` to `config/wikiconv.config` e.g. using
+  ```
+  rsync --ignore-existing ./template.config ./config/wikiconv.config
+  ```
+  and then edit the configuration for your cloud resources.
+- Run: `run_pipeline.sh`
