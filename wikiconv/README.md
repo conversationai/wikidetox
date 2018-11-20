@@ -26,6 +26,7 @@ If you believe there is information in this dataset that should be removed, you 
 ## Dataset scale
 
 * Here we define conversations as those with at least two unique participants.
+
 | Language | Talk Pages | Revisions   |   Users   | Conversational Actions | Conversations |
 | -------- | ---------- | ----------- | --------- | ---------------------- | ------------- |
 |  English | 23,879,193 | 120,167,011 | 4,359,213 |       241,288,668      |  48,064,903   |
