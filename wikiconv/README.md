@@ -1,6 +1,6 @@
 # WikiConv
 
-WikiConv is a set of corpora encompassing conversations happens on Wikipedia.
+WikiConv is a corpus encompassing conversations happens on Wikipedia.
 
 The dataset and reconstruction process for the corpra has been published in the paper [WikiConv: A Corpus of the Complete Conversational History of a Large Online
 Collaborative Community](https://arxiv.org/abs/1810.13181), presented at [EMNLP 2018](http://EMNLP2018.org).
@@ -26,13 +26,14 @@ If you believe there is information in this dataset that should be removed, you 
 ## Dataset scale
 
 * Here we define conversations as those with at least two unique participants.
-| Language | Talk Pages | Revisions   |   Users   | Conversational Actions | Conversations |
-| -------- | ---------- | ----------- | --------- | ---------------------- | ------------- |
-|  English | 23,879,193 | 120,167,011 | 4,359,213 |       241,288,668      |  48,064,903   |
-|  German  |  1,449,874 | 19,138,645  | 1,378,140 |       40,894,283       |   7,046,839   |
-|  Russian |  1,316,362 | 5,668,182   | 279,123   |       10,849,917       |   1,961,593   |
-|  Chinese |  2,169,322 | 4,600,192   | 87,005    |       7,731,744        |   1,472,086   |
-|  Greek   |  120,520   | 525,738     | 24,187    |       951,921          |     159,522   |
+
+| Language | Talk Pages | Revisions   |   Users   | Conversational Actions | Conversations | Conversations with > 1 participant |
+| -------- | ---------- | ----------- | --------- | ---------------------- | ------------- | ---------------------------------- |
+|  English | 23,879,193 | 120,167,011 | 4,359,213 |       241,288,668      |   90,930,244  |            48,064,903              |
+|  German  |  1,449,874 | 19,138,645  | 1,378,140 |       40,894,283       |   8,603,776   |             7,046,839              |
+|  Russian |  1,316,362 | 5,668,182   | 279,123   |       10,849,917       |   4,351,305   |             1,961,593              |
+|  Chinese |  2,169,322 | 4,600,192   | 87,005    |       7,731,744        |   3,432,880   |             1,472,086              |
+|  Greek   |  120,520   | 525,738     | 24,187    |       951,921          |   351,975     |	              159,522              |
 
 
 ## Dataset format
