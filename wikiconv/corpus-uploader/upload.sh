@@ -14,6 +14,7 @@ BASE_URL='https://api.figshare.com/v2/account/articles'
 CLOUD_URL=$CLOUD_URL$LANGUAGE
 TITLE="WikiConv_${LANGUAGE}"
 
+mkdir -p tmp/${LANGUAGE}/
 gsutil ls gs://${CLOUD_URL} > tmp/${LANGUAGE}/filelist
 
 # List all of the existing items
@@ -38,10 +39,10 @@ for name in `cat tmp/${LANGUAGE}/filelist`; do
   echo $name
   tmpfile=$(basename $name)
   echo $tmpfile
-  gsutil cp $name 'tmp/${LANGUAGE}'
+  gsutil cp $name tmp/${LANGUAGE}
 
   FILE_NAME=$tmpfile
-  FILE_PATH='tmp/${LANGUAGE}/'$FILE_NAME
+  FILE_PATH=tmp/${LANGUAGE}/$FILE_NAME
 
   #Retrieve the file size and MD5 values for the item which needs to be uploaded
   FILE_SIZE=$(stat -c%s $FILE_PATH)
@@ -97,10 +98,10 @@ for name in `cat tmp/${LANGUAGE}/filelist`; do
   echo 'Perform the PUT operation of parts...'
   for ind in `seq 1 $MAX_PART`;#((ind=1; ind<=$MAX_PART; ind++)) do
   do
-      PART_VALUE='tmp/${LANGUAGE}/part_'$i
+      PART_VALUE=tmp/${LANGUAGE}/part_$i
       if [ "$ind" -le 9 ]
       then
-          PART_VALUE='tmp/${LANGUAGE}/part_0'$i
+          PART_VALUE=tmp/${LANGUAGE}/part_0$i
       fi
       RESPONSE=$(curl -s -H 'Authorization: token '$ACCESS_TOKEN -X PUT "$UPLOAD_URL/$ind" --data-binary @$PART_VALUE)
       echo "Done uploading part nr: $ind/"$MAX_PART
