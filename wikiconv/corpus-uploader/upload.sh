@@ -14,6 +14,7 @@ BASE_URL='https://api.figshare.com/v2/account/articles'
 CLOUD_URL=$CLOUD_URL$LANGUAGE
 TITLE="WikiConv_${LANGUAGE}"
 
+mkdir -p tmp/${LANGUAGE}/
 gsutil ls gs://${CLOUD_URL} > tmp/${LANGUAGE}/filelist
 
 # List all of the existing items
