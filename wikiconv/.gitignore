@@ -1,2 +1,6 @@
 config/
 .venv
+
+.mypy_cache
+.vscode
+tmp/
