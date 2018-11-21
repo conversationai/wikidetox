@@ -9,7 +9,7 @@ BASE_URL='https://api.figshare.com/v2/account/articles'
 
 CLOUD_URL=$CLOUD_URL$LANGUAGE
 
-#gsutil ls 'gs://'$CLOUD_URL > 'tmp/filelist'
+gsutil ls 'gs://'$CLOUD_URL > 'tmp/filelist'
 
 for name in `cat tmp/filelist`; do
   echo $name
