@@ -1,3 +1,9 @@
+# mypy cache
+.mypy_cache
+
+# Editors
+.vscode
+
 # Logs
 logs
 *.log
