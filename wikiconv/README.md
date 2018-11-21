@@ -35,7 +35,6 @@ If you believe there is information in this dataset that should be removed, you 
 |  Chinese |  2,169,322 | 4,600,192   | 87,005    |       7,731,744        |   3,432,880   |             1,472,086              |
 |  Greek   |  120,520   | 525,738     | 24,187    |       951,921          |   351,975     |	              159,522              |
 
-
 ## Dataset format
 
 ### Format of the reconstruction actions
