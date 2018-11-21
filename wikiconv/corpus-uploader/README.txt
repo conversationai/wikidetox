@@ -15,12 +15,12 @@ directory:
 
 ```
 mkdir -p config
-rsync --ignore_existing figshare_token.template.py config/figshare_token.py
+rsync --ignore_existing figshare_token.template.config config/figshare_token.config
 ```
 
 2. Create [a figshare personl token](https://figshare.com/account/applications),
 and enter it into the copy of the template file in your config directory
-(`config/figshare_token.py`).
+(`config/figshare_token.config`).
 
 3.
 
