@@ -11,6 +11,10 @@ set -e
 #modify BASE_URL, ACCESS_TOKEN, FILE_NAME and FILE_PATH according to your needs
 BASE_URL='https://api.figshare.com/v2/account/articles'
 
+if [ "${LANGUAGE}" = '' ]; then echo "Need to set LANGUAGE"; exit 1; fi
+if [ "${ACCESS_TOKEN}" = '' ]; then echo "Need to set ACCESS_TOKEN"; exit 1; fi
+if [ "${CLOUD_URL}" = '' ]; then echo "Need to set CLOUD_URL"; exit 1; fi
+
 CLOUD_URL=$CLOUD_URL$LANGUAGE
 TITLE="WikiConv_${LANGUAGE}"
 
