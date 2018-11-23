@@ -1,6 +1,6 @@
 # WikiConv
 
-WikiConv is corpus encompassing the history of conversations on Wikipedia, inlcuding deletions, modifications and restoriations of comments.
+WikiConv is corpus encompassing the history of conversations on Wikipedia, including deletions, modifications and restorations of comments.
 
 The dataset and reconstruction process for the corpus has been published in the paper [WikiConv: A Corpus of the Complete Conversational History of a Large Online
 Collaborative Community](https://arxiv.org/abs/1810.13181), presented at [EMNLP 2018](http://EMNLP2018.org).
