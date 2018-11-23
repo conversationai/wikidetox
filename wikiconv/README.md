@@ -6,7 +6,7 @@ The dataset and reconstruction process for the corpus has been published in the 
 Collaborative Community](https://arxiv.org/abs/1810.13181), presented at [EMNLP 2018](http://EMNLP2018.org).
 
 The work has also been presented at [the June 2018 Wikipedia reasearch
-showcase](https://www.mediawiki.org/wiki/Wikimedia_Research/Showcase#June_2018) (the first half describes our work, using an earlier version of this dataset to predict [conversations going awry](https://arxiv.org/abs/1805.05345).
+showcase](https://www.mediawiki.org/wiki/Wikimedia_Research/Showcase#June_2018) (the first half of this pair of talks describes our work using an earlier version of this dataset to predict [conversations going awry](https://arxiv.org/abs/1805.05345)).
 
 WikiConv is a multi-language corpus, it currently includes data dumps from the 20180701 Wikipedia dumps of: English, Chinese, German, Greek, Russian.
 
