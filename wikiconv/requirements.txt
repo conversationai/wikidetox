@@ -30,5 +30,5 @@ oauth2client==4.1.2
 requests==2.20.0
 setuptools==39.1.0
 six==1.11.0
-urllib3==1.22
+urllib3==1.23
 yamlconf==0.2.3
