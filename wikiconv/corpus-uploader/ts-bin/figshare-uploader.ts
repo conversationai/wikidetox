@@ -73,7 +73,7 @@ async function main(args: Params) {
 
   let figshare_api = axios.create({
     baseURL: FIGSHARE_ARTILES_URL,
-    timeout: 1000,
+    timeout: 1000 * 60 * 2, // two minute timeout.
     headers: {'Authorization': `token ${config.ACCESS_TOKEN}`}
   });
 
