@@ -138,9 +138,9 @@ async function main(args: Params) {
         for(let part of fileUploadStatus.parts) {
           if(part.status === 'COMPLETE') { continue; }
           console.log(part);
-          console.log(`${fileUploadStatus.name} : partNo ${part.partNo} / ${fileUploadStatus.parts.length}:  PENDING => attempting to complete file part upload (${util.numberWithCommas(fileUploadStatus.size)} bytes).`)
+          console.log(`${fileUploadStatus.name} : partNo ${part.partNo} / ${fileUploadStatus.parts.length}:  PENDING => attempting to complete file part upload (${util.numberWithCommas(part.endOffset - part.startOffset)} of ${util.numberWithCommas(fileUploadStatus.size)} bytes).`)
 
-          let fileStream = await gsutil.readStream(gloudPath, {start: part.startOffset, end: part.endOffset });
+          let fileStream = gsutil.readStream(gloudPath, {start: part.startOffset, end: part.endOffset });
           // await new Promise<void>((resolve, _reject) => { fileStream.on('readable', resolve) });
           // fileStream.on('readable', resolve) });
 
@@ -148,20 +148,21 @@ async function main(args: Params) {
             fileStream.pipe(
               request.put(`${figshareFileEntryList.upload_url}/${part.partNo}`)
                 .on('error', reject)
-                .on('response', resolve));
+                .on('end', resolve)
+                .on('response', (response) => {
+                  console.log(`Server initial responce: ${response.statusCode}: ${response.statusMessage}`);
+                }));
             });
           // console.log(response);
           if(response.statusCode !== 200) {
             console.log(response);
             throw new Error(`Failed to complete file upload: /articles/${articleId}/files/${figshareFileEntryList.id}`);
           }
-          console.log('completed upload, new status:');
-          let fileUploadStatus2 : FigshareFileUploadStatus =
-            (await figshare_api.get(figshareFileEntryList.upload_url)).data;
+          console.log('Completed upload of part; updated status:');
+          let filePartUploadStatus2 : FigshareFileUploadStatus =
+            (await figshare_api.get(`${figshareFileEntryList.upload_url}/${part.partNo}`)).data;
 
-          fileUploadStatus2.status
-
-          console.log(fileUploadStatus2);
+          console.log(filePartUploadStatus2);
         }
       }
 

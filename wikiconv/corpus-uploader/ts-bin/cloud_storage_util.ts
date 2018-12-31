@@ -42,8 +42,8 @@ export class CloudStorageUtil {
     return parseInt(metadata.size);
   }
 
-  async readObs(filePath:string, options: storage.CreateReadStreamOptions)
-  : Promise<Observable<string>> {
+  readObs(filePath:string, options: storage.CreateReadStreamOptions)
+  : Observable<string> {
     // { start: start, end: end }
     return new Observable<string>((observer : Observer<string>) => {
       let stream = this.bucket.file(filePath).createReadStream(options);
@@ -55,8 +55,8 @@ export class CloudStorageUtil {
     });
   }
 
-  async readStream(filePath:string, options: storage.CreateReadStreamOptions)
-  : Promise<Readable> {
+  readStream(filePath:string, options: storage.CreateReadStreamOptions)
+  : Readable {
     // { start: start, end: end }
     return this.bucket.file(filePath).createReadStream(options);
   }
