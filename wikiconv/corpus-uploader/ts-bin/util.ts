@@ -24,3 +24,9 @@ export function multiMapBy<T>(xs:T[], keyFn:(x:T) => string) : { [key:string]:T[
 export function numberWithCommas(x:number) :string {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
+
+export function sleep(ms:number){
+  return new Promise(resolve=>{
+      setTimeout(resolve,ms)
+  });
+}

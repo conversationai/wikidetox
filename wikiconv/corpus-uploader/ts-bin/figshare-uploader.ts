@@ -24,8 +24,6 @@ Usage:
 
   ts-node ./ts-bin/figshare-uploader.ts
 
-Notes: Creates a local directory called 'tmp'.
-
 */
 
 import * as shelljs from 'shelljs';
@@ -36,39 +34,23 @@ import { CloudStorageUtil } from './cloud_storage_util'
 import { FigshareArticleListEntry, FigshareArticle, FigshareFileUploadStatus } from './figshare_types'
 import * as util from './util';
 
-// import * as path from 'path';
-
-// modify BASE_URL, ACCESS_TOKEN, FILE_NAME and FILE_PATH according to your needs
 const FIGSHARE_ARTILES_URL='https://api.figshare.com/v2'
 
 import * as yargs from 'yargs';
 
+interface ConurrentUploadStatus { [upload_url_with_part:string] : {
+  uploaded: number;
+  size: number;
+  filename: string,
+  onceComplete ?: Promise<void>
+} };
+
 // Command line arguments.
 interface Params {
-  language: string;
-  article_id?: string;
-  complete_file_id?: string;
+  conurrency: number;
 }
 
-// function check_langauge(language:string) {
-//   let language_list_str = shelljs.exec(`gsutil ls gs://${figshare_config.CLOUD_URL}`,
-//                                   {silent:true}).stdout as string;
-//   let language_list = language_list_str.trim().split('\n')
-//                         .map(p => path.basename(p));
-//   if (language_list.indexOf(language) === -1) {
-//     console.warn(`Languages at ${figshare_config.CLOUD_URL}`);
-//     console.warn(JSON.stringify(language_list, null, 2));
-//     console.error(`Error: The specified language '${language}' does not exist in the cloud URL at ${figshare_config.CLOUD_URL}`);
-//     shelljs.exit(1);
-//   }
-// }
-
-// shelljs.exec(`gsutil ls gs://${figshare_config.CLOUD_URL}/${args.language}`,
-// {silent:true}).stdout as string;
-
 async function main(args: Params) {
-  shelljs.mkdir('-p', 'tmp')
-
   let gsutil = new CloudStorageUtil(config.GCLOUD_STORAGE_BUCKET)
 
   let figshare_api = axios.create({
@@ -76,6 +58,8 @@ async function main(args: Params) {
     timeout: 1000 * 60 * 2, // two minute timeout.
     headers: {'Authorization': `token ${config.ACCESS_TOKEN}`}
   });
+
+  let concurrent_part_uploads: ConurrentUploadStatus = {};
 
   let figshareArticles :FigshareArticleListEntry[] =
     (await figshare_api.get('/account/articles')).data;
@@ -136,33 +120,61 @@ async function main(args: Params) {
 
         // Make the call to complete the file.
         for(let part of fileUploadStatus.parts) {
+          console.log('concurrent_part_uploads:');
+          console.log(JSON.stringify(concurrent_part_uploads, null, 2));
+
+          while(Object.keys(concurrent_part_uploads).length >= args.conurrency) {
+            await util.sleep(500);
+            console.log('concurrent_part_uploads:');
+            console.log(JSON.stringify(concurrent_part_uploads, null, 2));
+          }
+
           if(part.status === 'COMPLETE') { continue; }
           console.log(part);
           console.log(`${fileUploadStatus.name} : partNo ${part.partNo} / ${fileUploadStatus.parts.length}:  PENDING => attempting to complete file part upload (${util.numberWithCommas(part.endOffset - part.startOffset)} of ${util.numberWithCommas(fileUploadStatus.size)} bytes).`)
 
           let fileStream = gsutil.readStream(gloudPath, {start: part.startOffset, end: part.endOffset });
-          // await new Promise<void>((resolve, _reject) => { fileStream.on('readable', resolve) });
-          // fileStream.on('readable', resolve) });
 
-          await new Promise<{statusCode:number}>((resolve, reject) => {
-            fileStream.pipe(
-              request.put(`${figshareFileEntryList.upload_url}/${part.partNo}`)
-                .on('error', reject)
-                .on('end', resolve)
-                .on('response', (response) => {
-                  console.log(`Server initial responce: ${response.statusCode}: ${response.statusMessage}`);
-                  // console.log(response);
-                  if(response.statusCode !== 200) {
-                    throw new Error(`Failed to complete file upload: /articles/${articleId}/files/${figshareFileEntryList.id}`);
-                  }
-                }));
-            });
+          let fullUploadPath = `${figshareFileEntryList.upload_url}/${part.partNo}`;
+          concurrent_part_uploads[fullUploadPath] = {
+            filename: figshareFileEntryList.name,
+            uploaded: 0,
+            size: part.endOffset - part.startOffset,
+            onceComplete: undefined
+          };
+          fileStream.on('data', (chunk) => {
+            concurrent_part_uploads[fullUploadPath].uploaded += chunk.length;
+          })
+          concurrent_part_uploads[fullUploadPath].onceComplete = new Promise<void>(
+            (resolve, reject) => {
+              fileStream.pipe(
+                request.put(fullUploadPath)
+                  .on('error', reject)
+                  .on('end', () => {
+                    delete concurrent_part_uploads[fullUploadPath];
+                    resolve();
+                  })
+                  .on('response', (response) => {
+                    console.log(`Server initial responce: ${response.statusCode}: ${response.statusMessage}`);
+
+                    if(response.statusCode !== 200) {
+                      throw new Error(`Failed to complete file upload: /articles/${articleId}/files/${figshareFileEntryList.id}`);
+                    }
+                  }));
+              });
+
           console.log('Completed upload of part; updated status:');
           let filePartUploadStatus2 : FigshareFileUploadStatus =
-            (await figshare_api.get(`${figshareFileEntryList.upload_url}/${part.partNo}`)).data;
+            (await figshare_api.get(fullUploadPath)).data;
 
           console.log(filePartUploadStatus2);
         }
+      }
+
+      while(Object.keys(concurrent_part_uploads).length !== 0) {
+        console.log('concurrent_part_uploads:');
+        console.log(JSON.stringify(concurrent_part_uploads, null, 2));
+        await util.sleep(200);
       }
 
       let response = await figshare_api.post(`account/articles/${articleId}/files/${figshareFileEntryList.id}`);
@@ -176,9 +188,11 @@ async function main(args: Params) {
 }
 
 let args = yargs
-  // .option('article_id', {
-  //   describe: 'If specified, add-to/update an existing article'
-  // })
+  .option('conurrency', {
+    default: 5,
+    type: 'number',
+    describe: 'If specified, number of concurrent parts to upload'
+  })
   // .option('complete_file_id', {
   //   describe: 'If specified, the file id to complete'
   // })
