@@ -144,20 +144,19 @@ async function main(args: Params) {
           // await new Promise<void>((resolve, _reject) => { fileStream.on('readable', resolve) });
           // fileStream.on('readable', resolve) });
 
-          let response = await new Promise<{statusCode:number}>((resolve, reject) => {
+          await new Promise<{statusCode:number}>((resolve, reject) => {
             fileStream.pipe(
               request.put(`${figshareFileEntryList.upload_url}/${part.partNo}`)
                 .on('error', reject)
                 .on('end', resolve)
                 .on('response', (response) => {
                   console.log(`Server initial responce: ${response.statusCode}: ${response.statusMessage}`);
+                  // console.log(response);
+                  if(response.statusCode !== 200) {
+                    throw new Error(`Failed to complete file upload: /articles/${articleId}/files/${figshareFileEntryList.id}`);
+                  }
                 }));
             });
-          // console.log(response);
-          if(response.statusCode !== 200) {
-            console.log(response);
-            throw new Error(`Failed to complete file upload: /articles/${articleId}/files/${figshareFileEntryList.id}`);
-          }
           console.log('Completed upload of part; updated status:');
           let filePartUploadStatus2 : FigshareFileUploadStatus =
             (await figshare_api.get(`${figshareFileEntryList.upload_url}/${part.partNo}`)).data;
