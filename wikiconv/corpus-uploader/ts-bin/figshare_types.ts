@@ -1,4 +1,4 @@
-export interface FigshareArticleListEntry {
+export interface ArticleListEntry {
   doi: string,
   thumb: string,
   title: string, // the actual title, matches the config data.
@@ -13,7 +13,7 @@ export interface FigshareArticleListEntry {
   url_private_html: string
 }
 
-export interface FigshareFileUploadPartStatus {
+export interface UploadPartStatus {
   partNo: number, // parts are indexed from 0 to the final part number.
   startOffset: number, // start byte offset, should be 0 for first part.
   endOffset: number, // final byte offset, should be filesize for last part.
@@ -21,16 +21,17 @@ export interface FigshareFileUploadPartStatus {
   locked: Boolean
 }
 
-export interface FigshareFileUploadStatus {
- token: string,
+
+export interface FileUploadStatus {
+  token: string,
   md5: string,
   size: number, // bytes
   name: string, // Figshare name for the file: '13627316/wikiconvel2018070100000of00004',
   status: 'PENDING' | 'COMPLETE' | 'ERROR',
-  parts: FigshareFileUploadPartStatus[]
+  parts: UploadPartStatus[]
 }
 
-export interface FigshareArticleFileListEntry {
+export interface FileListEntry {
   status: string, // string enum: 'created' |
   is_link_only: Boolean,
   name: string, // e.g. 'wikiconv-el-20180701--00000-of-00004',
@@ -45,7 +46,7 @@ export interface FigshareArticleFileListEntry {
   size: number, // bytes
 }
 
-export interface FigshareArticleAuthorListEntry {
+export interface AuthorListEntry {
   url_name: string,
   is_active: Boolean,
   id: number,
@@ -53,7 +54,7 @@ export interface FigshareArticleAuthorListEntry {
   orcid_id: ''
 }
 
-export interface FigshareArticle {
+export interface Article {
   group_resource_id: null,
   embargo_date: null,
   citation: string, // e.g. 'Dixon, Lucas (2018): WikiConv_Greek. figshare. Fileset.',
@@ -76,13 +77,13 @@ export interface FigshareArticle {
   resource_doi: null,
   url_public_html: string,
   confidential_reason: string,
-  files: FigshareArticleFileListEntry[],
+  files: FileListEntry[],
   description: string, // e.g. ''
   tags: [],
   url_private_html: string,
   published_date: null,
   is_active: Boolean,
-  authors: FigshareArticleAuthorListEntry[],
+  authors: AuthorListEntry[],
   is_public: Boolean,
   categories: [],
   thumb: '',
