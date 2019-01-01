@@ -1,15 +1,34 @@
-export const ACCESS_TOKEN='{your figshare token}'
+export const ACCESS_TOKEN='enter your figshare token'
 
 export const GCLOUD_STORAGE_BUCKET='wikidetox-wikiconv-public-dataset'
 export const GCLOUD_STORAGE_PATH='dataset'
-export const GCLOUD_STORAGE_PATH_TO_FIGSHARE_MAPPING= [
-  // 'Path in google cloud storage' : 'Name of Figshare article'
-  // 'dataset/Chinese/': 'WikiConv: Chinese',
-  // 'dataset/English/': 'WikiConv: English',
-  // 'dataset/German/': 'WikiConv: German',
-  // 'dataset/Russian/': 'WikiConv: Russian',
+export interface FigshareArticleConfig {
+  // The name of the figshare article.
+  figshare_article_name: string,
+  // The google cloud storage path (in GCLOUD_STORAGE_PATH above) where the
+  // files to be uploaded are.
+  cloud_storage_dir_path: string,
+}
+export const GCLOUD_STORAGE_PATH_TO_FIGSHARE_MAPPING : FigshareArticleConfig[] =
+[
   {
-    figshare_article_name: 'WikiConv_Greek',
+    figshare_article_name: 'WikiConv - English',
+    cloud_storage_dir_path: 'dataset/Greek/',
+  },
+  {
+    figshare_article_name: 'WikiConv - Chinese',
+    cloud_storage_dir_path: 'dataset/Greek/',
+  },
+  {
+    figshare_article_name: 'WikiConv - Russian',
+    cloud_storage_dir_path: 'dataset/Greek/',
+  },
+  {
+    figshare_article_name: 'WikiConv - Geman',
+    cloud_storage_dir_path: 'dataset/Greek/',
+  },
+  {
+    figshare_article_name: 'WikiConv - Greek',
     cloud_storage_dir_path: 'dataset/Greek/',
   },
 ]

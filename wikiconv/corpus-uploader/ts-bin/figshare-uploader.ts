@@ -31,9 +31,9 @@ import * as config from '../config/config';
 import axios from 'axios';
 import { AxiosInstance } from 'axios';
 import * as request from 'request';
-import { CloudStorageUtil } from './cloud_storage_util';
-import * as figshare from './figshare_types';
-import * as util from './util';
+import { CloudStorageUtil } from '../ts-lib/cloud_storage_util';
+import * as figshare from '../ts-lib/figshare_types';
+import * as util from '../ts-lib/util';
 
 const FIGSHARE_ARTILES_URL='https://api.figshare.com/v2'
 
