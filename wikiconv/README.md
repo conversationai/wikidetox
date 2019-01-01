@@ -16,10 +16,8 @@ The meta-data is goverened by the [CC0 license v1.0](http://creativecommons.org/
 
 ## Downloading the dataset
 
-You can find the dataset on Google Cloud storge:
-* https://console.cloud.google.com/storage/browser/wikidetox-wikiconv-public-dataset
-
-We are in the process of uploading the dataset to [Kaggle](https://www.kaggle.com/datasets) and [Figshare](https://figshare.com), and will add links here to those once they are available.
+* You can find the dataset on Google Cloud storge at: https://console.cloud.google.com/storage/browser/wikidetox-wikiconv-public-dataset
+* You can find the dataset on Figshare at: https://figshare.com/projects/WikiConv_A_Corpus_of_the_Complete_Conversational_History_of_a_Large_Online_Collaborative_Community/57110
 
 If you believe there is information in this dataset that should be removed, you can file an github issue or contact `conversationai-questions@google.com`
 

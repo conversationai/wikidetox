@@ -39,6 +39,8 @@ export class CloudStorageUtil {
   // Returns a files size
   async size(filePath:string) : Promise<number> {
     const [metadata] = await this.bucket.file(filePath).getMetadata();
+    // TODO(ldixon): can remove `parseInt` once this bug is fixed:
+    // https://github.com/googleapis/nodejs-storage/issues/568
     return parseInt(metadata.size);
   }
 
