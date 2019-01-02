@@ -1,6 +1,6 @@
 # WikiConv
 
-WikiConv is corpus encompassing the history of conversations on Wikipedia, including deletions, modifications and restorations of comments.
+WikiConv is corpus encompassing the history of conversations on Wikipedia Talk Pages, including the deletion, modification and restoration of comments.
 
 The dataset and reconstruction process for the corpus has been published in the paper [WikiConv: A Corpus of the Complete Conversational History of a Large Online
 Collaborative Community](https://arxiv.org/abs/1810.13181), presented at [EMNLP 2018](http://EMNLP2018.org).
@@ -16,16 +16,14 @@ The meta-data is goverened by the [CC0 license v1.0](http://creativecommons.org/
 
 ## Downloading the dataset
 
-You can find the dataset on Google Cloud storge:
-* https://console.cloud.google.com/storage/browser/wikidetox-wikiconv-public-dataset
+* You can find the dataset on Google Cloud storge at: https://console.cloud.google.com/storage/browser/wikidetox-wikiconv-public-dataset
+* You can find the dataset on Figshare at: https://figshare.com/projects/WikiConv_A_Corpus_of_the_Complete_Conversational_History_of_a_Large_Online_Collaborative_Community/57110
 
-We are in the process of uploading the dataset to [Kaggle](https://www.kaggle.com/datasets) and [Figshare](https://figshare.com), and will add links here to those once they are available.
-
-If you believe there is information in this dataset that should be removed, you can file an github issue or contact `conversationai-questions@google.com`
+If you believe there is information in this dataset that should be removed, please file an github issue or email `conversationai-questions@google.com`
 
 ## Dataset scale
 
-* Here we define conversations as those with at least two unique participants.
+In [the WikiConv paper](https://arxiv.org/abs/1810.13181) we use a technical definition of conversation in terms of a section created in a Wikipedia Talk Page. Using that definition, the scale of the dataset is as follows: 
 
 | Language | Talk Pages | Revisions   |   Users   | Conversational Actions | Conversations | Conversations with > 1 participant |
 | -------- | ---------- | ----------- | --------- | ---------------------- | ------------- | ---------------------------------- |
@@ -34,6 +32,19 @@ If you believe there is information in this dataset that should be removed, you 
 |  Russian |  1,316,362 | 5,668,182   | 279,123   |       10,849,917       |   4,351,305   |             1,961,593              |
 |  Chinese |  2,169,322 | 4,600,192   | 87,005    |       7,731,744        |   3,432,880   |             1,472,086              |
 |  Greek   |  120,520   | 525,738     | 24,187    |       951,921          |   351,975     |	              159,522              |
+
+However, note that this doesn't necessarily match the intuitions on what a conversation is; in particular, such discussions may only contain the contributions of a single contributor (there may not be a reply from anyone someone else). A better estimate for the scale of human conversations can be found with a query of the form: 
+
+```sql
+SELECT COUNT(*) FROM
+    (SELECT conversation_id, COUNT(DISTINCT user_text) as cnt
+    FROM `wikiconv_v2.en_20180701_conv`
+    WHERE type = 'ADDITION' or type='CREATION'
+    GROUP BY conversation_id)
+    WHERE cnt > 1)
+```
+
+For the English language dataset, this results in 8.7M rows (conversations with more than 1 participant). Note: most actions by Wikipedia robots, such as signature modifications, have already been excluded.
 
 ## Dataset format
 
