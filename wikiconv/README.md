@@ -44,7 +44,7 @@ SELECT COUNT(*) FROM
     WHERE cnt > 1)
 ```
 
-For the English language dataset, this results in 8.7M rows (conversations with more than 1 participant). Note: most actions by Wikipedia robots, such as signature modifications, have already been excluded.
+For the English language dataset, this results in 8.7M rows (conversations with more than 1 participant).
 
 ## Dataset format
 
