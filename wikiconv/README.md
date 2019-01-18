@@ -34,7 +34,7 @@ In [the WikiConv paper](https://arxiv.org/abs/1810.13181) we use a technical def
 |  Chinese |  2,169,322 | 4,600,192   | 87,005    |       7,731,744        |   3,432,880   |             1,472,086              |
 |  Greek   |  120,520   | 525,738     | 24,187    |       951,921          |   351,975     |	              159,522              |
 
-However, note that this may not necessarily match an intuitive definition of what a conversation is; in particular, such discussions may only contain the contributions of a single editor (there may not be a reply from anyone someone else). A better estimate for the scale of human conversations can be found with a query of the form: 
+However, note that this may not necessarily match an intuitive definition of what a conversation is; in particular, such discussions may only contain the comments of a single editor (there may not be a reply from anyone someone else). A better estimate for the scale of human conversations can be found with a query of the form: 
 
 ```sql
 SELECT COUNT(*) FROM
@@ -45,7 +45,7 @@ SELECT COUNT(*) FROM
     WHERE cnt > 1)
 ```
 
-For the English language dataset, this results in 8.7M rows (conversations with more than 1 participant).
+For the English language dataset, this results in 8.7M rows (conversations with comments from at least two distinct users).
 
 ## Dataset format
 
