@@ -12,7 +12,7 @@ WikiConv is a multilingual corpus, it currently includes all conversations extra
 
 ## License
 
-The dataset is released under the [CC0 license v1.0](http://creativecommons.org/publicdomain/zero/1.0/). The content of individual comments is released under the [CC-SA license v3.0](https://creativecommons.org/licenses/by-sa/3.0/), consistently with Wikipedia's attribution requirements.
+The dataset is released under the [CC0 license v1.0](http://creativecommons.org/publicdomain/zero/1.0/). The content of individual comments is released under the [CC BY-SA license v3.0](https://creativecommons.org/licenses/by-sa/3.0/), consistently with Wikipedia's attribution requirements.
 
 ## Downloading the dataset
 
