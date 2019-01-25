@@ -48,20 +48,27 @@ export class getCategories {
                 const results = body.query.pages;
                 const firstKey = Object.keys(results)[0];
                 const categories = results[firstKey].categories;
-                if (categories) {
+                if (categories && categories.length > 0) {
                     const cleanedCats = this.cleanCategories(categories);
                     if (cleanedCats !== undefined) {
+                        // got categories
                         console.log(`Got wiki categories for ${title}`);
                         return `${title}, ${cleanedCats}`;
                     } else {
+                        // categories undefined
                         console.log(`No valid categories returned for ${title}`);
-                        return cleanedCats;
+                        return undefined;
                     }
                    
+                } else {
+                    console.log(`No wiki categories returned for ${title}`);
+                    return undefined;
                 }
             })
             .catch(err => { 
-                console.error(err);
+                // error fetching 
+                console.error('WIKI ERROR:', err);
+                return undefined;
             });
         
     }

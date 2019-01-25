@@ -13,12 +13,14 @@ limitations under the License.
 const BigQuery = require('@google-cloud/bigquery');
 
 export class bigQueryData {
-    public projectId: string;
-    public datasetID: string;
-    public originalDataTable: string;
-    public distDataTable: string;
+    private projectId: string;
+    private datasetID: string;
+    private originalDataTable: string;
+    private distDataTable: string;
     
-    public bigquery: any;
+    private bigquery: any;
+    private dataset: any;
+    private table: any;
 
     constructor(config) {
         this.projectId = config.projectId;
@@ -30,20 +32,17 @@ export class bigQueryData {
             keyFilename: config.keyFilename,
             projectId: this.projectId,
         });
+
+        this.dataset = this.bigquery.dataset(this.datasetID);
+        this.table = this.dataset.table(this.distDataTable);
     }
 
     async querySourceTable() {
 
-        // The SQL query to run
+        // max page ID 57726837
         const sqlQuery =    `SELECT * 
                                 FROM \`${this.projectId}.${this.datasetID}.${this.originalDataTable}\`
-                            LIMIT 2234`;
-                            // WHERE 
-                            //     REGEXP_CONTAINS(page_title, r'Talk:')
-                            // AND 
-                            //     timestamp > TIMESTAMP("${dateStart}") 
-                            // AND  
-                            //     timestamp < TIMESTAMP("${dateEnd}")`;
+                            WHERE page_id >= 43295130`;
         console.log(`Query job started: ${sqlQuery}`);
       
         // Query options list: https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
@@ -59,23 +58,28 @@ export class bigQueryData {
     }
 
     writeToTable(row, categories) {
-        
-        const dataset = this.bigquery.dataset(this.datasetID);
-        const table = dataset.table(this.distDataTable);
-
-        for (let i = 0; i<=2; i++) {
-            row[`category${i+1}`] = categories[i] ? categories[i].category : null;
-            row[`sub_category${i+1}`] = categories[i] ? categories[i].subCategory : null;
-            row[`subsub_category${i+1}`] = categories[i] ? categories[i].subsubCategory : null;
-            row[`category${i+1}_confidence`] = categories[i] ? categories[i].confidence : null;
+        if (categories !== undefined) {
+            for (let i = 0; i<=2; i++) {
+                row[`category${i+1}`] = categories[i] ? categories[i].category : null;
+                row[`sub_category${i+1}`] = categories[i] ? categories[i].subCategory : null;
+                row[`subsub_category${i+1}`] = categories[i] ? categories[i].subsubCategory : null;
+                row[`category${i+1}_confidence`] = categories[i] ? categories[i].confidence : null;
+            }
+        } else {
+            for (let i = 0; i<=2; i++) {
+                row[`category${i+1}`] = null;
+                row[`sub_category${i+1}`] = null;
+                row[`subsub_category${i+1}`] = null;
+                row[`category${i+1}_confidence`] = null;
+            }
         }
 
         // console.log(row);
         // return row.id
 
-        table.insert(row)
+        this.table.insert(row)
             .then(() => {
-                return row.id;
+                console.log(row);
             }).catch((err) => {
                 console.log(JSON.stringify(err));
             });

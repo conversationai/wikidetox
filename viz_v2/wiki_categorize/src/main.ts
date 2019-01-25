@@ -23,7 +23,7 @@ const naturalLanguage = new naturalLanguageApi(config);
 
 async function getData() {
     const rows = await bigquery.querySourceTable();
-    const chunks = chunk(rows, 500);
+    const chunks = chunk(rows, 100);
     processData(chunks, 0);
 }
 
@@ -33,34 +33,24 @@ async function processData(chunks, i) {
         const page_title = row['page_title'];
         const title = page_title.substring(5);
 
-        try {
-            if (title) {
-                const catString = await getCats.getWikiCategories(title);
-    
-                if (catString === undefined) {
-                    console.log(`category undefined for: ${title}`);
-                    bigquery.writeToTable(row, catString);
-                } else {
-                    const categories = await naturalLanguage.getCloudCategory(catString);
-                    bigquery.writeToTable(row, categories); 
-                }
-            }
-        } catch (error) {
-            console.log(JSON.stringify(error));
+        const catString = await getCats.getWikiCategories(title);
+        if (catString === undefined) {
+            bigquery.writeToTable(row, catString);
+        } else {
+            const categories = await naturalLanguage.getCloudCategory(catString, title);
+            bigquery.writeToTable(row, categories);  
         }
-
+       
     })).then(() => {
         console.log(`${i+1} Jobs done: ${chunks[i].length} added`);
         if (i < chunks.length - 1) {
             i++;
-            // TODO
-            // if quota excedded, add to next chunk
-            setTimeout(() => processData(chunks, i), 60000); 
+            setTimeout(() => processData(chunks, i), 900); 
         } else {
             console.log('All chunks processed');
         }
         
-    });
+    }).catch(error => console.error('caught', error));
 }
 
 const chunk = (arr, size) => 

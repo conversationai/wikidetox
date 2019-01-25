@@ -48,10 +48,11 @@ export class naturalLanguageApi {
     return cleanedCats;
   }
 
-  getCloudCategory = (text) => {
+  getCloudCategory = (text, title) => {
+    const content = `${text}, ${title}`;
     return this.client
       .classifyText({document: {
-        content: text,
+        content: content,
         type: 'PLAIN_TEXT',
       }})
       .then(results => {
@@ -60,14 +61,14 @@ export class naturalLanguageApi {
       })
       .catch(err => {
         if (err.details === 'Invalid text content: too few tokens (words) to process.') {
-          // If not enought words
-          return this.getCloudCategory(`${text}, ${text}`);
-        } else if (err.code === 8) { 
-          // If quota exceedded 
-          return setTimeout(() => this.getCloudCategory(text), 5000); 
+          return this.getCloudCategory(`${content}, ${content}`, title);
+        } else if (err.code === 8) {  
+          // Quota exceedded 
+          console.log('ERROR:', err)
+          return setTimeout((text) => this.getCloudCategory(text, title), 1000); 
         }
-        else {
-          console.error('ERROR:', err);                            
+        else {  
+          console.error('ERROR:', err);                         
           return undefined;
         }
       });
