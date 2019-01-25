@@ -1,0 +1,135 @@
+<template>
+  <div id="app">
+    <MainCanvas />
+    <MetricsPanel />
+    <!-- <SelectPanel /> -->
+    <DailyTrend />
+  </div>
+</template>
+
+<script>
+import MainCanvas from './components/canvas/MainCanvas.vue'
+import MetricsPanel from './components/controls/MetricsPanel.vue'
+import DailyTrend from './components/controls/DailyTrend.vue'
+
+import QueryMixin from './components/mixin/QueryMixin.js'
+import * as toxModels from './assets/models.json'
+
+import {
+  mapGetters
+} from 'vuex'
+
+export default {
+  name: 'app',
+  mixins: [QueryMixin],
+  components: {
+    MainCanvas,
+    MetricsPanel,
+    // SelectPanel,
+    DailyTrend
+  },
+  data () {
+    return {
+      models: toxModels.default
+    }
+  },
+  computed: {
+    ...mapGetters({
+      dataLength: 'getDatalength',
+      dataTimeRange: 'getDataTimeRange'
+    })
+  },
+  created () {
+    if (this.$isAuthenticated() !== true) {
+      this.$login()
+    }
+  },
+  mounted () {
+    if (this.dataLength === 0) {
+      console.log('Datas not saved')
+      this.getAllData()
+    }
+    if (localStorage.getItem('page_trends')) {
+      const trendData = JSON.parse(localStorage.getItem('page_trends'))
+      this.$store.commit('SET_PAGE_TRENDS', trendData)
+    } else {
+      console.log('page trends not saved')
+      this.getTopTrends()
+    }
+  },
+  watch: {
+    dataTimeRange (oldVal, newVal) {
+      console.log('data range changed')
+      this.getAllData()
+      this.getTopTrends()
+    }
+  },
+  methods: {
+    getAllData () {
+      this.getQuery(this.dataQuery).then(datas => {
+        const allData = datas.map(d => {
+          let dataModels = {}
+          for (const prop in this.models) {
+            dataModels[this.models[prop].name] = d.f[parseInt(prop) + 1].v
+          }
+          return {
+            'Toxicity': d.f[0].v,
+            'Category': d.f[13].v,
+            'Sub Category': d.f[14].v,
+            'page_id': d.f[15].v,
+            'page_title': d.f[16].v,
+            'id': d.f[17].v,
+            'username': d.f[18].v,
+            'timestamp': d.f[19].v,
+            'content': d.f[20].v,
+            'type': d.f[21].v,
+            ...dataModels
+          }
+        })
+        console.log(allData)
+        this.$store.commit('SET_DATA', allData)
+      })
+    },
+    getTopTrends () {
+      this.getQuery(this.pageTrendQuery).then(datas => {
+        const trendData = datas.map(d => {
+          const category = d.f[1].v === null ? d.f[0].v : d.f[1].v
+          return {
+            category: category,
+            length: d.f[2].v
+          }
+        })
+        this.$store.commit('SET_PAGE_TRENDS', trendData)
+      })
+    }
+  }
+}
+</script>
+
+<style lang="scss">
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  #app {
+    width: 100vw;
+    height: 100vh;
+    font-size: 13px;
+    font-family: 'Roboto Mono', sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: $light-bg;
+    color: $dark-text;
+    line-height: 1.5;
+  }
+</style>

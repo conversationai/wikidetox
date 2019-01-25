@@ -1,0 +1,97 @@
+import {
+  mapGetters
+} from 'vuex'
+import * as config from '../../config.json'
+
+export default {
+  name: 'QueryMixin',
+  data () {
+    return {
+      conf: config.default
+    }
+  },
+  computed: {
+    ...mapGetters({
+      timeRange: 'getDataTimeRange',
+      monthlyStart: 'getMonthlyTrendStart'
+    }),
+    table () {
+      return `${this.conf.projectId}.${this.conf.datasetID}.${this.conf.allTable}`
+    },
+    dailyTimelineQuery () {
+      return `SELECT day, sum(cd) 
+                OVER (partition by day) as day_total
+                FROM 
+                (SELECT date(timestamp) as day, count(distinct id) as cd 
+                  FROM \`${this.table}\` 
+                  WHERE 
+                  timestamp BETWEEN TIMESTAMP('${this.timeRange.startTime}') AND TIMESTAMP('${this.timeRange.endTime}')
+                  AND RockV6_1_TOXICITY > .8
+                  GROUP BY day )
+                `
+    },
+    monthlyTimelineQuery () {
+      return `SELECT month, sum(cd) 
+                OVER (partition by month) as month_total
+                FROM 
+                (SELECT DATE_TRUNC(DATE(timestamp), MONTH) as month, count(distinct id) as cd 
+                  FROM \`${this.table}\` 
+                WHERE 
+                  timestamp BETWEEN TIMESTAMP('${this.monthlyStart}') AND TIMESTAMP('${this.timeRange.endTime}')
+                AND RockV6_1_TOXICITY > .8
+                GROUP BY month )
+                `
+    },
+    dataQuery () {
+      return `SELECT 
+                    RockV6_1_TOXICITY, RockV6_1_SEXUAL_ORIENTATION, RockV6_1_FLIRTATION, RockV6_1_GENDER, RockV6_1_TOXICITY_THREAT, RockV6_1_RNE, RockV6_1_RELIGION, RockV6_1_TOXICITY_IDENTITY_HATE, RockV6_1_TOXICITY_INSULT, RockV6_1_HEALTH_AGE_DISABILITY, RockV6_1_SEXUALLY_EXPLICIT, RockV6_1_TOXICITY_OBSCENE, RockV6_1_SEVERE_TOXICITY,
+                    category1, sub_category1,
+                    page_id, page_title, id, 
+                    user_text, timestamp, 
+                    cleaned_content, type 
+                FROM \`${this.table}\` 
+                  WHERE 
+                  timestamp BETWEEN TIMESTAMP('${this.timeRange.startTime}') AND TIMESTAMP('${this.timeRange.endTime}')
+                      AND RockV6_1_TOXICITY > .8
+                      `
+    },
+    pageTrendQuery () {
+      return `SELECT category1, sub_category1, COUNT(page_id) as cnt
+              FROM 
+                \`${this.table}\`                  
+              WHERE 
+                timestamp > TIMESTAMP('${this.timeRange.startTime}') AND  timestamp < TIMESTAMP('${this.timeRange.endTime}')
+              AND
+                category1 IS NOT NULL
+              AND 
+                RockV6_1_TOXICITY > .8
+              GROUP BY category1, sub_category1
+              ORDER BY cnt DESC
+              LIMIT 10
+              `
+    }
+  },
+  methods: {
+    getQuery (query) {
+      return new Promise((resolve, reject) => {
+        this.$getGapiClient()
+          .then(gapi => {
+            gapi.client.load('bigquery', 'v2', async () => {
+              const options = {
+                projectId: this.conf.projectId,
+                query: query,
+                useLegacySql: false,
+                timeoutMs: 1000
+              }
+              try {
+                const results = await gapi.client.bigquery.jobs.query(options)
+                resolve(results.result.rows)
+              } catch (error) {
+                reject(error)
+              }
+            })
+          })
+      })
+    }
+  }
+}
