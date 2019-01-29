@@ -2,22 +2,22 @@
   <div id="app">
     <MainCanvas />
     <MetricsPanel />
-    <!-- <SelectPanel /> -->
+    <MonthlyMetrics />
     <DailyTrend />
+    <MonthlyTrend />
   </div>
 </template>
 
 <script>
 import MainCanvas from './components/canvas/MainCanvas.vue'
 import MetricsPanel from './components/controls/MetricsPanel.vue'
+import MonthlyMetrics from './components/controls/MonthlyMetrics.vue'
 import DailyTrend from './components/controls/DailyTrend.vue'
+import MonthlyTrend from './components/controls/MonthlyTrend.vue'
 
 import QueryMixin from './components/mixin/QueryMixin.js'
 import * as toxModels from './assets/models.json'
-
-import {
-  mapGetters
-} from 'vuex'
+import { mapState, mapGetters } from 'vuex'
 
 export default {
   name: 'app',
@@ -25,7 +25,8 @@ export default {
   components: {
     MainCanvas,
     MetricsPanel,
-    // SelectPanel,
+    MonthlyMetrics,
+    MonthlyTrend,
     DailyTrend
   },
   data () {
@@ -34,8 +35,10 @@ export default {
     }
   },
   computed: {
+    ...mapState({
+      toxLength: state => state.toxicLength
+    }),
     ...mapGetters({
-      dataLength: 'getDatalength',
       dataTimeRange: 'getDataTimeRange'
     })
   },
@@ -45,15 +48,9 @@ export default {
     }
   },
   mounted () {
-    if (this.dataLength === 0) {
+    if (this.toxLength === 0) {
       console.log('Datas not saved')
       this.getAllData()
-    }
-    if (localStorage.getItem('page_trends')) {
-      const trendData = JSON.parse(localStorage.getItem('page_trends'))
-      this.$store.commit('SET_PAGE_TRENDS', trendData)
-    } else {
-      console.log('page trends not saved')
       this.getTopTrends()
     }
   },
@@ -86,7 +83,7 @@ export default {
             ...dataModels
           }
         })
-        console.log(allData)
+        // console.log(allData)
         this.$store.commit('SET_DATA', allData)
       })
     },

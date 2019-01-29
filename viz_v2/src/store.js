@@ -12,7 +12,11 @@ export default new Vuex.Store({
     SELECTED_YEAR: 2018,
     SELECTED_MONTH: 2,
     sort: 'all',
+    display: 'all',
     datas: [],
+    toxicLength: 0,
+    detoxedLength: 0,
+    monthlyIncrease: 0,
     pageTrends: []
   },
   getters: {
@@ -20,24 +24,18 @@ export default new Vuex.Store({
       const month = state.SELECTED_MONTH
       const year = state.SELECTED_YEAR
       const endMonth = month === 12 ? 1 : month + 1
+      const monthString = month < 10 ? `0${month}` : `${month}`
+      const endMonthString = endMonth < 10 ? `0${endMonth}` : `${endMonth}`
       const endYear = month === 12 ? year + 1 : year
-      const startTime = `${year}-${month}-1`
-      const endTime = `${endYear}-${endMonth}-1`
-      console.log(startTime)
-      console.log(endTime)
+      const startTime = `${year}-${monthString}-01`
+      const endTime = `${endYear}-${endMonthString}-01`
       return { startTime, endTime }
     },
-    getMonthlyTrendStart: state => {
-      const month = state.SELECTED_MONTH
-      const year = state.SELECTED_YEAR
-      return `${year - 1}-${month}-1`
-    },
-    getDatalength: state => {
-      return state.datas.length
-    },
-    getDeleted: state => {
-      return state.datas.filter(data => data['type'] === 'DELETION')
-    },
+    // getMonthlyTrendStart: state => {
+    //   const month = state.SELECTED_MONTH
+    //   const year = state.SELECTED_YEAR
+    //   return `${year - 1}-${month}-1`
+    // },
     getDeletedLength: (state, getters) => {
       return getters.getDeleted.length
     },
@@ -65,22 +63,31 @@ export default new Vuex.Store({
       modelObj.sort((a, b) => {
         return b.length - a.length
       })
-      return modelObj
+      return modelObj.slice(0, 6)
     }
   },
   mutations: {
     CHANGE_SORTBY (state, sortby) {
       state.sort = sortby
     },
+    CHANGE_DISPLAY (state, display) {
+      state.display = display
+    },
     CHANGE_TIME (state, newtime) {
-      state.SELECTED_START_TIME = newtime
-      state.SELECTED_END_TIME = newtime
+      const monthString = newtime.substr(5, 2)
+      state.SELECTED_YEAR = parseInt(newtime.substr(0, 4))
+      state.SELECTED_MONTH = monthString.startsWith('0') ? parseInt(monthString.substr(1, 1)) : parseInt(monthString)
+    },
+    CHANGE_DATA_LENGTH (state, lengths) {
+      state.toxicLength = lengths.toxicLength
+      state.detoxedLength = lengths.detoxedLength
+      state.monthlyIncrease = ((lengths.toxicLength - lengths.lastMonth) / lengths.lastMonth * 100).toFixed(1)
     },
     SET_DATA (state, data) {
       state.datas = data
     },
     SET_PAGE_TRENDS (state, data) {
-      localStorage.setItem('page_trends', JSON.stringify(data))
+      // localStorage.setItem('page_trends', JSON.stringify(data))
       state.pageTrends = data
     }
   }

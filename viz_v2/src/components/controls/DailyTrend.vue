@@ -63,8 +63,6 @@ export default {
     },
     scaleX () {
       const domainX = [new Date(this.dataTimeRange.startTime), new Date(this.dataTimeRange.endTime)]
-      console.log(domainX)
-      console.log(this.width * 0.03 + 28)
       return d3.scaleTime()
         .domain(domainX)
         .rangeRound([this.width * 0.03 + 28, this.width - 28])
@@ -94,7 +92,7 @@ export default {
     getData () {
       this.getQuery(this.dailyTimelineQuery).then(data => {
         this.datas = data
-        localStorage.setItem('daily_trends', JSON.stringify(data))
+        // localStorage.setItem('daily_trends', JSON.stringify(data))
         this.onResize()
       })
     },
@@ -108,7 +106,7 @@ export default {
     },
     drawBars () {
       this.bars = this.datas.map((d, i) => {
-        console.log(d.f[0].v)
+        // console.log(d.f[0].v)
         return {
           x: this.scaleX(new Date(d.f[0].v)),
           label: d.f[0].v
@@ -180,13 +178,13 @@ export default {
     width: 100%;
     position: fixed ;
     left: 0;
-    bottom: 0;
+    bottom: 90px;
     background: transparent;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 100;
+    z-index: 10;
     svg {
       rect {
         cursor: pointer;

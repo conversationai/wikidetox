@@ -27,8 +27,9 @@ export default {
       raycaster: null,
       mouse: null,
       particleGroup: null,
+      animationGroup: null,
       collidedMesh: null,
-      sprite: null,
+      clock: null,
       particles: []
     }
   },
@@ -75,18 +76,27 @@ export default {
       this.scene.add(new THREE.AmbientLight(0x333333))
       this.controls = new OrbitControls(this.camera, this.view)
 
+      this.clock = new THREE.Clock()
+
+      // Initialize group animation
+      this.animationGroup = new THREE.AnimationObjectGroup()
       this.particleGroup = new THREE.Object3D()
 
-      // const spriteMap = new THREE.TextureLoader().load(this.spritPNG)
-      // const spriteMaterial = new THREE.SpriteMaterial({
-      //   map: spriteMap,
-      //   color: 0xffffff,
-      //   blending: THREE.AdditiveBlending,
-      //   transparent: true })
-      // this.sprite = new THREE.Sprite(spriteMaterial)
+      // // create clip
+      // const fadeinClip = new THREE.AnimationClip('fadeIn', 3, [ ])
 
+      // // apply the animation group to the mixer as the root object
+      // const mixer = new THREE.AnimationMixer(this.particleGroup)
+      // const fadeinAction = mixer.clipAction(fadeinClip)
+      // fadeinAction.play()
+
+      // Helpers
+      const stats = new Stats()
+      document.body.appendChild(stats.dom)
       // var axesHelper = new THREE.AxesHelper(5)
       // this.scene.add(axesHelper)
+
+      // Initialize RAYCASTER
       this.raycaster = new THREE.Raycaster()
       this.mouse = new THREE.Vector2()
       this.animate()
@@ -94,14 +104,18 @@ export default {
     resize () {
       this.camera.aspect = this.view.clientWidth / this.view.clientHeight
       this.camera.updateProjectionMatrix()
-      this.renderer.setSize(window.innerWidth, window.innerHeight)
+      this.renderer.setSize(this.view.clientWidth, this.view.clientHeight)
     },
     render () {
       this.camera.updateProjectionMatrix()
       this.controls.update()
       this.raycaster.setFromCamera(this.mouse, this.camera)
-      let intersects = this.raycaster.intersectObjects(this.particleGroup.children)
 
+      // SPHERE ROTATION
+      // this.particleGroup.rotation.y += 0.001
+
+      // HOVER EVENT
+      let intersects = this.raycaster.intersectObjects(this.particleGroup.children)
       if (intersects.length > 0) {
         if (intersects[0].object !== this.collidedMesh) {
           if (this.collidedMesh !== null) {
@@ -135,17 +149,17 @@ export default {
         const newPos = this.fibonacciSphere(i)
         this.particles.push(new Particle({
           group: this.particleGroup,
+          animationGroup: this.animationGroup,
           x: newPos.x,
           y: newPos.y,
           z: newPos.z,
+          delay: i,
           color: d.type === 'DELETION' ? 0xffffff : 0xE63C5B,
           size: d.type === 'DELETION' ? 0.3 : (Number(d.Toxicity) - 0.75) * 7,
           commentID: d.id,
-          // delay: i,
           geometry: geometry
         }))
       })
-      this.particleGroup.add(this.sprite)
       this.scene.add(this.particleGroup)
     },
     random (floor, ceiling) {
@@ -163,6 +177,6 @@ export default {
     left: 0;
     z-index: 1;
     width: 100vw;
-    height: 100vh;
+    height: calc(100vh - 76px);
   }
 </style>

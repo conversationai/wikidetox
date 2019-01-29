@@ -2,14 +2,9 @@ import * as THREE from 'three'
 
 export class Particle {
   constructor (config) {
-    this.group = config.group
-    this.x = config.x
-    this.y = config.y
-    this.z = config.z
-    this.color = config.color
-    this.size = config.size
-    this.geometry = config.geometry
-    this.commentID = config.commentID
+    for (const [key, value] of Object.entries(config)) {
+      this[key] = value
+    }
     this.createMesh()
   }
   createMesh () {
@@ -26,5 +21,6 @@ export class Particle {
     this.mesh.scale.set(this.size, this.size, this.size)
     this.mesh.name = this.commentID
     this.group.add(this.mesh)
+    this.animationGroup.add(this.mesh)
   }
 }

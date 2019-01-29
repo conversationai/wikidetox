@@ -17,6 +17,7 @@
     "three-orbitcontrols": "^2.99.1",
     "vue": "^2.5.17",
     "vue-gapi": "^0.0.10",
+    "vue-ripple-directive": "^2.0.1",
     "vuex": "^3.0.1"
   },
   "devDependencies": {

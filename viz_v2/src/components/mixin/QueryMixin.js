@@ -1,6 +1,4 @@
-import {
-  mapGetters
-} from 'vuex'
+import { mapGetters } from 'vuex'
 import * as config from '../../config.json'
 
 export default {
@@ -12,8 +10,8 @@ export default {
   },
   computed: {
     ...mapGetters({
-      timeRange: 'getDataTimeRange',
-      monthlyStart: 'getMonthlyTrendStart'
+      timeRange: 'getDataTimeRange'
+      // monthlyStart: 'getMonthlyTrendStart'
     }),
     table () {
       return `${this.conf.projectId}.${this.conf.datasetID}.${this.conf.allTable}`
@@ -31,15 +29,36 @@ export default {
                 `
     },
     monthlyTimelineQuery () {
-      return `SELECT month, sum(cd) 
-                OVER (partition by month) as month_total
-                FROM 
-                (SELECT DATE_TRUNC(DATE(timestamp), MONTH) as month, count(distinct id) as cd 
-                  FROM \`${this.table}\` 
-                WHERE 
-                  timestamp BETWEEN TIMESTAMP('${this.monthlyStart}') AND TIMESTAMP('${this.timeRange.endTime}')
-                AND RockV6_1_TOXICITY > .8
-                GROUP BY month )
+      return `WITH total AS 
+                (SELECT month, sum(cd) 
+                  OVER (partition by month) as month_total
+                  FROM 
+                    (SELECT 
+                        DATE_TRUNC(DATE(timestamp), MONTH) as month, 
+                        count(distinct id) as cd 
+                      FROM  \`${this.table}\` 
+                      WHERE
+                        timestamp BETWEEN TIMESTAMP('2017-01-01') AND TIMESTAMP('2018-07-01')
+                      AND RockV6_1_TOXICITY > .8
+                      GROUP BY month )
+                ),
+                detox AS 
+                  (SELECT demonth, sum(cd) 
+                    OVER (partition by demonth) as detox_total
+                    FROM 
+                      (SELECT 
+                        DATE_TRUNC(DATE(timestamp), MONTH) as demonth, 
+                        count(distinct id) as cd 
+                      FROM \`${this.table}\` 
+                      WHERE 
+                        timestamp BETWEEN TIMESTAMP('2017-01-01') AND TIMESTAMP('2018-07-01')
+                      AND RockV6_1_TOXICITY > .8 AND type = 'DELETION'
+                      GROUP BY demonth )
+                )
+                SELECT month, month_total, detox_total
+                  FROM total
+                  JOIN detox ON total.month = detox.demonth 
+                  ORDER BY total.month DESC
                 `
     },
     dataQuery () {
@@ -67,7 +86,7 @@ export default {
                 RockV6_1_TOXICITY > .8
               GROUP BY category1, sub_category1
               ORDER BY cnt DESC
-              LIMIT 10
+              LIMIT 5
               `
     }
   },
@@ -81,7 +100,7 @@ export default {
                 projectId: this.conf.projectId,
                 query: query,
                 useLegacySql: false,
-                timeoutMs: 1000
+                timeoutMs: 10000
               }
               try {
                 const results = await gapi.client.bigquery.jobs.query(options)

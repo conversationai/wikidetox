@@ -1,6 +1,4 @@
-import {
-  mapGetters
-} from 'vuex'
+import { mapState } from 'vuex'
 
 export default {
   name: 'SphereMixin',
@@ -10,11 +8,15 @@ export default {
     }
   },
   computed: {
-    ...mapGetters({
-      dataL: 'getDatalength'
+    ...mapState({
+      toxLength: state => state.toxicLength,
+      detoxedLength: state => state.detoxedLength
     }),
     increment () { // Golden ratio * angle
       return Math.PI * (3 - Math.sqrt(5))
+    },
+    dataL () {
+      return this.toxLength + this.detoxedLength
     }
   },
   methods: {
