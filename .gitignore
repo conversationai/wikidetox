@@ -101,3 +101,4 @@ conversation_reconstruction/dataflow/ingest_revisions/ingest_utils/testdata/giga
 viz_v2/wiki_categorize/wikidetox-viz-597cf87aea29.json
 viz_v2/wiki_categorize/build
 viz_v2/dist
+viz_v2/yarn.lock

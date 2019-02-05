@@ -85,13 +85,15 @@ export default {
       })
     },
     changeMonth (d) {
-      this.$store.commit('CHANGE_TIME', d.timestamp)
-      const lastMonth = this.datas[this.datas.indexOf(d) + 1]
-      this.$store.commit('CHANGE_DATA_LENGTH', {
-        toxicLength: d.toxic,
-        detoxedLength: d.detoxed,
-        lastMonth: lastMonth ? lastMonth.toxic : 0
-      })
+      if (d !== this.selected) {
+        this.$store.commit('CHANGE_TIME', d.timestamp)
+        const lastMonth = this.datas[this.datas.indexOf(d) + 1]
+        this.$store.commit('CHANGE_DATA_LENGTH', {
+          toxicLength: d.toxic,
+          detoxedLength: d.detoxed,
+          lastMonth: lastMonth ? lastMonth.toxic : 0
+        })
+      }
     }
   }
 }

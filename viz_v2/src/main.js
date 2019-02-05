@@ -5,7 +5,6 @@ import Element from 'element-ui'
 import VueGAPI from 'vue-gapi'
 import * as config from './config.json'
 import 'element-ui/lib/theme-chalk/index.css'
-
 import Ripple from 'vue-ripple-directive'
 
 Ripple.color = 'rgba(0, 0, 0, 0.1)'

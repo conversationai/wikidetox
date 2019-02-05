@@ -60,6 +60,7 @@ export default {
     position: fixed;
     top: 3em;
     right: 3em;
+    z-index: 1000;
     .date-wrapper {
       color: $dark-text;
       font-weight: 600;

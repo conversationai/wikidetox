@@ -1,6 +1,7 @@
 <template>
   <div id="app">
-    <MainCanvas />
+    <ParticleSystem />
+    <!-- <MainCanvas /> -->
     <MetricsPanel />
     <MonthlyMetrics />
     <DailyTrend />
@@ -9,7 +10,8 @@
 </template>
 
 <script>
-import MainCanvas from './components/canvas/MainCanvas.vue'
+import ParticleSystem from './components/canvas/ParticleSystem.vue'
+// import MainCanvas from './components/canvas/MainCanvas.vue'
 import MetricsPanel from './components/controls/MetricsPanel.vue'
 import MonthlyMetrics from './components/controls/MonthlyMetrics.vue'
 import DailyTrend from './components/controls/DailyTrend.vue'
@@ -23,7 +25,8 @@ export default {
   name: 'app',
   mixins: [QueryMixin],
   components: {
-    MainCanvas,
+    ParticleSystem,
+    // MainCanvas,
     MetricsPanel,
     MonthlyMetrics,
     MonthlyTrend,
