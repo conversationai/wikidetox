@@ -10,8 +10,7 @@ import {
 } from 'vuex'
 import * as THREE from 'three'
 import * as OrbitControls from 'three-orbitcontrols'
-// import * as glslify from 'glslify'
-// import anime from 'animejs'
+
 import {
   Particles
 } from './particleSystem/Particles.js'
@@ -132,9 +131,6 @@ export default {
       this.particles = this.particleSystem.particles
       this.attributes = this.particles.geometry.attributes
       this.scene.add(this.particles)
-      // setTimeout(() => {
-      //   this.particleSystem.entryAnimation()
-      // }, 100)
     },
     onMouseMove (event) {
       this.mouse.x = (event.clientX / this.view.clientWidth) * 2 - 1
