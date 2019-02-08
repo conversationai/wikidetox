@@ -27,11 +27,13 @@ void main() {
 
 export class Particles {
   constructor (config) {
-    for (const [key, value] of Object.entries(config)) {
-      this[key] = value
-    }
+    // for (const [key, value] of Object.entries(config)) {
+    //   this[key] = value
+    // }
     this.entry = true
     this.exit = false
+    this._allDatas = config.datas
+    this._datas = config.datas
     this.init()
   }
   init () {
@@ -50,18 +52,29 @@ export class Particles {
     this.particles.exit = false
 
     // Onbeforerender
-    const l = this.datas.length
+    const l = this._datas.length
     this.particles.onBeforeRender = function () {
       if (this.exit) return
       const attr = this.geometry.attributes
       attr.scale.needsUpdate = true
+      attr.position.needsUpdate = true
       // Loading animation
       for (let i = 0; i < l; i++) {
+        // CALCULATING animation delay
         let weight
-        if (i > l - 100) {
-          weight = l - 100
+        if (l < 100) {
+          // Larger wait time for smaller particle systems
+          if (i > l - 10) {
+            weight = l - 10
+          } else {
+            weight = i * 1.2
+          }
         } else {
-          weight = i
+          if (i > l - 100) {
+            weight = l - 100
+          } else {
+            weight = i
+          }
         }
         if (attr.scale.array[i] < attr.finalSizes.array[i] - (1 - weight / l + 0.1)) {
           attr.scale.array[i] += (1 - weight / l + 0.1)
@@ -69,7 +82,10 @@ export class Particles {
           attr.scale.array[i] = attr.finalSizes.array[i]
         }
       }
+      // console.log(this)
+      this.rotation.y += 0.0002
     }
+    // onAfterRender -> immediately after first render
     this.particles.onAfterRender = function () {
       if (!this.exit) return
       const scale = this.geometry.attributes.scale
@@ -77,10 +93,18 @@ export class Particles {
       // Exit animation
       for (let i = 0; i < l; i++) {
         let weight
-        if (i > l - 100) {
-          weight = l - 100
+        if (l < 100) {
+          if (i > l - 10) {
+            weight = l - 10
+          } else {
+            weight = i * 1.2
+          }
         } else {
-          weight = i
+          if (i > l - 100) {
+            weight = l - 100
+          } else {
+            weight = i
+          }
         }
         if (scale.array[i] > (1 - weight / l + 0.1)) {
           scale.array[i] += -(1 - weight / l + 0.1)
@@ -92,32 +116,39 @@ export class Particles {
   }
   initGeometry () {
     this.particleGeometry = new THREE.BufferGeometry()
-    const numPoints = this.datas.length
-    const radius = 28
+    const numPoints = this._datas.length
+    let sphereScale = (numPoints - 200) / 220 * 4 + 18
+    let radius = sphereScale > 33 ? 33 : sphereScale
+    console.log(radius)
+
     let positions = new Float32Array(numPoints * 3)
     let colors = new Float32Array(numPoints * 3)
     let scale = new Float32Array(numPoints)
     let finalSizes = new Float32Array(numPoints)
 
-    this.datas.forEach((d, i) => {
+    this._datas.forEach((d, i) => {
       const newPos = fibonacciSphere(numPoints, radius, i)
-
       positions[ 3 * i ] = newPos.x
       positions[3 * i + 1] = newPos.y
       positions[3 * i + 2] = newPos.z
       scale[i] = 0.001
-      finalSizes[i] = d.type === 'DELETION' ? 3 : (Number(d.Toxicity) - 0.75) * 60
-      const color = d.type === 'DELETION' ? [1, 1, 1] : [0.9, 0.23, 0.36]
+
+      let color
+      if (d.type === 'DELETION') {
+        finalSizes[i] = 3
+        color = [1, 1, 1]
+      } else {
+        finalSizes[i] = (Number(d.Toxicity) - 0.75) * 50
+        color = [0.9, 0.23, 0.36]
+      }
       colors[ 3 * i ] = color[0]
       colors[ 3 * i + 1 ] = color[1]
       colors[ 3 * i + 2 ] = color[2]
     })
-
     this.particleGeometry.addAttribute('position', new THREE.BufferAttribute(positions, 3))
     this.particleGeometry.addAttribute('vertexColor', new THREE.BufferAttribute(colors, 3))
     this.particleGeometry.addAttribute('scale', new THREE.BufferAttribute(scale, 1))
     this.particleGeometry.addAttribute('finalSizes', new THREE.BufferAttribute(finalSizes, 1))
-
     this.particleGeometry.computeBoundingSphere()
   }
 }

@@ -83,6 +83,8 @@ export default {
               AND
                 category1 IS NOT NULL
               AND 
+                type != 'DELETION'
+              AND 
                 RockV6_1_TOXICITY > .8
               GROUP BY category1, sub_category1
               ORDER BY cnt DESC

@@ -12,16 +12,19 @@
     <!-- LIST OF METRICS -->
     <div>
       <ul>
-        <li @click="sortClick('all')" v-ripple>
-          <span :class="['root', { selected: selected === 'all' }]">All Comments</span>
-        </li>
-        <li :class="{ expanded: sort === 'trend', selected: selected === 'trend' }"
-            @click="sortClick('trend')" v-ripple>
-          <span :class="['root', {selected: selected === 'trend' }]"> Top Trends </span>
 
+        <!-- ALL COMMENTS -->
+        <li @click="sortClick('all')" v-ripple>
+          <span :class="['root', { selected: sort === 'all'}]">All Comments</span>
+        </li>
+
+        <!-- TOP TRENDS -->
+        <li :class="{ expanded: sort === 'trend'}"
+            @click="sortClick('trend')" v-ripple>
+          <span :class="['root', {selected: sort === 'trend' && filter === null }]"> Top Trends </span>
           <ul class="nested" :class="{'expand': sort === 'trend'}">
               <li v-for="(item, i) in trends" :key="`trend-${i}`"
-                  :class="{selected: selected === item.category }"
+                  :class="{selected: filter === item.category }"
                   @click.stop.prevent="sortSubcategory(item.category)"
                   >
                   <span>{{item.category}}</span>
@@ -29,37 +32,37 @@
               </li>
           </ul>
         </li>
+
+        <!-- PAGE CATEGORY -->
         <li :class="{ expanded: sort === 'type'}"
             @click="sortClick('type')" v-ripple>
-          <span :class="['root', {selected: selected === 'type' }]">Page Category</span>
-
+          <span :class="['root', {selected: sort === 'type' && filter === null }]">Page Category</span>
           <ul class="nested" :class="{ expanded: sort === 'type'}">
-              <li @click.stop.prevent="sortSubcategory('talk_page')"
-                  :class="{selected: selected === 'talk_page' }" >
+              <li @click.stop.prevent="sortSubcategory('Talk page')"
+                  :class="{selected: filter === 'Talk page' }" >
                 <span>Talk Page</span>
                 <span class="num">{{talkpageLength}}</span>
               </li>
-              <li @click.stop.prevent="sortSubcategory('user_page')"
-                  :class="{selected: selected === 'user_page' }">
+              <li @click.stop.prevent="sortSubcategory('User page')"
+                  :class="{selected: filter === 'User page' }">
                 <span>User Page</span>
                 <span class="num">{{userpageLength}}</span>
               </li>
           </ul>
-          </transition>
         </li>
+
+        <!-- TOXICITY TYPES -->
         <li :class="{ expanded: sort === 'model'}"
             @click="sortClick('model')" v-ripple>
-          <span :class="['root', {selected: selected === 'model' }]">Toxicity Types</span>
-
+          <span :class="['root', {selected: sort === 'model' && filter === null }]">Toxicity Types</span>
           <ul class="nested" :class="{ expanded: sort === 'model'}">
               <li v-for="(item, i) in models" :key="`model-${i}`"
                   @click.stop.prevent="sortSubcategory(item.name)"
-                  :class="{selected: selected === item.name }" >
+                  :class="{selected: filter === item.name }" >
                 <span>{{item.name}}</span>
                 <span class="num">{{item.length}}</span>
               </li>
           </ul>
-          </transition>
         </li>
       </ul>
     </div>
@@ -75,8 +78,8 @@ export default {
   computed: {
     ...mapState({
       trends: state => state.pageTrends,
-      sort: state => state.sort,
-      selected: state => state.display
+      sort: state => state.sortby,
+      filter: state => state.filterby
     }),
     ...mapGetters({
       talkpageLength: 'getTalkpageLength',
@@ -87,10 +90,12 @@ export default {
   methods: {
     sortClick (sortby) {
       this.$store.commit('CHANGE_SORTBY', sortby)
-      this.sortSubcategory(sortby)
+      if (sortby !== 'all') {
+        this.$store.commit('CHANGE_FILTERBY', null)
+      }
     },
     sortSubcategory (selected) {
-      this.$store.commit('CHANGE_DISPLAY', selected)
+      this.$store.commit('CHANGE_FILTERBY', selected)
     }
   }
 }
@@ -160,6 +165,7 @@ export default {
           border-left: 3px solid transparent;
           &.selected {
             color: $red;
+            font-weight: 600;
             border-left: 3px solid $red;
           }
         }
@@ -175,6 +181,7 @@ export default {
             border-left: 3px solid transparent;
             &.selected {
               color: $red;
+              font-weight: 600;
               border-left: 3px solid $red;
             }
           }
@@ -203,12 +210,4 @@ export default {
       }
     }
   }
-  // .expand-enter-active, .expand-leave-active {
-  //   transition: all .5s;
-  //   max-height: 650px;
-  // }
-  // .expand-enter, .expand-leave-to /* .fade-leave-active below version 2.1.8 */ {
-  //   opacity: 0;
-  //   max-height: 0;
-  // }
 </style>

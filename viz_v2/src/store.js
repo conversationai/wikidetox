@@ -11,8 +11,8 @@ export default new Vuex.Store({
     DATA_END_TIME: '2018-06-30',
     SELECTED_YEAR: 2018,
     SELECTED_MONTH: 2,
-    sort: 'all',
-    display: 'all',
+    filterby: null,
+    sortby: 'all',
     datas: [],
     toxicLength: 0,
     detoxedLength: 0,
@@ -20,6 +20,13 @@ export default new Vuex.Store({
     pageTrends: []
   },
   getters: {
+    getCanvas: state => {
+      if (state.filterby !== null || state.sortby === 'all') {
+        return 'particles'
+      } else {
+        return 'bubbles'
+      }
+    },
     getDataTimeRange: state => {
       const month = state.SELECTED_MONTH
       const year = state.SELECTED_YEAR
@@ -31,29 +38,28 @@ export default new Vuex.Store({
       const endTime = `${endYear}-${endMonthString}-01`
       return { startTime, endTime }
     },
-    // getMonthlyTrendStart: state => {
-    //   const month = state.SELECTED_MONTH
-    //   const year = state.SELECTED_YEAR
-    //   return `${year - 1}-${month}-1`
-    // },
     getDeletedLength: (state, getters) => {
       return getters.getDeleted.length
     },
     getTalkpage: state => {
-      return state.datas.filter(data => data['page_title'].startsWith('Talk:'))
+      return state.datas.filter(data => {
+        return data['page_title'].startsWith('Talk:') && data['type'] !== 'DELETION'
+      })
     },
     getTalkpageLength: (state, getters) => {
       return getters.getTalkpage.length
     },
     getUserpage: state => {
-      return state.datas.filter(data => data['page_title'].startsWith('User talk:'))
+      return state.datas.filter(data => {
+        return data['page_title'].startsWith('User talk:') && data['type'] !== 'DELETION'
+      })
     },
     getUserpageLength: (state, getters) => {
       return getters.getUserpage.length
     },
     getModelsLengths: state => {
       const modelObj = toxModels.map(m => {
-        const modelData = state.datas.filter(data => data[m.name] > 0.8)
+        const modelData = state.datas.filter(data => data[m.name] > 0.8 && data['type'] !== 'DELETION')
         return {
           model: m.model,
           name: m.name,
@@ -68,7 +74,7 @@ export default new Vuex.Store({
   },
   mutations: {
     CHANGE_SORTBY (state, sortby) {
-      state.sort = sortby
+      state.sortby = sortby
     },
     CHANGE_DISPLAY (state, display) {
       state.display = display
@@ -89,6 +95,9 @@ export default new Vuex.Store({
     SET_PAGE_TRENDS (state, data) {
       // localStorage.setItem('page_trends', JSON.stringify(data))
       state.pageTrends = data
+    },
+    CHANGE_FILTERBY (state, data) {
+      state.filterby = data
     }
   }
 })

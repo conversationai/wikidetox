@@ -1,5 +1,13 @@
 <template>
-  <svg id="bubblesContainer" :width="width" :height="height">
+  <svg id="bubblesContainer" :width="width" :height="height" ref="bubblesContainer">
+    <defs>
+      <radialGradient spreadMethod="reflect"
+      cx="50%" cy="50%" r="50%" fx="50%" fy="50%" fr="1%"
+      id="flameGradient">
+        <stop offset="0%" stop-color="#E896A8"/>
+        <stop offset="100%" stop-color="#E63C5B"/>
+      </radialGradient>
+    </defs>
   </svg>
 </template>
 
@@ -21,61 +29,88 @@ export default {
   },
   computed: {
     ...mapState({
-      sortby: state => state.sort,
+      sortby: state => state.sortby,
+      filterby: state => state.filterby,
       month: state => state.SELECTED_MONTH,
       trends: state => state.pageTrends
     }),
     ...mapGetters({
+      canvasState: 'getCanvas',
       talkpageLength: 'getTalkpageLength',
       userpageLength: 'getUserpageLength',
       models: 'getModelsLengths'
     }),
     bubbleData (sortby, month) {
-      switch (this.sortby) {
-        case 'trend':
-          return this.trends.map(t => {
-            return {
-              name: t.category,
-              length: parseInt(t.length),
-              randomX: this.random(this.width / this.randomizeScale),
-              randomY: this.random(this.height / this.randomizeScale)
-            }
-          })
-        case 'model':
-          return this.models.map(m => {
-            return {
-              randomX: this.random(this.width / this.randomizeScale),
-              randomY: this.random(this.height / this.randomizeScale),
-              ...m
-            }
-          })
-        case 'type':
-          return [
-            {
-              name: 'Talk page',
-              length: this.talkpageLength,
-              randomX: this.random(this.width / this.randomizeScale),
-              randomY: this.random(this.height / this.randomizeScale)
-            },
-            {
-              name: 'User page',
-              length: this.userpageLength,
-              randomX: this.random(this.width / this.randomizeScale),
-              randomY: this.random(this.height / this.randomizeScale)
-            }
-          ]
-        default:
-          return []
+      if (sortby === 'all') {
+        d3.selectAll('.bubbles').remove()
+        d3.selectAll('.bubbleContent').remove()
+      } else {
+        switch (this.sortby) {
+          case 'trend':
+            return this.trends.map(t => {
+              return {
+                name: t.category,
+                length: parseInt(t.length),
+                randomX: this.random(this.width / this.randomizeScale),
+                randomY: this.random(this.height / this.randomizeScale)
+              }
+            })
+          case 'model':
+            return this.models.map(m => {
+              return {
+                randomX: this.random(this.width / this.randomizeScale),
+                randomY: this.random(this.height / this.randomizeScale),
+                ...m
+              }
+            })
+          case 'type':
+            return [
+              {
+                name: 'Talk page',
+                length: this.talkpageLength,
+                randomX: this.random(this.width / this.randomizeScale),
+                randomY: this.random(this.height / this.randomizeScale)
+              },
+              {
+                name: 'User page',
+                length: this.userpageLength,
+                randomX: this.random(this.width / this.randomizeScale),
+                randomY: this.random(this.height / this.randomizeScale)
+              }
+            ]
+          default:
+            return []
+        }
       }
     }
   },
   watch: {
-    bubbleData (newVal, oldVal) {
-      if (newVal.length > 0) {
-        this.drawBubbles()
+    // sortby (newVal, oldVal) {
+    //   if (oldVal === 'all') {
+    //     this.particlesZoomout()
+    //   } else if (newVal === 'all') {
+    //     console.log('all')
+    //     this.addParticles(this.datas)
+    //     this.particlesZoomIn()
+    //   }
+    // },
+    filterby (newVal, oldVal) {
+      if (newVal !== null) {
+        d3.selectAll('.bubbles').remove()
+        d3.selectAll('.bubbleContent').remove()
       } else {
-        // Go back to all comments
-        // TODO: tell particle system to show
+        this.drawBubbles()
+      }
+    },
+    bubbleData (newVal, oldVal) {
+      console.log('bnubble data changed')
+      if (this.filterby === null) {
+        if (newVal.length > 0) {
+          this.drawBubbles()
+        } else {
+          d3.selectAll('.bubbles').remove()
+          d3.selectAll('.bubbleContent').remove()
+        }
       }
     }
   },
@@ -88,9 +123,9 @@ export default {
   },
   methods: {
     onResize () {
-      this.width = window.innerWidth - 244
-      this.height = window.innerHeight - 76
-      if (this.bubbleData.length > 0) {
+      this.width = window.innerWidth * 0.9
+      this.height = window.innerHeight - 106
+      if (this.bubbleData.length > 0 && this.canvasState === 'bubbles') {
         this.drawBubbles()
       }
     },
@@ -114,12 +149,51 @@ export default {
       const duration = 200
       let delay = 0
 
-      // Updates
+      // Init Bubbles
+
+      vis.enter().append('circle')
+        .on('mouseover', this.handleMouseOver)
+        .on('mouseout', this.handleMouseOut)
+        .on('click', this.handleClick)
+        .attr('cx', d => {
+          return (d.x + d.data.randomX) || 0
+        })
+        .attr('cy', d => {
+          return (d.y + d.data.randomY) || 0
+        })
+        .transition()
+        // .delay((d, i) => {
+        //   return i * 70
+        // })
+        .attr('fill', '#E63C5B')
+        .attr('r', d => {
+          return d.r || 0
+        })
+        .attr('class', 'bubbles')
+
+      // Init text
+
+      textNodes.enter().append('text')
+        .attr('transform', d => {
+          return `translate(${d.x + d.data.randomX}, ${d.y + d.data.randomY})`
+        })
+        .style('text-anchor', 'middle')
+        .text(d => {
+          return d.data.name || ''
+        })
+        .attr('font-family', 'Roboto Mono')
+        .attr('font-size', function (d) {
+          return (d.r / 8) || 0
+        })
+        .attr('fill', '#fff')
+        .attr('class', 'bubbleContent')
+
+      // Update Bubbles
 
       vis.transition()
         .duration(duration)
         .delay((d, i) => {
-          return i * 7
+          return i * 50
         })
         .attr('cx', d => {
           return (d.x + d.data.randomX) || 0
@@ -130,6 +204,8 @@ export default {
         .attr('r', d => {
           return d.r || 0
         })
+
+      // Update text
 
       textNodes.transition()
         .duration(duration)
@@ -146,37 +222,7 @@ export default {
           return d.r / 8 || 0
         })
 
-      // Init
-
-      vis.enter().append('circle')
-        .attr('cx', this.width / 2)
-        .attr('cy', this.height / 2)
-        .transition()
-        .attr('cx', d => {
-          return (d.x + d.data.randomX) || 0
-        })
-        .attr('cy', d => {
-          return (d.y + d.data.randomY) || 0
-        })
-        .attr('r', d => {
-          return d.r || 0
-        })
-        .style('opacity', 1)
-        .style('fill', '#E63C5B')
-
-      textNodes.enter().append('text')
-        .attr('transform', d => {
-          return `translate(${d.x + d.data.randomX}, ${d.y + d.data.randomY})`
-        })
-        .style('text-anchor', 'middle')
-        .text(d => {
-          return d.data.name || ''
-        })
-        .attr('font-family', 'Roboto Mono')
-        .attr('font-size', function (d) {
-          return (d.r / 8) || 0
-        })
-        .attr('fill', '#fff')
+      // Bubbles exit
 
       vis.exit()
         .transition()
@@ -184,11 +230,26 @@ export default {
         .style('opacity', 0)
         .remove()
 
+      // Text exit
+
       textNodes.exit()
         .transition()
         .duration(duration + delay)
         .style('opacity', 0)
         .remove()
+    },
+    handleMouseOver (d, i) {
+      const selectedBubble = d3.selectAll('.bubbles')
+        .filter((data, ind) => { return ind === i })
+      selectedBubble.style('fill', 'url(#flameGradient)')
+    },
+    handleMouseOut (d, i) {
+      const selected = d3.selectAll('.bubbles')
+        .filter((data, ind) => { return ind === i })
+      selected.style('fill', '#E63C5B')
+    },
+    handleClick (d, i) {
+      this.$store.commit('CHANGE_FILTERBY', d.data.name)
     },
     random (num) {
       return Math.floor(Math.random() * num) + num
@@ -202,10 +263,13 @@ export default {
   #bubblesContainer {
     position: fixed;
     top: 0;
-    left: 244px;
+    left: 10vw;
     z-index: 100;
-    /deep/ circle {
+    /deep/ .bubbles {
       cursor: pointer;
+    }
+    /deep/ .bubbleContent {
+      pointer-events: none;
     }
   }
 

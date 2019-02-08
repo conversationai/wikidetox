@@ -134,8 +134,10 @@ export default {
         targets: 'line',
         stroke: {
           value: (el, i) => {
-            const dist = Math.abs(index - i) > 10 ? 10 : Math.abs(index - i)
-            return i === index ? '#FF4B4B' : `rgba(0,0,0, ${0.8 - (dist * 0.06)})`
+            const dist = Math.abs(index - i)
+            const finaldist = dist > 10 ? 10 : dist
+            const gradient = `rgba(0,0,0, ${0.8 - (finaldist * 0.06)})`
+            return i === index ? '#FF4B4B' : gradient
           },
           easing: 'linear',
           duration: 100
@@ -175,16 +177,16 @@ export default {
 <style scoped lang="scss">
   .timeline-wrapper {
     height: 8vh;
-    width: 100%;
+    width: 94vw;
     position: fixed ;
-    left: 0;
+    left: 6vw;
     bottom: 90px;
     background: transparent;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 10;
+    z-index: 1000;
     svg {
       rect {
         cursor: pointer;
