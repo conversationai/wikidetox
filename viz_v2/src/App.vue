@@ -1,6 +1,8 @@
 <template>
   <div id="app">
     <ParticleSystem />
+    <CommentDetails />
+    <CommentControls />
     <BubbleChart />
     <MetricsPanel />
     <MonthlyMetrics />
@@ -11,6 +13,8 @@
 
 <script>
 import ParticleSystem from './components/canvas/ParticleSystem.vue'
+import CommentDetails from './components/canvas/comments/CommentDetails.vue'
+import CommentControls from './components/canvas/comments/CommentControls.vue'
 import BubbleChart from './components/canvas/BubbleChart.vue'
 import MetricsPanel from './components/controls/MetricsPanel.vue'
 import MonthlyMetrics from './components/controls/MonthlyMetrics.vue'
@@ -26,6 +30,8 @@ export default {
   mixins: [QueryMixin],
   components: {
     ParticleSystem,
+    CommentDetails,
+    CommentControls,
     BubbleChart,
     MetricsPanel,
     MonthlyMetrics,
@@ -86,6 +92,9 @@ export default {
             ...dataModels
           }
         })
+        allData.sort((a, b) => {
+          return a.timestamp - b.timestamp
+        })
         // console.log(allData)
         this.$store.commit('SET_DATA', allData)
       })
@@ -126,6 +135,7 @@ export default {
     font-size: 13px;
     font-family: 'Roboto Mono', sans-serif;
     overflow: hidden;
+    position: relative;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background: $light-bg;

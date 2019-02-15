@@ -1,6 +1,6 @@
 <template>
   <transition name="fade">
-    <div v-if="toxLength" class="monthly-data">
+    <div v-if="toxLength" :class="['monthly-data', {'fadeOut': commentClicked}]">
       <div class="date-wrapper">
         {{monthName}} {{year}}
       </div>
@@ -46,7 +46,8 @@ export default {
       year: state => state.SELECTED_YEAR,
       toxLength: state => state.toxicLength,
       detoxedLength: state => state.detoxedLength,
-      monthlyIncrease: state => state.monthlyIncrease
+      monthlyIncrease: state => state.monthlyIncrease,
+      commentClicked: state => state.commentClicked
     }),
     monthName () {
       return monthNames[this.month - 1]
@@ -61,6 +62,11 @@ export default {
     top: 3em;
     right: 3em;
     z-index: 1000;
+    opacity: 1;
+    transition: .2s opacity;
+    &.fadeOut {
+      opacity: 0;
+    }
     .date-wrapper {
       color: $dark-text;
       font-weight: 600;
@@ -89,11 +95,11 @@ export default {
         border-radius: 50%;
         background: $red;
         margin-right: 15px;
+        border: 1px solid $dark-text;
       }
       &:last-of-type {
         .circle {
           background: $white;
-          border: 1px solid $dark-text;
         }
       }
     }

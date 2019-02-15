@@ -36,11 +36,12 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex'
+import { mapState, mapGetters } from 'vuex'
 import anime from 'animejs'
 import * as d3 from 'd3'
 
 import QueryMixin from '../mixin/QueryMixin.js'
+import { setTimeout } from 'timers'
 
 export default {
   name: 'DailyTrend',
@@ -49,12 +50,17 @@ export default {
     return {
       width: 0,
       height: 20,
+      circleLeft: -20,
       datas: [],
       bars: [],
       hoverIndex: null
     }
   },
   computed: {
+    ...mapState({
+      hoveredComment: state => state.selectedComment,
+      commentClicked: state => state.commentClicked
+    }),
     ...mapGetters({
       dataTimeRange: 'getDataTimeRange'
     }),
@@ -77,7 +83,25 @@ export default {
     }
   },
   watch: {
-    dataTimeRange (oldVal, newVal) {
+    commentClicked (newVal, oldVal) {
+      if (newVal) {
+        this.exitAnimation()
+      } else {
+        this.loadAnimation()
+      }
+    },
+    hoveredComment (newVal, oldVal) {
+      if (newVal !== null) {
+        const data = newVal.comment
+        const d = new Date(parseFloat(data.timestamp) * 1000)
+        const date = d.toISOString().substr(0, 10)
+        const ind = this.bars.findIndex(d => d.label === date)
+        this.animateMouseover(ind)
+      } else if (newVal === null) {
+        this.animateMouseleave()
+      }
+    },
+    dataTimeRange () {
       this.getData()
     }
   },
@@ -92,7 +116,6 @@ export default {
     getData () {
       this.getQuery(this.dailyTimelineQuery).then(data => {
         this.datas = data
-        // localStorage.setItem('daily_trends', JSON.stringify(data))
         this.onResize()
       })
     },
@@ -100,13 +123,14 @@ export default {
       this.width = window.innerWidth > 1000 ? 800 : window.innerWidth
       this.height = window.innerHeight * 0.06
       this.drawBars()
-      setTimeout(() => {
-        this.loadAnimation()
-      }, 100)
+      if (!this.commentClicked) {
+        setTimeout(() => {
+          this.loadAnimation()
+        }, 100)
+      }
     },
     drawBars () {
       this.bars = this.datas.map((d, i) => {
-        // console.log(d.f[0].v)
         return {
           x: this.scaleX(new Date(d.f[0].v)),
           label: d.f[0].v
@@ -128,16 +152,29 @@ export default {
         }
       })
     },
+    exitAnimation () {
+      anime({
+        targets: 'line',
+        y2: {
+          value: (el, i) => {
+            return this.scaleY(0)
+          },
+          easing: 'linear',
+          delay: (el, i) => {
+            return i * 6
+          },
+          duration: 100
+        }
+      })
+    },
     animateMouseover (index) {
+      // console.log(`Animating mouse over ${index}`)
       this.hoverIndex = index
       anime({
         targets: 'line',
         stroke: {
           value: (el, i) => {
-            const dist = Math.abs(index - i)
-            const finaldist = dist > 10 ? 10 : dist
-            const gradient = `rgba(0,0,0, ${0.8 - (finaldist * 0.06)})`
-            return i === index ? '#FF4B4B' : gradient
+            return i === index ? '#FF4B4B' : 'rgba(0,0,0,.8)'
           },
           easing: 'linear',
           duration: 100
@@ -152,6 +189,7 @@ export default {
       })
     },
     animateMouseleave () {
+      // console.log(`Animating mouse leave`)
       this.hoverIndex = null
       anime({
         targets: 'line',
@@ -177,9 +215,9 @@ export default {
 <style scoped lang="scss">
   .timeline-wrapper {
     height: 8vh;
-    width: 94vw;
+    width: 100vw;
     position: fixed ;
-    left: 6vw;
+    left: 0;
     bottom: 90px;
     background: transparent;
     display: flex;

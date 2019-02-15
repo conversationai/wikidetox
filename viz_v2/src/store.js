@@ -17,7 +17,10 @@ export default new Vuex.Store({
     toxicLength: 0,
     detoxedLength: 0,
     monthlyIncrease: 0,
-    pageTrends: []
+    pageTrends: [],
+    selectedComment: null, // hovered object
+    commentClicked: false,
+    clickedIndex: null
   },
   getters: {
     getCanvas: state => {
@@ -98,6 +101,13 @@ export default new Vuex.Store({
     },
     CHANGE_FILTERBY (state, data) {
       state.filterby = data
+    },
+    CHANGE_COMMENT (state, data) {
+      state.selectedComment = data
+    },
+    COMMENT_CLICK (state, data) {
+      state.commentClicked = data.bool
+      state.clickedIndex = data.index
     }
   }
 })

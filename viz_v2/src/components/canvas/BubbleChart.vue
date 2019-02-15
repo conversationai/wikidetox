@@ -1,5 +1,7 @@
 <template>
-  <svg id="bubblesContainer" :width="width" :height="height" ref="bubblesContainer">
+  <svg id="bubblesContainer"
+        :style="{ zIndex: zindex }"
+        :width="width" :height="height" ref="bubblesContainer">
     <defs>
       <radialGradient spreadMethod="reflect"
       cx="50%" cy="50%" r="50%" fx="50%" fy="50%" fr="1%"
@@ -24,6 +26,7 @@ export default {
     return {
       width: 0,
       height: 0,
+      zindex: 1,
       randomizeScale: 18 // smaller number = more position randomization
     }
   },
@@ -85,15 +88,13 @@ export default {
     }
   },
   watch: {
-    // sortby (newVal, oldVal) {
-    //   if (oldVal === 'all') {
-    //     this.particlesZoomout()
-    //   } else if (newVal === 'all') {
-    //     console.log('all')
-    //     this.addParticles(this.datas)
-    //     this.particlesZoomIn()
-    //   }
-    // },
+    canvasState (newVal, oldVal) {
+      if (newVal === 'bubbles') {
+        this.zindex = 100
+      } else {
+        this.zindex = 1
+      }
+    },
     filterby (newVal, oldVal) {
       if (newVal !== null) {
         d3.selectAll('.bubbles').remove()
@@ -264,9 +265,8 @@ export default {
     position: fixed;
     top: 0;
     left: 10vw;
-    z-index: 100;
     /deep/ .bubbles {
-      cursor: pointer;
+     // cursor: pointer;
     }
     /deep/ .bubbleContent {
       pointer-events: none;

@@ -1,6 +1,6 @@
 <template>
   <transition name="fade">
-    <div class="monthly-timeline-wrapper"
+    <div :class="['monthly-timeline-wrapper', {'scrollDown': commentClicked}]"
         v-if="datas.length !== 0">
         <div v-for = "(d, i) in datas.slice(0, datas.length-1)"
             :key="`month-${i}`"
@@ -13,15 +13,15 @@
             <span class='year-text'>{{d.year}}</span>
           </span>
           <span class="month-name">{{d.month}}</span>
-          <svg :width="d.r * 2 + 2"
-               :height="d.r * 2 + 2">
-            <defs>
+          <svg :width="d.r * 2"
+               :height="d.r * 2">
+            <!-- <defs>
               <linearGradient id="gradient" x1="0%" x2="0%" y1="100%" y2="0%">
                 <stop :offset="d.percentage" stop-color="#E73C5B"></stop>
                 <stop :offset="d.percentage" stop-color="#ffffff"></stop>
               </linearGradient>
-            </defs>
-            <circle :cx="d.r" :cy="d.r" :r="d.r" stroke-width="1" stroke="#E73C5B" fill="url(#gradient)" />
+            </defs> -->
+            <circle :cx="d.r" :cy="d.r" :r="d.r" fill="#E73C5B" />
           </svg>
         </div>
     </div>
@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex'
+import { mapState, mapGetters } from 'vuex'
 import QueryMixin from '../mixin/QueryMixin.js'
 
 const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEPT', 'OCT', 'NOV', 'DEC']
@@ -45,6 +45,9 @@ export default {
     }
   },
   computed: {
+    ...mapState({
+      commentClicked: state => state.commentClicked
+    }),
     ...mapGetters({
       dataTimeRange: 'getDataTimeRange'
     })
@@ -68,9 +71,10 @@ export default {
           const detoxed = parseInt(d.f[2].v)
           const total = parseInt(d.f[1].v)
           const toxic = total - detoxed
-          const percentage = detoxed / total
+          // const percentage = detoxed / total
+          // console.log(percentage)
           const r = Math.round(Math.sqrt(total) / 5)
-          return { timestamp, year, month, total, toxic, detoxed, percentage, r }
+          return { timestamp, year, month, total, toxic, detoxed, r }
         })
         Promise.all(monthDatas).then(datas => {
           this.datas = datas
@@ -112,8 +116,13 @@ export default {
     direction: rtl;
     overflow-y: hidden;
     white-space: nowrap;
+    transition: .2s bottom;
+    z-index: 1000;
     &::-webkit-scrollbar {
       display: none;
+    }
+    &.scrollDown{
+      bottom: -78px;
     }
     .monthly-button {
       position: relative;

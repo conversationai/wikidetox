@@ -1,5 +1,5 @@
 <template>
-  <div class="panel-wrapper">
+  <div :class="['panel-wrapper', {'hidden': commentClicked}]">
     <!-- Title & Description -->
     <div>
       <h1>Wiki<span>Detox</span></h1>
@@ -79,7 +79,8 @@ export default {
     ...mapState({
       trends: state => state.pageTrends,
       sort: state => state.sortby,
-      filter: state => state.filterby
+      filter: state => state.filterby,
+      commentClicked: state => state.commentClicked
     }),
     ...mapGetters({
       talkpageLength: 'getTalkpageLength',
@@ -108,9 +109,14 @@ export default {
     left: 2em;
     width: 262px;
     height: auto;
-    z-index: 100;
+    z-index: 2000;
     color: $dark-text;
+    transition: .2s left;
     @include box-shadow;
+
+    &.hidden {
+      left: -264px;
+    }
 
     &>div {
       background-color: $white;
