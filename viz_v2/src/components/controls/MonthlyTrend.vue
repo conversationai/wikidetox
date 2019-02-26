@@ -15,12 +15,6 @@
           <span class="month-name">{{d.month}}</span>
           <svg :width="d.r * 2"
                :height="d.r * 2">
-            <!-- <defs>
-              <linearGradient id="gradient" x1="0%" x2="0%" y1="100%" y2="0%">
-                <stop :offset="d.percentage" stop-color="#E73C5B"></stop>
-                <stop :offset="d.percentage" stop-color="#ffffff"></stop>
-              </linearGradient>
-            </defs> -->
             <circle :cx="d.r" :cy="d.r" :r="d.r" fill="#E73C5B" />
           </svg>
         </div>
@@ -53,11 +47,7 @@ export default {
     })
   },
   mounted () {
-    // window.addEventListener('resize', this.onResize)
     this.getData()
-  },
-  beforeDestroy () {
-    //  window.removeEventListener('resize', this.onResize)
   },
   methods: {
     getData () {
@@ -71,8 +61,6 @@ export default {
           const detoxed = parseInt(d.f[2].v)
           const total = parseInt(d.f[1].v)
           const toxic = total - detoxed
-          // const percentage = detoxed / total
-          // console.log(percentage)
           const r = Math.round(Math.sqrt(total) / 5)
           return { timestamp, year, month, total, toxic, detoxed, r }
         })

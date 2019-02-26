@@ -1,7 +1,7 @@
 <template>
   <transition name="fade">
     <div v-if = "ifVisible"
-      :class = "['detail-circle-wrapper', {'white': detoxed}]"
+      :class = "['detail-circle-wrapper', {'fullScreen': commentClicked, 'white': detoxed}]"
       :style = "{ top: circleTop + 'px', left: circleLeft + 'px' }"
       @mouseup = "commentClick()"
       id="commentCircle"
@@ -109,7 +109,7 @@ export default {
     width: 234px;
     height: 234px;
     border-radius: 50%;
-    background-color: transparent;
+    background-color: tranparent;
     color: #fff;
     display: flex;
     align-items: center;
@@ -117,10 +117,10 @@ export default {
     transition: .4s all;
     overflow: hidden;
     cursor: pointer;
-    @include box-shadow;
+    // @include box-shadow;
 
     &.white {
-      background-color: $white;
+      background-color: tranparent;
       color: $darker-text;
       .score-wrapper {
         border-top: 1px solid $red !important;

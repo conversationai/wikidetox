@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import TWEEN from '@tweenjs/tween.js'
 import { fibonacciSphere } from './sphereFunctions'
 
 // Particle shader - takes scale (float) and color (vec4) variables
@@ -10,7 +9,7 @@ attribute float color;
 attribute vec4 vertexColor;
 varying vec4 vVertexColor;
 void main() {
-vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+vec4 mvPosition = modelViewMatrix * vec4( position, 1 );
 gl_PointSize = scale * ( 300.0 / - mvPosition.z );
   gl_Position = projectionMatrix * mvPosition;
   vVertexColor = vertexColor;
@@ -33,9 +32,11 @@ export class Particles {
     }
     this.spin = true
     this.exit = false
+    this.finishedLoading = false
     this.radius = 0
     this.init()
   }
+
   init () {
     this.initGeometry()
     const particlesMaterial = new THREE.ShaderMaterial({
@@ -52,14 +53,17 @@ export class Particles {
 
     this.loadEntryAnimation()
     this.loadExitAnimation()
+    this.particleGeometry.computeBoundingSphere()
   }
+
   initGeometry () {
     this.particleGeometry = new THREE.BufferGeometry()
+
     const numPoints = this._datas.length
     let sphereScale = (numPoints - 200) / 220 * 4 + 18
+
     this.radius = sphereScale > 30 ? 30 : sphereScale
     let positions = new Float32Array(numPoints * 3)
-    // let hoverPositions = new Float32Array(numPoints * 3)
     let colors = new Float32Array(numPoints * 4)
     let scale = new Float32Array(numPoints)
     let finalSizes = new Float32Array(numPoints)
@@ -86,52 +90,59 @@ export class Particles {
       colors[ 4 * i + 2 ] = color[2]
       colors[ 4 * i + 3 ] = 1
     })
+
     this.particleGeometry.addAttribute('position', new THREE.BufferAttribute(positions, 3))
-    // this.particleGeometry.addAttribute('hoverPositions', new THREE.BufferAttribute(hoverPositions, 3))
     this.particleGeometry.addAttribute('vertexColor', new THREE.BufferAttribute(colors, 4))
     this.particleGeometry.addAttribute('scale', new THREE.BufferAttribute(scale, 1))
     this.particleGeometry.addAttribute('finalSizes', new THREE.BufferAttribute(finalSizes, 1))
-    this.particleGeometry.computeBoundingSphere()
+    this.particleGeometry.matrixAutoUpdate = true
   }
+
   loadEntryAnimation () {
     const _this = this
     _this.particles.onBeforeRender = () => {
-      if (_this.exit) return
+      if (!_this.spin) return
+      _this.particles.rotation.y += 0.0002
+
+      if (_this.exit || _this.finishedLoading) return
       const attr = this.particleGeometry.attributes
-      // attr.vertexColor.needsUpdate = true
 
       // Loading animation
       const l = _this._datas.length
 
       for (let i = 0; i < l; i++) {
         // CALCULATING animation delay
-        let weight
+        let delay
         if (l < 100) {
           // Larger wait time for smaller particle systems
           if (i > l - 10) {
-            weight = l - 10
+            delay = l - 10
           } else {
-            weight = i * 1.2
+            delay = i * 1.2
           }
         } else {
           if (i > l - 100) {
-            weight = l - 100
+            delay = l - 100
           } else {
-            weight = i
+            delay = i
           }
         }
-        if (attr.scale.array[i] < attr.finalSizes.array[i] - (1 - weight / l + 0.1)) {
-          attr.scale.array[i] += (1 - weight / l + 0.1)
+        if (attr.scale.array[i] < attr.finalSizes.array[i] - (1 - delay / l + 0.1)) {
+          attr.scale.array[i] += (1 - delay / l + 0.1)
         } else {
           attr.scale.array[i] = attr.finalSizes.array[i]
         }
+        // Animation done
+        if (i === l - 1) {
+          setTimeout(() => {
+            _this.finishedLoading = true
+          }, delay)
+        }
       }
       attr.scale.needsUpdate = true
-
-      if (!_this.spin) return
-      // _this.particles.rotation.y += 0.0002
     }
   }
+
   loadExitAnimation () {
     const _this = this
     // Immediately after first render
@@ -166,54 +177,7 @@ export class Particles {
       }
     }
   }
-  zoomInAnimation (commentIndex) {
-    this.spin = false
-    console.log(commentIndex)
 
-    const vec = this.getVectorPos(commentIndex)
-    const moveTo = vec.clone()
-    // const cam = this._camera.position.clone()
-    // const distanceToObject = cam.distanceTo(vec)
-    // const size = this.particleGeometry.attributes.finalSizes.array[commentIndex]
-    // const alpha = size / distanceToObject
-    // moveTo.lerp(cam, alpha)
-
-    const altitude = 10
-    const coeff = 1 + altitude / this.radius
-    this._camera.position.set(vec.x * coeff, vec.y * coeff, vec.z * coeff)
-    this._controls.target.set(vec.x, vec.y, vec.z)
-    this._controls.update()
-
-    // TWEEN.removeAll()
-    // new TWEEN.Tween(this._camera.position).to({
-    //   x: moveTo.x,
-    //   y: moveTo.y,
-    //   z: moveTo.z
-    // }, 800).easing(TWEEN.Easing.Exponential.Out).start()
-
-    // new TWEEN.Tween(this._camera.position).to({
-    //   x: moveTo.x,
-    //   y: moveTo.y,
-    //   z: moveTo.z
-    // }, 800).easing(TWEEN.Easing.Exponential.Out).start()
-  }
-  zoomOutAnimation () {
-    this._camera.position.set(0, 0, 100)
-    this._controls.target.set(0, 0, 0)
-
-    this._controls.update()
-    this.spin = true
-  }
-  getVectorPos (i) {
-    const posAttr = this.particleGeometry.attributes.position
-    const vector = {
-      x: posAttr.array[ 3 * i ],
-      y: posAttr.array[ 3 * i + 1 ],
-      z: posAttr.array[ 3 * i + 2 ]
-    }
-    const threeVector = new THREE.Vector3(vector.x, vector.y, vector.z)
-    return threeVector
-  }
   animateExit () {
     this.exit = true
   }

@@ -79,7 +79,7 @@ export default {
               FROM 
                 \`${this.table}\`                  
               WHERE 
-                timestamp > TIMESTAMP('${this.timeRange.startTime}') AND  timestamp < TIMESTAMP('${this.timeRange.endTime}')
+                timestamp > TIMESTAMP('${this.timeRange.startTime}') AND timestamp < TIMESTAMP('${this.timeRange.endTime}')
               AND
                 category1 IS NOT NULL
               AND 
