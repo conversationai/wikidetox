@@ -22,14 +22,12 @@ export default {
     })
   },
   methods: {
-    next (num) {
-
-    },
+    // next (num) {
+    //   console.log('next')
+    //   this.$store.commit('NEXT_COMMENT', num)
+    // },
     close () {
-      this.$store.commit('COMMENT_CLICK', {
-        bool: false,
-        index: null
-      })
+      this.$store.commit('COMMENT_CLICK', false)
     }
   }
 }

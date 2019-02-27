@@ -20,7 +20,7 @@ export default new Vuex.Store({
     pageTrends: [],
     selectedComment: null, // hovered object
     commentClicked: false,
-    clickedIndex: null
+    nextComment: null
   },
   getters: {
     getCanvas: state => {
@@ -106,8 +106,10 @@ export default new Vuex.Store({
       state.selectedComment = data
     },
     COMMENT_CLICK (state, data) {
-      state.commentClicked = data.bool
-      state.clickedIndex = data.index
+      state.commentClicked = data
+    },
+    NEXT_COMMENT (state, data) {
+      state.nextComment = data
     }
   }
 })

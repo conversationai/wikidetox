@@ -50,8 +50,7 @@ export default {
   computed: {
     ...mapState({
       commentData: state => state.selectedComment,
-      commentClicked: state => state.commentClicked,
-      clickedIndex: state => state.clickedIndex
+      commentClicked: state => state.commentClicked
     }),
     ifVisible () {
       if (this.commentClicked) return true
@@ -60,18 +59,20 @@ export default {
   },
   watch: {
     commentData (newVal, oldVal) {
-      if (newVal !== null && !this.commentClicked) {
+      if (newVal !== null) {
         const d = newVal.comment
-        this.commentIndex = newVal.index
 
         this.pageType = d.page_title.startsWith('User') ? 'User page' : 'Talk page'
         this.pageTitle = d.page_title.split(':')[1]
         this.comment = d.content
         this.detoxed = d.type === 'DELETION'
-
         this.score = parseFloat(d['Toxicity']).toFixed(2) * 100
+
         const day = new Date(parseFloat(d.timestamp) * 1000)
         this.date = day.toLocaleString()
+
+        this.circleTop = newVal.pos.y - 117
+        this.circleLeft = newVal.pos.x - 117
       }
     }
   },
@@ -84,18 +85,9 @@ export default {
     window.removeEventListener('mousemove', this.onMouseMove)
   },
   methods: {
-    onMouseMove ($ev) {
-      if (this.commentData !== null && !this.commentClicked) {
-        this.circleTop = $ev.clientY - (234 / 2)
-        this.circleLeft = $ev.clientX - (234 / 2)
-      }
-    },
     commentClick () {
       if (!this.commentClicked) {
-        this.$store.commit('COMMENT_CLICK', {
-          bool: true,
-          index: this.commentIndex
-        })
+        this.$store.commit('COMMENT_CLICK', true)
       }
     }
   }
@@ -109,7 +101,6 @@ export default {
     width: 234px;
     height: 234px;
     border-radius: 50%;
-    background-color: tranparent;
     color: #fff;
     display: flex;
     align-items: center;
@@ -117,10 +108,8 @@ export default {
     transition: .4s all;
     overflow: hidden;
     cursor: pointer;
-    // @include box-shadow;
 
     &.white {
-      background-color: tranparent;
       color: $darker-text;
       .score-wrapper {
         border-top: 1px solid $red !important;

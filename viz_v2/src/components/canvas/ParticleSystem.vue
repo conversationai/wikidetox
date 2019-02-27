@@ -37,7 +37,8 @@ export default {
       pointclouds: null,
       INTERSECTED: null, // Changes with raycaster every paint
       lookAtPos: [0, 0, 0],
-      filteredData: []
+      filteredData: [],
+      lastCommentIndex: null
     }
   },
   computed: {
@@ -46,9 +47,8 @@ export default {
       filterby: state => state.filterby,
       datas: state => state.datas,
       month: state => state.SELECTED_MONTH,
-      hoveredComment: state => state.selectedComment,
       commentClicked: state => state.commentClicked, // boolean
-      clickedIndex: state => state.clickedIndex // number
+      nextComment: state => state.nextComment
     }),
     ...mapGetters({
       canvasState: 'getCanvas',
@@ -87,6 +87,7 @@ export default {
       }
     },
     datas (newVal, oldVal) {
+      TWEEN.removeAll()
       if (this.canvasState === 'particles') {
         if (this.sortby === 'all') {
           this.addParticles(newVal)
@@ -95,29 +96,29 @@ export default {
         }
       }
     },
-    // hoveredComment (newVal, oldVal) {
-    //   if (newVal !== null) {
-    //     const ind = newVal.index
-    //     // Changes comment opacity
-    //     this.attributes.vertexColor.array[ 4 * ind ] = 1
-    //     this.attributes.vertexColor.needsUpdate = true
-    //     // Change comment size
-    //     this.attributes.scale.array[ind] = 50
-    //     this.attributes.scale.needsUpdate = true
-    //   } else {
-    //     console.log('empty state')
-    //   }
-    // },
-    clickedIndex (newVal, oldVal) { // idnex number of clicked comment
-      if (newVal !== null) {
-        this.zoomAnimation(newVal, true) // if zoom in = true
-        // Changes comment color
-        this.attributes.vertexColor.array[ 4 * newVal ] = 1 // change red value to 1 from 0.9
+    commentClicked (newVal, oldVal) {
+      if (newVal) { // if clicked = true
+        this.attributes.vertexColor.array[ this.INTERSECTED * 4 ] = 1
         this.attributes.vertexColor.needsUpdate = true
+        this.zoomAnimation(this.INTERSECTED, true)
       } else {
-        this.zoomAnimation(oldVal, false) // if zoom in = false
+        this.zoomAnimation(this.lastCommentIndex, false)
       }
     }
+    // nextComment (newVal, oldVal) {
+    //   console.log('next clicked')
+    //   if (newVal === -1) {
+    //     // if previous comment
+    //     this.INTERSECTED = this.INTERSECTED - 1
+    //     this.hoverAnimation(this.INTERSECTED, true)
+    //     this.zoomAnimation(this.INTERSECTED, true)
+    //   } else {
+    //     // if next comment
+    //     this.INTERSECTED = this.INTERSECTED + 1
+    //     this.hoverAnimation(this.INTERSECTED, true)
+    //     this.zoomAnimation(this.INTERSECTED, true)
+    //   }
+    // }
   },
   mounted () {
     window.addEventListener('resize', this.resize)
@@ -135,17 +136,22 @@ export default {
         alpha: true
       })
       this.view = document.getElementById('container')
-      this.renderer.setSize(this.view.clientWidth, this.view.clientHeight)
+      this.width = window.innerWidth
+      this.height = window.innerHeight - 76
+
+      this.renderer.setSize(this.width, this.height)
       this.view.appendChild(this.renderer.domElement)
 
-      this.camera = new THREE.PerspectiveCamera(45, this.view.clientWidth / this.view.clientHeight, 1, 10000)
+      this.camera = new THREE.PerspectiveCamera(45, this.width / this.height, 1, 10000)
       this.camera.position.set(0, 0, 100)
 
       this.scene = new THREE.Scene()
       this.scene.add(new THREE.AmbientLight(0xffffff))
       this.controls = new OrbitControls(this.camera, this.view)
-      // this.controls.minDistance = 70
-      this.controls.maxDistance = 100
+
+      this.controls.minDistance = 70
+      this.controls.maxDistance = 90
+
       this.controls.enablePan = false
       this.controls.enableRotate = true
       this.controls.enableZoom = true
@@ -162,9 +168,16 @@ export default {
       this.animate()
     },
     resize () {
-      this.camera.aspect = this.view.clientWidth / window.innerHeight
+      this.width = window.innerWidth
+      if (this.commentClicked) {
+        this.height = window.innerHeight
+      } else {
+        this.height = this.view.clientHeight - 76
+      }
+
+      this.camera.aspect = this.width / this.height
       this.camera.updateProjectionMatrix()
-      this.renderer.setSize(this.view.clientWidth, this.view.clientHeight)
+      this.renderer.setSize(this.width, this.height)
     },
     animate () {
       requestAnimationFrame(this.animate)
@@ -174,7 +187,7 @@ export default {
       this.camera.updateProjectionMatrix()
       this.controls.update()
       this.raycaster.setFromCamera(this.mouse, this.camera)
-      this.raycaster.far = 100
+      this.raycaster.far = 90
 
       TWEEN.update()
 
@@ -182,46 +195,47 @@ export default {
 
       let intersects = this.raycaster.intersectObjects(this.scene.children, true)
 
-      if (intersects.length > 0 && !this.commentClicked) {
+      if (this.particles && this.particleSystem.finishedLoading && !this.commentClicked) {
+        // If particles exist and finished loading animation
+
         this.particles.updateMatrixWorld()
-        if (this.INTERSECTED !== intersects[0].index) {
-          this.HoverAnimation(this.INTERSECTED, false) // hover out of previous
 
-          this.INTERSECTED = intersects[0].index
-          this.HoverAnimation(this.INTERSECTED, true) // if mouse in = true
-
-          this.$store.commit('CHANGE_COMMENT', {
-            index: this.INTERSECTED,
-            comment: this.filteredData[this.INTERSECTED]
-          })
-        }
-      } else {
-        if (this.INTERSECTED !== null && !this.commentClicked) {
-          this.HoverAnimation(this.INTERSECTED, false) // if mouse in = true
-          this.INTERSECTED = null
-
-          this.$store.commit('CHANGE_COMMENT', null)
+        if (intersects.length > 0) {
+          // If has intersection
+          this.particleSystem.spin = false
+          // clear previous hover and add new hover animation
+          if (this.INTERSECTED !== intersects[0].index) {
+            this.hoverAnimation(this.INTERSECTED, false) // hover out of previous
+            this.INTERSECTED = intersects[0].index
+            this.hoverAnimation(this.INTERSECTED, true) // if mouse in = true
+          }
+        } else {
+          // If no intersection
+          if (this.INTERSECTED !== null) {
+            this.particleSystem.spin = true
+            // clear previous intersection
+            this.hoverAnimation(this.INTERSECTED, false) // if mouse in = true
+            this.INTERSECTED = null
+          }
         }
       }
 
       this.renderer.render(this.scene, this.camera)
     },
     addParticles (datas) {
+      this.controls.reset()
+
       this.filteredData = datas
       if (this.particles !== null) {
         this.scene.remove(this.particles)
       }
       this.particleSystem = new Particles({
-        datas: datas,
-        controls: this.controls,
-        camera: this.camera,
-        scene: this.scene
+        datas: datas
       })
 
       this.particles = this.particleSystem.particles
       this.attributes = this.particles.geometry.attributes
 
-      this.controls.reset()
       this.scene.add(this.particles)
 
       // const boundingSphere = new THREE.BoxHelper(this.particles, 0xffff00)
@@ -245,19 +259,17 @@ export default {
       this.mouse.x = (event.clientX / this.view.clientWidth) * 2 - 1
       this.mouse.y = -(event.clientY / (this.view.clientHeight - 76)) * 2 + 1
     },
-    HoverAnimation (commentIndex, isMouseIn) { // Hover animation on particle hover
+    hoverAnimation (commentIndex, isMouseIn) { // animation on particle hover
       let baseSize, baseRedness, finalSize, finalRedness
 
       if (isMouseIn) {
         // Mouse in
         baseSize = this.attributes.finalSizes.array[ commentIndex ]
         baseRedness = 0.9
-        const camPos = this.camera.position.z
-        if (camPos < 50) {
-          finalSize = this.camera.position.z / 3
-        } else {
-          finalSize = this.camera.position.z / 2
-        }
+
+        // const vec = this.getVectorPos(commentIndex)
+        // const camDist = this.camera.position.distanceTo(vec)
+        finalSize = 60
         finalRedness = 1
       } else {
         // Mouse out
@@ -268,7 +280,7 @@ export default {
       }
 
       new TWEEN.Tween({ scale: baseSize, red: baseRedness })
-        .to({ scale: finalSize, red: finalRedness }, 800)
+        .to({ scale: finalSize, red: finalRedness }, 400)
         .easing(TWEEN.Easing.Linear.None)
         .onUpdate((obj) => {
           this.attributes.scale.array[ commentIndex ] = obj.scale
@@ -276,18 +288,33 @@ export default {
           this.attributes.vertexColor.array[ commentIndex * 4 ] = obj.red
           this.attributes.vertexColor.needsUpdate = true
         })
+        .onComplete(() => {
+          // particle expanded -> show text
+          if (isMouseIn) {
+            if (commentIndex === this.INTERSECTED) {
+              const position = this.getScreenPosition(commentIndex)
+              this.$store.commit('CHANGE_COMMENT', {
+                comment: this.filteredData[commentIndex],
+                pos: position
+              })
+            }
+          } else {
+            this.lastCommentIndex = commentIndex
+            this.$store.commit('CHANGE_COMMENT', null)
+          }
+        })
         .start()
     },
     zoomAnimation (commentIndex, ifZoomIn) { // Zoom animation on particle click
-      console.log(`particle size: ${this.attributes.scale.array[ commentIndex ]}`)
       if (ifZoomIn) {
-        this.controls.maxDistance = 1000
-      } else {
-        this.controls.maxDistance = 100
+        this.controls.minDistance = 0
+        this.controls.update()
       }
 
+      this.resize()
+
       const vec = this.getVectorPos(commentIndex)
-      const altitude = 10
+      const altitude = 14
       const coeff = 1 + altitude / this.particleSystem.radius
       const fromPos = this.camera.position.clone()
       const toPos = {
@@ -295,9 +322,6 @@ export default {
         y: vec.y * coeff,
         z: vec.z * coeff
       }
-      console.log(toPos)
-
-      TWEEN.removeAll()
 
       new TWEEN.Tween(ifZoomIn ? { x: 0, y: 0, z: 0 } : vec)
         .to(ifZoomIn ? vec : { x: 0, y: 0, z: 0 }, 600)
@@ -305,6 +329,12 @@ export default {
         .onUpdate((vec) => {
           this.controls.target.copy(vec)
           this.controls.update()
+        })
+        .onComplete(() => {
+          if (!ifZoomIn) {
+            this.controls.minDistance = 70
+            this.controls.update()
+          }
         })
         .start()
 
@@ -316,10 +346,17 @@ export default {
           this.controls.update()
         })
         .start()
-
-      this.particleSystem.spin = !ifZoomIn
+    },
+    getScreenPosition (i) {
+      const vec = this.getVectorPos(i)
+      vec.project(this.camera)
+      return {
+        x: Math.round((vec.x + 1) * this.width / 2),
+        y: Math.round((-vec.y + 1) * this.height / 2)
+      }
     },
     getVectorPos (i) {
+      // Get world position of vector
       const posAttr = this.attributes.position
       const vector = {
         x: posAttr.array[ 3 * i ],
@@ -364,13 +401,13 @@ export default {
 <style scoped lang="scss">
   #container {
     position: fixed;
-    top: -76px;
+    top: 0;
     left: 0;
     width: 100vw;
-    height: 100vh;
+    height: calc(100vh - 76px);
     transition: .2s top;
     &.expanded {
-      top: 0;
+      height: 100vh;
     }
   }
 </style>

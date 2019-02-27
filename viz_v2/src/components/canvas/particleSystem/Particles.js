@@ -80,7 +80,7 @@ export class Particles {
       const sizeWeight = 3.6
       if (d.type === 'DELETION') {
         finalSizes[i] = sizeWeight
-        color = [1, 1, 1]
+        color = [0.9, 1, 1]
       } else {
         finalSizes[i] = (Number(d.Toxicity) - 0.75) * sizeWeight * 20
         color = [0.9, 0.23, 0.36]

@@ -6,7 +6,7 @@
     <BubbleChart />
     <MetricsPanel />
     <MonthlyMetrics />
-    <DailyTrend />
+    <!-- <DailyTrend /> -->
     <MonthlyTrend />
   </div>
 </template>

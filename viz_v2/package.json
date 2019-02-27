@@ -13,7 +13,6 @@
     "animejs": "^3.0.0",
     "d3": "^5.7.0",
     "element-ui": "^2.4.9",
-    "ndjson": "^1.5.0",
     "three": "^0.100.0",
     "three-orbitcontrols": "^2.99.1",
     "vue": "^2.5.17",
