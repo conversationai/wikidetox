@@ -6,7 +6,7 @@
   "scripts": {
     "compile": "tsc",
     "watch": "nodemon --watch src -e ts --exec 'yarn run compile'",
-    "start": "node --max-old-space-size=8192 build/main.js"
+    "start": "node --max-old-space-size=8192 build/main.js" // start categorization jobs
   },
   "author": "Iris Qu",
   "license": "ISC",
