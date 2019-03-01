@@ -14,7 +14,7 @@ export default {
       // monthlyStart: 'getMonthlyTrendStart'
     }),
     table () {
-      return `${this.conf.projectId}.${this.conf.datasetID}.${this.conf.allTable}`
+      return `${this.conf.projectId}.${this.conf.datasetID}.${this.conf.dataTable}`
     },
     dailyTimelineQuery () {
       return `SELECT day, sum(cd) 

@@ -134,9 +134,10 @@ export class Particles {
         }
         // Animation done
         if (i === l - 1) {
+          const timeout = delay < 500 ? 500 : delay
           setTimeout(() => {
             _this.finishedLoading = true
-          }, delay)
+          }, timeout)
         }
       }
       attr.scale.needsUpdate = true

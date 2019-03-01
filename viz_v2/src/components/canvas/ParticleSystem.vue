@@ -48,8 +48,7 @@ export default {
       datas: state => state.datas,
       month: state => state.SELECTED_MONTH,
       commentClicked: state => state.commentClicked, // boolean
-      selectedDate: state => state.selectedDate,
-      nextComment: state => state.nextComment
+      selectedDate: state => state.selectedDate
     }),
     ...mapGetters({
       canvasState: 'getCanvas',
@@ -123,25 +122,19 @@ export default {
         this.zoomAnimation(this.lastCommentIndex, false)
       }
     }
-    // nextComment (newVal, oldVal) {
-    //   console.log('next clicked')
-    //   if (newVal === -1) {
-    //     // if previous comment
-    //     this.INTERSECTED = this.INTERSECTED - 1
-    //     this.hoverAnimation(this.INTERSECTED, true)
-    //     this.zoomAnimation(this.INTERSECTED, true)
-    //   } else {
-    //     // if next comment
-    //     this.INTERSECTED = this.INTERSECTED + 1
-    //     this.hoverAnimation(this.INTERSECTED, true)
-    //     this.zoomAnimation(this.INTERSECTED, true)
-    //   }
-    // }
   },
   mounted () {
     window.addEventListener('resize', this.resize)
     window.addEventListener('mousemove', this.onMouseMove, false)
     this.init()
+
+    // When "previous" / "next" is clicked on fullscreen comment
+    this.$root.$on('next', d => {
+      this.hoverAnimation(this.INTERSECTED, false)
+      this.INTERSECTED = this.INTERSECTED + d
+      this.hoverAnimation(this.INTERSECTED, true)
+      this.zoomAnimation(this.INTERSECTED, true)
+    })
   },
   beforeDestroy () {
     window.removeEventListener('resize', this.resize)
@@ -167,8 +160,8 @@ export default {
       this.scene.add(new THREE.AmbientLight(0xffffff))
       this.controls = new OrbitControls(this.camera, this.view)
 
-      this.controls.minDistance = 70
-      this.controls.maxDistance = 90
+      // this.controls.minDistance = 70
+      // this.controls.maxDistance = 90
 
       this.controls.enablePan = false
       this.controls.enableRotate = true
@@ -215,7 +208,6 @@ export default {
 
       if (this.particles && this.particleSystem.finishedLoading && !this.commentClicked) {
         // If particles exist and finished loading animation
-
         this.particles.updateMatrixWorld()
 
         if (intersects.length > 0) {
@@ -253,11 +245,7 @@ export default {
 
       this.particles = this.particleSystem.particles
       this.attributes = this.particles.geometry.attributes
-
       this.scene.add(this.particles)
-
-      // const boundingSphere = new THREE.BoxHelper(this.particles, 0xffff00)
-      // this.scene.add(boundingSphere)
     },
     addFilteredParticles () {
       let datas
@@ -297,28 +285,62 @@ export default {
         })
         .start()
     },
+    commitSelectedComment (isMouseIn, commentIndex) {
+      if (isMouseIn) {
+        if (commentIndex === this.INTERSECTED) {
+          const position = this.getScreenPosition(commentIndex)
+          this.$store.commit('CHANGE_COMMENT', {
+            comment: this.filteredData[commentIndex],
+            pos: position
+          })
+        }
+      } else {
+        this.lastCommentIndex = commentIndex
+        this.$store.commit('CHANGE_COMMENT', null)
+      }
+    },
     hoverAnimation (commentIndex, isMouseIn) { // animation on particle hover
-      let baseSize, baseRedness, finalSize, finalRedness
-
+      let finalSize, finalRColor
       if (isMouseIn) {
         // Mouse in
-        baseSize = this.attributes.finalSizes.array[ commentIndex ]
-        baseRedness = 0.9
-
-        // const vec = this.getVectorPos(commentIndex)
-        // const camDist = this.camera.position.distanceTo(vec)
         finalSize = 60
-        finalRedness = 1
+        finalRColor = 1
       } else {
         // Mouse out
-        baseSize = this.attributes.scale.array[ commentIndex ] // current scale
-        baseRedness = 1
         finalSize = this.attributes.finalSizes.array[ commentIndex ] // final scale = finalsizes
-        finalRedness = 0.9
+        finalRColor = 0.9
+      }
+      this.animateParticleSizeColor(isMouseIn, commentIndex, finalSize, finalRColor)
+    },
+    zoomAnimation (commentIndex, ifZoomIn) { // Zoom animation on particle click
+      this.resize()
+      let camPos, controlTarget
+      const vec = this.getVectorPos(commentIndex)
+
+      if (ifZoomIn) {
+        this.controls.minDistance = 0
+        this.controls.update()
+        const altitude = 14
+        const coeff = 1 + altitude / this.particleSystem.radius
+        camPos = {
+          x: vec.x * coeff,
+          y: vec.y * coeff,
+          z: vec.z * coeff
+        }
+        controlTarget = vec
+      } else {
+        camPos = { x: 0, y: 0, z: 100 }
+        controlTarget = { x: 0, y: 0, z: 0 }
       }
 
-      new TWEEN.Tween({ scale: baseSize, red: baseRedness })
-        .to({ scale: finalSize, red: finalRedness }, 200)
+      this.animateControlTarget(ifZoomIn, controlTarget)
+      this.animateCameraPos(camPos)
+    },
+    animateParticleSizeColor (isMouseIn, commentIndex, finalSize, finalRColor) {
+      const baseSize = this.attributes.scale.array[ commentIndex ]
+      const baseRColor = this.attributes.vertexColor.array[ commentIndex * 4 ]
+      new TWEEN.Tween({ scale: baseSize, red: baseRColor })
+        .to({ scale: finalSize, red: finalRColor }, 200)
         .easing(TWEEN.Easing.Linear.None)
         .onUpdate((obj) => {
           this.attributes.scale.array[ commentIndex ] = obj.scale
@@ -327,43 +349,15 @@ export default {
           this.attributes.vertexColor.needsUpdate = true
         })
         .onComplete(() => {
-          console.log(this)
           // particle expanded -> show text
-          if (isMouseIn) {
-            if (commentIndex === this.INTERSECTED) {
-              const position = this.getScreenPosition(commentIndex)
-              this.$store.commit('CHANGE_COMMENT', {
-                comment: this.filteredData[commentIndex],
-                pos: position
-              })
-            }
-          } else {
-            this.lastCommentIndex = commentIndex
-            this.$store.commit('CHANGE_COMMENT', null)
-          }
+          this.commitSelectedComment(isMouseIn, commentIndex)
         })
         .start()
     },
-    zoomAnimation (commentIndex, ifZoomIn) { // Zoom animation on particle click
-      if (ifZoomIn) {
-        this.controls.minDistance = 0
-        this.controls.update()
-      }
-
-      this.resize()
-
-      const vec = this.getVectorPos(commentIndex)
-      const altitude = 14
-      const coeff = 1 + altitude / this.particleSystem.radius
-      const fromPos = this.camera.position.clone()
-      const toPos = {
-        x: vec.x * coeff,
-        y: vec.y * coeff,
-        z: vec.z * coeff
-      }
-
-      new TWEEN.Tween(ifZoomIn ? { x: 0, y: 0, z: 0 } : vec)
-        .to(ifZoomIn ? vec : { x: 0, y: 0, z: 0 }, 600)
+    animateControlTarget (ifZoomIn, controlTarget) {
+      const fromTarget = this.controls.target
+      new TWEEN.Tween(fromTarget)
+        .to(controlTarget)
         .easing(TWEEN.Easing.Linear.None)
         .onUpdate((vec) => {
           this.controls.target.copy(vec)
@@ -376,9 +370,11 @@ export default {
           }
         })
         .start()
-
+    },
+    animateCameraPos (toPos) {
+      const fromPos = this.camera.position.clone()
       new TWEEN.Tween(fromPos)
-        .to(ifZoomIn ? toPos : { x: 0, y: 0, z: 100 }, 600)
+        .to(toPos, 600)
         .easing(TWEEN.Easing.Linear.None)
         .onUpdate((vec) => {
           this.camera.position.copy(vec)

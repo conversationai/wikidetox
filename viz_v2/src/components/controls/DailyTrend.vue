@@ -83,13 +83,14 @@ export default {
   watch: {
     commentClicked (newVal, oldVal) {
       if (newVal) {
+        this.hoverIndex = null
         this.exitAnimation()
       } else {
         this.loadAnimation()
       }
     },
     hoveredComment (newVal, oldVal) {
-      if (newVal !== null) {
+      if (newVal !== null && !this.commentClicked) {
         const data = newVal.comment
         const date = data.timestamp.toISOString().substr(0, 10)
         const ind = this.bars.findIndex(d => d.label === date)
@@ -236,6 +237,7 @@ export default {
       text {
         opacity: 0;
         transition: .2s opacity;
+        z-index: 1000;
         &.hover {
           opacity: 1;
         }

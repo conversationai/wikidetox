@@ -22,10 +22,10 @@ export default {
     })
   },
   methods: {
-    // next (num) {
-    //   console.log('next')
-    //   this.$store.commit('NEXT_COMMENT', num)
-    // },
+    next (d) {
+      this.$root.$emit('next', d)
+      this.$store.commit('COMMENT_CLICK', true)
+    },
     close () {
       this.$store.commit('COMMENT_CLICK', false)
     }
