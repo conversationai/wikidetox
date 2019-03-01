@@ -77,7 +77,7 @@ export class Particles {
       scale[i] = 0.001
 
       let color
-      const sizeWeight = 3.6
+      const sizeWeight = 3
       if (d.type === 'DELETION') {
         finalSizes[i] = sizeWeight
         color = [0.9, 1, 1]

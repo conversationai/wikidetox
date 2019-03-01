@@ -7,6 +7,8 @@ $dark-text: rgba(0,0,0,0.5);
 $light-text: #8C8C8C;
 $light-border: #F1F1F1;
 
+$bottom: 76px;
+
 @mixin box-shadow() {
     -webkit-box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.2);
     -moz-box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.2);

@@ -7,14 +7,14 @@
           :class="{ hover: hoverIndex === i }"
           text-anchor="middle"
           :width="rangeWidth"
-          :x="d.x + rangeWidth/2 - 10"
+          :x="d.x + rangeWidth/2 - 16"
           y="10">
           {{d.label}}
         </text>
     </svg>
-    <svg :width="width" :height="height-20"
+    <svg :width="width" :height="height"
           v-if="bars.length !== 0"
-          @mouseleave="animateMouseleave()">
+          @mouseleave="mouseOut()">
       <line
           v-for="(d, i) in bars"
           :key="`line${i}`"
@@ -28,7 +28,7 @@
           :width="rangeWidth"
           :height="height"
           fill="transparent"
-          @mouseenter="animateMouseover(i)"
+          @mouseenter="mouseOver(i)"
           @mouseleave="hoverIndex = null"
           />
     </svg>
@@ -39,10 +39,8 @@
 import { mapState, mapGetters } from 'vuex'
 import anime from 'animejs'
 import * as d3 from 'd3'
-
 import QueryMixin from '../mixin/QueryMixin.js'
 import { setTimeout } from 'timers'
-
 export default {
   name: 'DailyTrend',
   mixins: [QueryMixin],
@@ -76,7 +74,7 @@ export default {
     scaleY () {
       return d3.scaleLinear()
         .domain([this.maxY, 0]).nice()
-        .rangeRound([this.height - 24, 0])
+        .rangeRound([this.height - 18, 0])
     },
     rangeWidth () {
       return this.width / this.datas.length
@@ -93,8 +91,7 @@ export default {
     hoveredComment (newVal, oldVal) {
       if (newVal !== null) {
         const data = newVal.comment
-        const d = new Date(parseFloat(data.timestamp) * 1000)
-        const date = d.toISOString().substr(0, 10)
+        const date = data.timestamp.toISOString().substr(0, 10)
         const ind = this.bars.findIndex(d => d.label === date)
         this.animateMouseover(ind)
       } else if (newVal === null) {
@@ -120,8 +117,8 @@ export default {
       })
     },
     onResize () {
-      this.width = window.innerWidth > 1000 ? 800 : window.innerWidth
-      this.height = window.innerHeight * 0.06
+      this.width = window.innerWidth
+      this.height = window.innerHeight * 0.04 > 20 ? window.innerHeight * 0.04 : 80
       this.drawBars()
       if (!this.commentClicked) {
         setTimeout(() => {
@@ -167,8 +164,16 @@ export default {
         }
       })
     },
+    mouseOver (index) {
+      const selectedDate = this.bars[index].label
+      this.$store.commit('SELECT_DATE', selectedDate)
+      this.animateMouseover(index)
+    },
+    mouseOut () {
+      this.$store.commit('SELECT_DATE', null)
+      this.animateMouseleave()
+    },
     animateMouseover (index) {
-      // console.log(`Animating mouse over ${index}`)
       this.hoverIndex = index
       anime({
         targets: 'line',
@@ -189,7 +194,6 @@ export default {
       })
     },
     animateMouseleave () {
-      // console.log(`Animating mouse leave`)
       this.hoverIndex = null
       anime({
         targets: 'line',
@@ -218,7 +222,7 @@ export default {
     width: 100vw;
     position: fixed ;
     left: 0;
-    bottom: 90px;
+    bottom: $bottom;
     background: transparent;
     display: flex;
     flex-direction: column;
@@ -237,6 +241,9 @@ export default {
         }
       }
       &:last-of-type {
+        position: absolute;
+        bottom: 10px;
+        left: 0;
         transform: rotateX(180deg)
       }
     }

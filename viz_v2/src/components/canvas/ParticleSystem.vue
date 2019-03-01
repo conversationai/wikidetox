@@ -48,6 +48,7 @@ export default {
       datas: state => state.datas,
       month: state => state.SELECTED_MONTH,
       commentClicked: state => state.commentClicked, // boolean
+      selectedDate: state => state.selectedDate,
       nextComment: state => state.nextComment
     }),
     ...mapGetters({
@@ -94,6 +95,23 @@ export default {
         } else {
           this.addFilteredParticles()
         }
+      }
+    },
+    selectedDate (newVal, oldVal) {
+      // date hovered
+      if (newVal !== null) {
+        this.filteredData.forEach((d, i) => {
+          const dataDate = d.timestamp.toISOString().substr(0, 10)
+          if (dataDate !== newVal) {
+            this.growOut(i)
+          } else {
+            this.growIn(i)
+          }
+        })
+      } else {
+        this.filteredData.forEach((d, i) => {
+          this.growIn(i)
+        })
       }
     },
     commentClicked (newVal, oldVal) {
@@ -259,6 +277,26 @@ export default {
       this.mouse.x = (event.clientX / this.view.clientWidth) * 2 - 1
       this.mouse.y = -(event.clientY / (this.view.clientHeight - 76)) * 2 + 1
     },
+    growOut (i) {
+      new TWEEN.Tween({ scale: this.attributes.scale.array[ i ] })
+        .to({ scale: 1 }, 200)
+        .easing(TWEEN.Easing.Linear.None)
+        .onUpdate((obj) => {
+          this.attributes.scale.array[ i ] = obj.scale
+          this.attributes.scale.needsUpdate = true
+        })
+        .start()
+    },
+    growIn (i) {
+      new TWEEN.Tween({ scale: 1 })
+        .to({ scale: this.attributes.finalSizes.array[ i ] }, 200)
+        .easing(TWEEN.Easing.Linear.None)
+        .onUpdate((obj) => {
+          this.attributes.scale.array[ i ] = obj.scale
+          this.attributes.scale.needsUpdate = true
+        })
+        .start()
+    },
     hoverAnimation (commentIndex, isMouseIn) { // animation on particle hover
       let baseSize, baseRedness, finalSize, finalRedness
 
@@ -280,7 +318,7 @@ export default {
       }
 
       new TWEEN.Tween({ scale: baseSize, red: baseRedness })
-        .to({ scale: finalSize, red: finalRedness }, 400)
+        .to({ scale: finalSize, red: finalRedness }, 200)
         .easing(TWEEN.Easing.Linear.None)
         .onUpdate((obj) => {
           this.attributes.scale.array[ commentIndex ] = obj.scale
@@ -289,6 +327,7 @@ export default {
           this.attributes.vertexColor.needsUpdate = true
         })
         .onComplete(() => {
+          console.log(this)
           // particle expanded -> show text
           if (isMouseIn) {
             if (commentIndex === this.INTERSECTED) {

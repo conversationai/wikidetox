@@ -6,7 +6,7 @@
     <BubbleChart />
     <MetricsPanel />
     <MonthlyMetrics />
-    <!-- <DailyTrend /> -->
+    <DailyTrend />
     <MonthlyTrend />
   </div>
 </template>
@@ -78,6 +78,7 @@ export default {
           for (const prop in this.models) {
             dataModels[this.models[prop].name] = d.f[parseInt(prop) + 1].v
           }
+          const date = new Date(parseFloat(d.f[19].v) * 1000)
           return {
             'Toxicity': d.f[0].v,
             'Category': d.f[13].v,
@@ -86,7 +87,7 @@ export default {
             'page_title': d.f[16].v,
             'id': d.f[17].v,
             'username': d.f[18].v,
-            'timestamp': d.f[19].v,
+            'timestamp': date,
             'content': d.f[20].v,
             'type': d.f[21].v,
             ...dataModels

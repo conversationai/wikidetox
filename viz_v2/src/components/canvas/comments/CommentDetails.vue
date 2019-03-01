@@ -67,9 +67,7 @@ export default {
         this.comment = d.content
         this.detoxed = d.type === 'DELETION'
         this.score = parseFloat(d['Toxicity']).toFixed(2) * 100
-
-        const day = new Date(parseFloat(d.timestamp) * 1000)
-        this.date = day.toLocaleString()
+        this.date = d.timestamp.toLocaleString()
 
         this.circleTop = newVal.pos.y - 117
         this.circleLeft = newVal.pos.x - 117
