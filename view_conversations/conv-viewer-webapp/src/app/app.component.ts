@@ -37,6 +37,7 @@ interface HashObj {
   browseUpper?: number;
   browseLower?: number;
   embed: boolean;
+  context?: string;
   showPageContext: boolean;
   highlightId?: string;
   isHistorical?: boolean;
@@ -91,6 +92,7 @@ export class AppComponent implements OnInit {
   isHistorical?: boolean;
 
   embed = false;
+  context = "all";
   showPageContext = true;
   highlightId: string;
 
@@ -120,6 +122,7 @@ export class AppComponent implements OnInit {
         browseLower = hashObj.browseLower;
       }
       this.embed = hashObj.embed === undefined ? false : hashObj.embed;
+      this.context = hashObj.context === undefined ? 'all' : hashObj.context;
       this.showPageContext = hashObj.showPageContext === undefined ?
           true :
           hashObj.showPageContext;
@@ -145,6 +148,9 @@ export class AppComponent implements OnInit {
     if (searchBy && browseUpper && browseLower && browseBy &&
        this.embed && (searchFor || searchBy === 'All'))  {
       this.submitBrowse();
+    }
+    if (searchBy == 'Comment ID' && searchFor){
+      this.browseByComment(searchFor);
     }
 
   }
@@ -181,23 +187,6 @@ export class AppComponent implements OnInit {
         searchValue.updateValueAndValidity();
       });
   }
-
-  fetchConversations(actions: wpconvlib.Comment[]) {
-    this.searchResult = JSON.stringify(actions, null, 2);
-    delete this.inFlightRequest;
-    console.log('got conversation!');
-
-    const conversation: wpconvlib.Conversation = highlightComments(actions, this.highlightId);
-    console.log(conversation);
-
-    this.rootComment =
-        wpconvlib.structureConversaton(conversation);
-    if (!this.rootComment) {
-      this.errorMessage = 'No Root comment in conversation';
-      return;
-    }
-  }
-
 
   submitCommentSearch(comment : wpconvlib.Comment) {
     if (!comment.isCollapsed) {
@@ -288,5 +277,37 @@ export class AppComponent implements OnInit {
                 });
 
   }
+
+  /**
+  * Fetch the so-far conversation given a comment ID
+  */
+  browseByComment(searchFor: string) {
+    this.errorMessage = null;
+    console.log('Browsing by comment-id: ' + searchFor);
+    this.inFlightBrowseRequest =
+        this.http
+            .get(encodeURI(
+              '/api/comment-id/' + searchFor))
+            .subscribe(
+                (comments: wpconvlib.Comment[]) => {
+                  console.log('got comments!');
+                  this.browseResult = JSON.stringify(comments, null, 2);
+                  delete this.inFlightBrowseRequest;
+                  console.log(comments);
+                  this.answerComments = comments.filter(i => i.id === searchFor);
+                  /*this.answerComments[0].isCollapsed=true;*/
+                  /*this.submitCommentSearch(this.answerComments[0]);*/
+                },
+                (e) => {
+                  console.log(e);
+                  if (e.error && e.error.error) {
+                    this.errorMessage = e.message + '\n' + e.error.error;
+                  } else {
+                    this.errorMessage = e.message;
+                  }
+                  delete this.inFlightBrowseRequest;
+                });
+  }
+
 
 }

@@ -70,5 +70,10 @@
     "tslint": "^4.5.1",
     "typedoc": "^0.5.7",
     "typescript": "^3.0.1"
+  },
+
+  "engines": {
+    "node": "8.x"
   }
+
 }

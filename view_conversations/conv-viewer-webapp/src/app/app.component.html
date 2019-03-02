@@ -71,12 +71,12 @@
 </div>
 
 <div class="comments" *ngIf="answerComments">
-  <button mat-raised-button
+  <button mat-raised-button *ngIf="!embed"
     [disabled]="inFlightRequest !== undefined || scoreUpper === undefined || scoreCategory === undefined"
     class = "moreToxicButton"
     (click)="browseByScore(scoreCategory, 1, scoreUpper, searchBy, searchFor, 'ASC', isHistorical)" color="primary">More Toxic</button>
 
-  <button mat-raised-button
+  <button mat-raised-button *ngIf="!embed"
     [disabled]="inFlightRequest !== undefined || scoreLower === undefined || scoreCategory === undefined"
     class = "lessToxicButton"
     (click)="browseByScore(scoreCategory, scoreLower, 0, searchBy, searchFor, 'DESC', isHistorical)" color="primary">Less Toxic</button>
@@ -106,14 +106,18 @@
     <div id="collapseComment" *ngIf="comment.isCollapsed">
       <div *ngIf="errorMessage" class="errorMessage">{{errorMessage}}</div>
       <div class="collapsedConversation" *ngIf="comment.rootComment">
-        <div *ngIf="showPageContext">
+        <div *ngIf="showPageContext && (context=='all'|| context=='titles')">
           <div>In page: <a href="https://en.wikipedia.org/w/index.php?oldid={{comment.rev_id}}"><b>{{comment.rootComment.page_title}}</b></a> </div>
+          <div class="section_title" *ngIf="comment.rootComment.type=='CREATION'">Section Title: {{comment.rootComment.cleaned_content}}</div>
+          <div class="section_creator">
+            <span class="convid-text" *ngIf="comment.rootComment.user_text">Creator: {{comment.rootComment.user_text}}</span>
+            <span class="convid-text" *ngIf="!comment.rootComment.user_text">Creator: Anonymous</span>
+          </div>
           <div class="convid">
             <span class="convid-text">(conversation id: {{comment.rootComment.id}})</span>
           </div>
         </div>
-
-        <app-conversation *ngIf="comment.rootComment" [rootComment]="comment.rootComment"></app-conversation>
+        <app-conversation *ngIf="comment.rootComment && (context=='all' || context=='previous')" [rootComment]="comment.rootComment"></app-conversation>
       </div>
     </div>
 
