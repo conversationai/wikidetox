@@ -77,6 +77,28 @@ last {
   font-weight: bold;
 }
 
+.section {
+  width: 150px;
+  color: #44B;
+  font-family:courier;
+  font-weight: bold;
+}
+
+.section_creator {
+  width: 150px;
+  color: #44B;
+  font-family:courier;
+  font-style:italic;
+}
+
+.section_content{
+  padding: 5px;
+  background: #FFF;
+  width: 100%;
+  font-family:courier;
+  border: 1px solid #CCC;
+}
+
 .anonAuthor {
   width: 150px;
   color: Crimson;
@@ -87,4 +109,28 @@ last {
 .timestamp {
   font-size: 80%;
   color: #BBB;
+}
+
+.ids {
+  width: 150px;
+  font-size: 80%;
+  color: #BBB;
+}
+
+.modification{
+  font-size: 80%;
+  color: #BBB;
+  font-weight: bold
+}
+
+.restoration{
+  font-size: 80%;
+  color: #BBB;
+  font-weight: bold
+}
+
+.isAlive{
+  font-size: 80%;
+  color: red;
+  font-weight: bold
 }

@@ -1,12 +1,34 @@
 <div class="action">
   <table class="action" [ngClass]="{ 'finalcomment': isHighlighted}">
     <tr>
-      <td class="whenandwho">
-        <div class="author" *ngIf="rootComment.user_text">{{rootComment.user_text}}</div>
-        <div class="anonAuthor" *ngIf="!rootComment.user_text">Anonymous</div>
-        <div class="timestamp">{{rootComment.timestamp}}</div>
-      </td>
-      <td class="content">{{rootComment.cleaned_content}}</td>
+      <div *ngIf="rootComment.type=='CREATION'; then thenBlock else elseBlock"></div>
+        <ng-template #thenBlock>
+          <!-- This is appeared next to Page Title -->
+          <!--td class="whenandwho">
+            <div class="section">SECTION TITLE</div>
+            <div class="section_creator" *ngIf="rootComment.user_text">Creator: {{rootComment.user_text}}</div>
+            <div class="anonAuthor" *ngIf="!rootComment.user_text">Creator: Anonymous</div>
+            <div class="timestamp">{{rootComment.timestamp}}</div>
+          </td>
+          <td class="section_content">{{rootComment.cleaned_content}}</td-->
+        </ng-template>
+        <ng-template #elseBlock>
+          <td class="whenandwho">
+            <div class="author" *ngIf="rootComment.user_text">{{rootComment.user_text}}</div>
+            <div class="anonAuthor" *ngIf="!rootComment.user_text">Anonymous</div>
+            <div class="timestamp">{{rootComment.timestamp}}</div>
+            <div class="ids">ID: {{rootComment.id}}</div>
+            <div class="modification" *ngIf="rootComment.type == 'MODIFICATION'">Modification from Other Comments</div>
+            <div class="restoration" *ngIf="rootComment.type == 'RESTORATION'">Restored Comment</div>
+            <div class="isAlive" *ngIf="!rootComment.isAlive">This comment has been removed or modified.</div>
+          </td>
+          <td class="content">{{rootComment.cleaned_content}}</td>
+        </ng-template>
+        <!--td class="whenandwho">
+          <div class="author" *ngIf="rootComment.user_text">{{rootComment.user_text}}</div>
+          <div class="anonAuthor" *ngIf="!rootComment.user_text">Anonymous</div>
+          <div class="timestamp">{{rootComment.timestamp}}</div>
+        </td-->
     </tr>
   </table>
 </div>
