@@ -4,13 +4,13 @@ import { fibonacciSphere } from './sphereFunctions'
 // Particle shader - takes scale (float) and color (vec4) variables
 
 const particleVert = `
-attribute float scale;
+attribute highp float scale;
 attribute float color;
 attribute vec4 vertexColor;
 varying vec4 vVertexColor;
 void main() {
-vec4 mvPosition = modelViewMatrix * vec4( position, 1 );
-gl_PointSize = scale * ( 300.0 / - mvPosition.z );
+  vec4 mvPosition = modelViewMatrix * vec4( position, 1 );
+  gl_PointSize = scale * ( 300.0 / - mvPosition.z );
   gl_Position = projectionMatrix * mvPosition;
   vVertexColor = vertexColor;
 }
@@ -24,6 +24,9 @@ void main() {
   gl_FragColor = vec4(vVertexColor);
 }
 `
+
+//  if ( length( gl_PointCoord - vec2( 0.5, 0.5 ) ) > 0.475 ) discard;
+// scale * ( 300.0 / - mvPosition.z );
 
 export class Particles {
   constructor (config) {
@@ -80,10 +83,10 @@ export class Particles {
       const sizeWeight = 3
       if (d.type === 'DELETION') {
         finalSizes[i] = sizeWeight
-        color = [0.9, 1, 1]
+        color = [0.86, 1, 1]
       } else {
         finalSizes[i] = (Number(d.Toxicity) - 0.75) * sizeWeight * 20
-        color = [0.9, 0.23, 0.36]
+        color = [0.86, 0.23, 0.36]
       }
       colors[ 4 * i ] = color[0]
       colors[ 4 * i + 1 ] = color[1]

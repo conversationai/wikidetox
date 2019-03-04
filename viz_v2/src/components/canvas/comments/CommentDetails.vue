@@ -1,8 +1,8 @@
 <template>
   <transition name="fade">
     <div v-if = "ifVisible"
-      :class = "['detail-circle-wrapper', {'fullScreen': commentClicked, 'white': detoxed}]"
-      :style = "{ top: circleTop + 'px', left: circleLeft + 'px' }"
+      :class = "['detail-circle-wrapper', {'transparent': transparent, 'fullScreen': showFullScreen, 'white': detoxed}]"
+      :style = "{ top: circleTop + 'px', left: circleLeft + 'px', width: size + 'px', height: size + 'px' }"
       @mouseup = "commentClick()"
       id="commentCircle"
       >
@@ -11,12 +11,12 @@
           {{pageType}}:<br>
           {{pageTitle}}
         </h4>
-        <p v-if="commentClicked">{{date}}</p>
+        <p v-if="showFullScreen">{{date}}</p>
         <p class="comment">
           {{comment}}
         </p>
-        <p v-if="commentClicked">TOXICITY SCORE</p>
-        <div v-if="commentClicked" class="score-wrapper">
+        <p v-if="showFullScreen">TOXICITY SCORE</p>
+        <div v-if="showFullScreen" class="score-wrapper">
           <div class="score">
             {{score}}%
           </div>
@@ -44,7 +44,9 @@ export default {
       detoxed: false,
       circleTop: 0,
       circleLeft: 0,
-      scrolled: false
+      size: 0,
+      showFullScreen: false,
+      transparent: false
     }
   },
   computed: {
@@ -69,8 +71,23 @@ export default {
         this.score = parseFloat(d['Toxicity']).toFixed(2) * 100
         this.date = d.timestamp.toLocaleString()
 
-        this.circleTop = newVal.pos.y - 117
-        this.circleLeft = newVal.pos.x - 117
+        // this.size = newVal.size * 3.6
+        this.size = 286
+        console.log(newVal.size)
+
+        this.circleTop = newVal.pos.y - this.size / 2
+        this.circleLeft = newVal.pos.x - this.size / 2
+      }
+    },
+    commentClicked (clicked, oldVal) {
+      if (clicked) {
+        this.transparent = true
+        setTimeout(() => {
+          this.showFullScreen = true
+        }, 400)
+      } else {
+        this.showFullScreen = false
+        this.transparent = false
       }
     }
   },
@@ -84,6 +101,7 @@ export default {
   },
   methods: {
     commentClick () {
+      this.transparent = true
       if (!this.commentClicked) {
         this.$store.commit('COMMENT_CLICK', true)
       }
@@ -96,22 +114,27 @@ export default {
   .detail-circle-wrapper {
     position: fixed;
     z-index: 2000;
-    width: 234px;
-    height: 234px;
     border-radius: 50%;
     color: #fff;
+    background: rgb(255,60,91);
+    background: radial-gradient(rgb(255,60,91), transparent);
+    transition: height .3s ease, width .3s ease, opacity 0.1s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: .4s all;
+
     overflow: hidden;
     cursor: pointer;
 
     &.white {
       color: $darker-text;
+      background: radial-gradient(#fff, transparent);
       .score-wrapper {
         border-top: 1px solid $red !important;
       }
+    }
+    &.transparent {
+      background: none !important;
     }
     .content {
       max-width: 180px;
@@ -128,9 +151,10 @@ export default {
         text-overflow: ellipsis;
       }
     }
+
     &.fullScreen {
-      width: 120vh;
-      height: 120vh;
+      width: 120vh !important;
+      height: 120vh !important;
       top: 50% !important;
       left: 50% !important;
       margin-right: -50%;
@@ -197,7 +221,7 @@ export default {
 
 .fade-enter-active,
   .fade-leave-active {
-    transition: opacity .4s;
+    transition: opacity .2s;
     opacity: 1;
   }
 

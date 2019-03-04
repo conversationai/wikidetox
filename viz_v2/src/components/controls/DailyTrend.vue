@@ -1,5 +1,5 @@
 <template>
-  <div class="timeline-wrapper">
+  <div :class = "['timeline-wrapper', {'hide': hide}]" >
     <svg :width="width" :height="20" v-if="bars.length !== 0">
         <text
           v-for="(d, i) in bars"
@@ -51,7 +51,8 @@ export default {
       circleLeft: -20,
       datas: [],
       bars: [],
-      hoverIndex: null
+      hoverIndex: null,
+      hide: false
     }
   },
   computed: {
@@ -81,8 +82,8 @@ export default {
     }
   },
   watch: {
-    commentClicked (newVal, oldVal) {
-      if (newVal) {
+    commentClicked (clicked, oldVal) {
+      if (clicked) {
         this.hoverIndex = null
         this.exitAnimation()
       } else {
@@ -90,13 +91,15 @@ export default {
       }
     },
     hoveredComment (newVal, oldVal) {
-      if (newVal !== null && !this.commentClicked) {
-        const data = newVal.comment
-        const date = data.timestamp.toISOString().substr(0, 10)
-        const ind = this.bars.findIndex(d => d.label === date)
-        this.animateMouseover(ind)
-      } else if (newVal === null) {
-        this.animateMouseleave()
+      if (!this.commentClicked) {
+        if (newVal !== null) {
+          const data = newVal.comment
+          const date = data.timestamp.toISOString().substr(0, 10)
+          const ind = this.bars.findIndex(d => d.label === date)
+          this.animateMouseover(ind)
+        } else if (newVal === null) {
+          this.animateMouseleave()
+        }
       }
     },
     dataTimeRange () {
@@ -137,6 +140,9 @@ export default {
     },
     loadAnimation () {
       anime({
+        begin: () => {
+          if (this.hide) this.hide = false
+        },
         targets: 'line',
         y2: {
           value: (el, i) => {
@@ -146,7 +152,7 @@ export default {
           delay: (el, i) => {
             return i * 6
           },
-          duration: 100
+          duration: 200
         }
       })
     },
@@ -161,7 +167,10 @@ export default {
           delay: (el, i) => {
             return i * 6
           },
-          duration: 100
+          duration: 200
+        },
+        complete: () => {
+          this.hide = true
         }
       })
     },
@@ -230,6 +239,10 @@ export default {
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    display: block;
+    .hide {
+      display: none;
+    }
     svg {
       rect {
         cursor: pointer;
@@ -250,4 +263,5 @@ export default {
       }
     }
   }
+
 </style>
