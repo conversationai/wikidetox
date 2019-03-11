@@ -24,11 +24,11 @@
           <span :class="['root', {selected: sort === 'trend' && filter === null }]"> Top Trends </span>
           <ul class="nested" :class="{'expand': sort === 'trend'}">
               <li v-for="(item, i) in trends" :key="`trend-${i}`"
-                  :class="{selected: filter === item.category }"
-                  @click.stop.prevent="sortSubcategory(item.category)"
+                  :class="{selected: filter === item.cat }"
+                  @click.stop.prevent="sortSubcategory(item.cat)"
                   >
-                  <span>{{item.category}}</span>
-                  <span class="num">{{item.length}}</span>
+                  <span>{{item.cat}}</span>
+                  <span class="num">{{item.count}}</span>
               </li>
           </ul>
         </li>
@@ -77,7 +77,6 @@ export default {
   name: 'MetricsPanel',
   computed: {
     ...mapState({
-      trends: state => state.pageTrends,
       sort: state => state.sortby,
       filter: state => state.filterby,
       commentClicked: state => state.commentClicked
@@ -85,7 +84,8 @@ export default {
     ...mapGetters({
       talkpageLength: 'getTalkpageLength',
       userpageLength: 'getUserpageLength',
-      models: 'getModelsLengths'
+      models: 'getModelsLengths',
+      trends: 'getPageTrend'
     })
   },
   methods: {

@@ -51,7 +51,7 @@ export default {
                         count(distinct id) as cd 
                       FROM \`${this.table}\` 
                       WHERE 
-                        timestamp BETWEEN TIMESTAMP('2017-01-01') AND TIMESTAMP('2018-07-01')
+                        timestamp BETWEEN TIMESTAMP('2016-12-31') AND TIMESTAMP('2018-07-01')
                       AND RockV6_1_TOXICITY > .8 AND type = 'DELETION'
                       GROUP BY demonth )
                 )
@@ -65,6 +65,8 @@ export default {
       return `SELECT 
                     RockV6_1_TOXICITY, RockV6_1_SEXUAL_ORIENTATION, RockV6_1_FLIRTATION, RockV6_1_GENDER, RockV6_1_TOXICITY_THREAT, RockV6_1_RNE, RockV6_1_RELIGION, RockV6_1_TOXICITY_IDENTITY_HATE, RockV6_1_TOXICITY_INSULT, RockV6_1_HEALTH_AGE_DISABILITY, RockV6_1_SEXUALLY_EXPLICIT, RockV6_1_TOXICITY_OBSCENE, RockV6_1_SEVERE_TOXICITY,
                     category1, sub_category1,
+                    category2, sub_category2,
+                    category3, sub_category3,
                     page_id, page_title, id, 
                     user_text, timestamp, 
                     cleaned_content, type 
@@ -73,24 +75,17 @@ export default {
                   timestamp BETWEEN TIMESTAMP('${this.timeRange.startTime}') AND TIMESTAMP('${this.timeRange.endTime}')
                       AND RockV6_1_TOXICITY > .8
                       `
-    },
-    pageTrendQuery () {
-      return `SELECT category1, sub_category1, COUNT(page_id) as cnt
-              FROM 
-                \`${this.table}\`                  
-              WHERE 
-                timestamp > TIMESTAMP('${this.timeRange.startTime}') AND timestamp < TIMESTAMP('${this.timeRange.endTime}')
-              AND
-                category1 IS NOT NULL
-              AND 
-                type != 'DELETION'
-              AND 
-                RockV6_1_TOXICITY > .8
-              GROUP BY category1, sub_category1
-              ORDER BY cnt DESC
-              LIMIT 5
-              `
     }
+    // test () {
+    //   return `
+    //     SELECT category1, sub_category1, count(id) as cnt
+    //     FROM \`${this.table}\`
+    //     WHERE timestamp between TIMESTAMP("2017-01-01") and TIMESTAMP("2018-01-01")
+    //     AND RockV6_1_TOXICITY > 0.8
+    //     GROUP BY category1, sub_category1
+    //     ORDER BY cnt desc
+    //   `
+    // }
   },
   methods: {
     getQuery (query) {

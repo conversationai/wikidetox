@@ -7,8 +7,8 @@
           :class="{ hover: hoverIndex === i }"
           text-anchor="middle"
           :width="rangeWidth"
-          :x="d.x + rangeWidth/2 - 16"
-          y="10">
+          :x="d.x + rangeWidth/2 - 30"
+          y="18">
           {{d.label}}
         </text>
     </svg>
@@ -175,9 +175,11 @@ export default {
       })
     },
     mouseOver (index) {
-      const selectedDate = this.bars[index].label
-      this.$store.commit('SELECT_DATE', selectedDate)
-      this.animateMouseover(index)
+      if (!this.commentClicked) {
+        const selectedDate = this.bars[index].label
+        this.$store.commit('SELECT_DATE', selectedDate)
+        this.animateMouseover(index)
+      }
     },
     mouseOut () {
       this.$store.commit('SELECT_DATE', null)

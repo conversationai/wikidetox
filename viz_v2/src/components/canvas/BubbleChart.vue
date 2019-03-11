@@ -34,14 +34,14 @@ export default {
     ...mapState({
       sortby: state => state.sortby,
       filterby: state => state.filterby,
-      month: state => state.SELECTED_MONTH,
-      trends: state => state.pageTrends
+      month: state => state.SELECTED_MONTH
     }),
     ...mapGetters({
       canvasState: 'getCanvas',
       talkpageLength: 'getTalkpageLength',
       userpageLength: 'getUserpageLength',
-      models: 'getModelsLengths'
+      models: 'getModelsLengths',
+      trends: 'getPageTrend'
     }),
     bubbleData (sortby, month) {
       if (sortby === 'all') {
@@ -52,8 +52,8 @@ export default {
           case 'trend':
             return this.trends.map(t => {
               return {
-                name: t.category,
-                length: parseInt(t.length),
+                name: t.cat,
+                length: parseInt(t.count),
                 randomX: this.random(this.width / this.randomizeScale),
                 randomY: this.random(this.height / this.randomizeScale)
               }

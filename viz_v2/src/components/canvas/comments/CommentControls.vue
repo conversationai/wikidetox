@@ -41,7 +41,7 @@ export default {
     margin-left: -15vw;
     min-width: 400px;
     max-width: 90vw;
-    bottom: 66px;
+    bottom: 10vh;
     height: 58px;
     z-index: 2000;
     .controls{

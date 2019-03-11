@@ -6,9 +6,9 @@
       </div>
       <div class="data-wrapper">
         <div class="increase">
-          <span v-if="monthlyIncrease < 0">&darr;</span>
-          <span v-if="monthlyIncrease > 0">&uarr;</span>
-          {{Math.abs(monthlyIncrease)}}%
+          <span v-if="monthlyIncrease < 0 && monthlyIncrease > -100">&darr;</span>
+          <span v-if="monthlyIncrease > 0 && monthlyIncrease < 100">&uarr;</span>
+          <span v-if="monthlyIncrease < 100 && monthlyIncrease > -100">{{Math.abs(monthlyIncrease)}}%</span>
         </div>
         <div class="num">
           {{toxLength}}

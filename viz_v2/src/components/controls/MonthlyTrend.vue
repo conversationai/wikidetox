@@ -2,7 +2,7 @@
   <transition name="fade">
     <div :class="['monthly-timeline-wrapper', {'scrollDown': commentClicked}]"
         v-if="datas.length !== 0">
-        <div v-for = "(d, i) in datas.slice(0, datas.length-1)"
+        <div v-for = "(d, i) in datas"
             :key="`month-${i}`"
             :class="['monthly-button', { selected: d.timestamp === dataTimeRange.startTime }]"
             @click="changeMonth(d)"
@@ -67,7 +67,7 @@ export default {
         Promise.all(monthDatas).then(datas => {
           this.datas = datas
           const selected = this.datas.find(data => data.timestamp === this.dataTimeRange.startTime)
-          const lastMonth = this.datas[this.datas.indexOf(selected) - 1]
+          const lastMonth = this.datas[this.datas.indexOf(selected) - 1] || null
           this.$store.commit('CHANGE_DATA_LENGTH', {
             toxicLength: selected.toxic,
             detoxedLength: selected.detoxed,

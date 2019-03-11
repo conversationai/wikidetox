@@ -63,9 +63,9 @@ export class Particles {
     this.particleGeometry = new THREE.BufferGeometry()
 
     const numPoints = this._datas.length
-    let sphereScale = (numPoints - 200) / 220 * 4 + 18
+    let sphereScale = (numPoints - 100) / 120 * 4 + 16
 
-    this.radius = sphereScale > 30 ? 30 : sphereScale
+    this.radius = sphereScale > 19 ? 19 : sphereScale
     let positions = new Float32Array(numPoints * 3)
     let colors = new Float32Array(numPoints * 4)
     let scale = new Float32Array(numPoints)
@@ -80,7 +80,7 @@ export class Particles {
       scale[i] = 0.001
 
       let color
-      const sizeWeight = 3
+      const sizeWeight = numPoints > 100 ? 3 : 4.2
       if (d.type === 'DELETION') {
         finalSizes[i] = sizeWeight
         color = [0.86, 1, 1]
@@ -121,7 +121,7 @@ export class Particles {
           if (i > l - 10) {
             delay = l - 10
           } else {
-            delay = i * 1.2
+            delay = i * 1.1
           }
         } else {
           if (i > l - 100) {
@@ -137,7 +137,7 @@ export class Particles {
         }
         // Animation done
         if (i === l - 1) {
-          const timeout = delay < 500 ? 500 : delay
+          const timeout = delay < 800 ? 800 : delay
           setTimeout(() => {
             _this.finishedLoading = true
           }, timeout)

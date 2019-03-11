@@ -7,7 +7,6 @@ const toxModels = models.default
 
 export default new Vuex.Store({
   state: {
-    DATA_START_TIME: '2015-01-01',
     DATA_END_TIME: '2018-06-30',
     SELECTED_YEAR: 2018,
     SELECTED_MONTH: 2,
@@ -17,7 +16,6 @@ export default new Vuex.Store({
     toxicLength: 0,
     detoxedLength: 0,
     monthlyIncrease: 0,
-    pageTrends: [],
     selectedComment: null, // hovered object
     commentClicked: false,
     nextComment: null,
@@ -58,6 +56,34 @@ export default new Vuex.Store({
         return data['page_title'].startsWith('User talk:') && data['type'] !== 'DELETION'
       })
     },
+    getPageTrend: state => {
+      const categories = ['category1', 'category2', 'category3']
+
+      const datas = state.datas.filter(d => d['type'] !== 'DELETION')
+      const trends = datas.reduce((pageTrend, d) => {
+        if (d['page_title'].startsWith('Talk:')) {
+          for (const c of categories) {
+            if (d[c] !== null) {
+              const cat = d[`sub_${c}`] === null ? d[c] : d[`sub_${c}`]
+              const existingName = pageTrend.find(trend => trend.cat === cat)
+              if (existingName) {
+                existingName.count++
+              } else {
+                pageTrend.push({
+                  cat: cat,
+                  count: 1
+                })
+              }
+            }
+          }
+        }
+        return pageTrend
+      }, [])
+      trends.sort((a, b) => {
+        return b.count - a.count
+      })
+      return trends.slice(1, 5)
+    },
     getUserpageLength: (state, getters) => {
       return getters.getUserpage.length
     },
@@ -95,10 +121,6 @@ export default new Vuex.Store({
     },
     SET_DATA (state, data) {
       state.datas = data
-    },
-    SET_PAGE_TRENDS (state, data) {
-      // localStorage.setItem('page_trends', JSON.stringify(data))
-      state.pageTrends = data
     },
     CHANGE_FILTERBY (state, data) {
       state.filterby = data

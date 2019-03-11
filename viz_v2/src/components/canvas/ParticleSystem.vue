@@ -156,13 +156,13 @@ export default {
       this.view.appendChild(this.renderer.domElement)
 
       this.camera = new THREE.PerspectiveCamera(45, this.width / this.height, 1, 10000)
-      this.camera.position.set(0, 0, 100)
+      this.camera.position.set(0, 0, 60)
 
       this.scene = new THREE.Scene()
       this.scene.add(new THREE.AmbientLight(0xffffff))
       this.controls = new OrbitControls(this.camera, this.view)
 
-      this.controls.minDistance = 70
+      this.controls.minDistance = 50
       this.controls.maxDistance = 100
 
       this.controls.enablePan = false
@@ -258,7 +258,13 @@ export default {
         datas = this.filterby.startsWith('User') ? this.userPage : this.talkPage
       } else if (this.sortby === 'trend') {
         datas = this.datas.filter(d => d['type'] !== 'DELETION')
-        datas = datas.filter(d => d['Category'] === this.filterby || d['Sub Category'] === this.filterby)
+        const categories = ['category1', 'sub_category1', 'category2', 'sub_category2', 'category3', 'sub_category3']
+        datas = this.datas.filter(d => {
+          for (const c of categories) {
+            if (d[c] === this.filterby) { return true }
+          }
+          return false
+        })
       } else if (this.sortby === 'model') {
         datas = this.datas.filter(d => Number(d[this.filterby]) >= 0.8 && d['type'] !== 'DELETION')
       } else {
@@ -271,7 +277,7 @@ export default {
       this.mouse.x = (event.clientX / this.view.clientWidth) * 2 - 1
       this.mouse.y = -(event.clientY / this.view.clientHeight) * 2 + 1
     },
-    growOut (i) {
+    growOut (i) { // todo: move to particle class
       new TWEEN.Tween({ scale: this.attributes.scale.array[ i ] })
         .to({ scale: 1 }, 200)
         .easing(TWEEN.Easing.Linear.None)
@@ -281,7 +287,7 @@ export default {
         })
         .start()
     },
-    growIn (i) {
+    growIn (i) { // todo: move to particle class
       new TWEEN.Tween({ scale: 1 })
         .to({ scale: this.attributes.finalSizes.array[ i ] }, 200)
         .easing(TWEEN.Easing.Linear.None)
@@ -325,12 +331,12 @@ export default {
       this.resize()
       let camPos, controlTarget
       const vec = this.getVectorPos(commentIndex)
+      this.controls.minDistance = 0
+      this.controls.update()
+      const altitude = 12
+      const coeff = 1 + altitude / this.particleSystem.radius
 
       if (ifZoomIn) {
-        this.controls.minDistance = 0
-        this.controls.update()
-        const altitude = 18
-        const coeff = 1 + altitude / this.particleSystem.radius
         camPos = {
           x: vec.x * coeff,
           y: vec.y * coeff,
@@ -338,14 +344,14 @@ export default {
         }
         controlTarget = vec
       } else {
-        camPos = { x: 0, y: 0, z: 100 }
+        camPos = { x: this.camera.position.x * 2, y: this.camera.position.y * 2, z: this.camera.position.z * 2 }
         controlTarget = { x: 0, y: 0, z: 0 }
       }
 
       this.animateControlTarget(ifZoomIn, controlTarget)
       this.animateCameraPos(camPos)
     },
-    animateParticleSize (isMouseIn, commentIndex, finalSize) {
+    animateParticleSize (isMouseIn, commentIndex, finalSize) { // todo: move to particle class
       console.log(finalSize)
       const baseSize = this.attributes.scale.array[ commentIndex ]
       new TWEEN.Tween({ scale: baseSize })
@@ -361,7 +367,7 @@ export default {
         })
         .start()
     },
-    animateParticleColor (isMouseIn, commentIndex, finalRColor) {
+    animateParticleColor (isMouseIn, commentIndex, finalRColor) { // todo: move to particle class
       const baseRColor = this.attributes.vertexColor.array[ commentIndex * 4 ]
       new TWEEN.Tween({ red: baseRColor })
         .to({ red: finalRColor }, 200)
@@ -383,7 +389,7 @@ export default {
         })
         .onComplete(() => {
           if (!ifZoomIn) {
-            this.controls.minDistance = 70
+            this.controls.minDistance = 0
             this.controls.update()
           }
         })
@@ -397,9 +403,6 @@ export default {
         .onUpdate((vec) => {
           this.camera.position.copy(vec)
           this.controls.update()
-        })
-        .onComplete(() => {
-
         })
         .start()
     },
