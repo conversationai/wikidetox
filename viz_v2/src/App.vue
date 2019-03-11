@@ -25,6 +25,9 @@ import QueryMixin from './components/mixin/QueryMixin.js'
 import * as toxModels from './assets/models.json'
 import { mapState, mapGetters } from 'vuex'
 
+import * as configFile from './config'
+// import { BigQueryData } from './components/bigQuery.js'
+
 export default {
   name: 'app',
   mixins: [QueryMixin],
@@ -40,7 +43,9 @@ export default {
   },
   data () {
     return {
-      models: toxModels.default
+      models: toxModels.default,
+      config: configFile.default,
+      bigQuery: null
     }
   },
   computed: {
@@ -52,44 +57,52 @@ export default {
     })
   },
   created () {
+    // this.bigQuery = new BigQueryData(this.config, this.dataTimeRange)
+    // console.log(this.bigQuery)
+
     if (this.$isAuthenticated() !== true) {
       this.$login()
     }
   },
   mounted () {
     if (this.toxLength === 0) {
-      console.log('Datas not saved')
       this.getAllData()
-      this.getTopTrends()
     }
   },
   watch: {
     dataTimeRange (oldVal, newVal) {
       console.log('data range changed')
       this.getAllData()
-      this.getTopTrends()
     }
   },
   methods: {
     getAllData () {
+      // this.getQuery(this.test).then(d => {
+      //   console.log(d)
+      // })
       this.getQuery(this.dataQuery).then(datas => {
         const allData = datas.map(d => {
           let dataModels = {}
           for (const prop in this.models) {
             dataModels[this.models[prop].name] = d.f[parseInt(prop) + 1].v
           }
-          const date = new Date(parseFloat(d.f[19].v) * 1000)
+          const date = new Date(parseFloat(d.f[23].v) * 1000)
+
           return {
             'Toxicity': d.f[0].v,
-            'Category': d.f[13].v,
-            'Sub Category': d.f[14].v,
-            'page_id': d.f[15].v,
-            'page_title': d.f[16].v,
-            'id': d.f[17].v,
-            'username': d.f[18].v,
+            'category1': d.f[13].v,
+            'sub_category1': d.f[14].v,
+            'category2': d.f[15].v,
+            'sub_category2': d.f[16].v,
+            'category3': d.f[17].v,
+            'sub_category3': d.f[18].v,
+            'page_id': d.f[19].v,
+            'page_title': d.f[20].v,
+            'id': d.f[21].v,
+            'username': d.f[22].v,
             'timestamp': date,
-            'content': d.f[20].v,
-            'type': d.f[21].v,
+            'content': d.f[24].v,
+            'type': d.f[25].v,
             ...dataModels
           }
         })
@@ -98,18 +111,6 @@ export default {
         })
         // console.log(allData)
         this.$store.commit('SET_DATA', allData)
-      })
-    },
-    getTopTrends () {
-      this.getQuery(this.pageTrendQuery).then(datas => {
-        const trendData = datas.map(d => {
-          const category = d.f[1].v === null ? d.f[0].v : d.f[1].v
-          return {
-            category: category,
-            length: d.f[2].v
-          }
-        })
-        this.$store.commit('SET_PAGE_TRENDS', trendData)
       })
     }
   }
