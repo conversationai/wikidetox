@@ -104,7 +104,6 @@ export default {
       }
     },
     bubbleData (newVal, oldVal) {
-      console.log('bnubble data changed')
       if (this.filterby === null) {
         if (newVal.length > 0) {
           this.drawBubbles()

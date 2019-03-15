@@ -61,6 +61,7 @@ export default {
   },
   watch: {
     commentData (newVal, oldVal) {
+      console.log(newVal)
       if (newVal !== null) {
         const d = newVal.comment
 
@@ -73,7 +74,6 @@ export default {
 
         // this.size = newVal.size * 3.6
         this.size = 286
-        console.log(newVal.size)
 
         this.circleTop = newVal.pos.y - this.size / 2
         this.circleLeft = newVal.pos.x - this.size / 2

@@ -38,15 +38,15 @@
             @click="sortClick('type')" v-ripple>
           <span :class="['root', {selected: sort === 'type' && filter === null }]">Page Category</span>
           <ul class="nested" :class="{ expanded: sort === 'type'}">
-              <li @click.stop.prevent="sortSubcategory('Talk page')"
-                  :class="{selected: filter === 'Talk page' }" >
-                <span>Talk Page</span>
-                <span class="num">{{talkpageLength}}</span>
-              </li>
               <li @click.stop.prevent="sortSubcategory('User page')"
                   :class="{selected: filter === 'User page' }">
                 <span>User Page</span>
                 <span class="num">{{userpageLength}}</span>
+              </li>
+              <li @click.stop.prevent="sortSubcategory('Talk page')"
+                  :class="{selected: filter === 'Talk page' }" >
+                <span>Talk Page</span>
+                <span class="num">{{talkpageLength}}</span>
               </li>
           </ul>
         </li>
@@ -80,6 +80,7 @@ export default {
       sort: state => state.sortby,
       filter: state => state.filterby,
       commentClicked: state => state.commentClicked
+      // toxicLength: state => state.toxicLength
     }),
     ...mapGetters({
       talkpageLength: 'getTalkpageLength',
@@ -87,6 +88,9 @@ export default {
       models: 'getModelsLengths',
       trends: 'getPageTrend'
     })
+    // otherPagesLength () {
+    //   return (this.toxicLength - this.talkpageLength - this.userpageLength)
+    // }
   },
   methods: {
     sortClick (sortby) {

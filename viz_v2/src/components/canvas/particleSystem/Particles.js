@@ -43,9 +43,6 @@ export class Particles {
   init () {
     this.initGeometry()
     const particlesMaterial = new THREE.ShaderMaterial({
-      // uniforms: {
-      //   resolution: { value: new THREE.Vector2() }
-      // },
       transparent: true,
       depthWrite: true,
       vertexShader: particleVert,
@@ -63,24 +60,21 @@ export class Particles {
     this.particleGeometry = new THREE.BufferGeometry()
 
     const numPoints = this._datas.length
-    let sphereScale = (numPoints - 100) / 120 * 4 + 16
-
-    this.radius = sphereScale > 19 ? 19 : sphereScale
+    const sizeWeight = this.getSizeWeight(numPoints)
+    const radius = this.getRadius(numPoints)
     let positions = new Float32Array(numPoints * 3)
     let colors = new Float32Array(numPoints * 4)
     let scale = new Float32Array(numPoints)
     let finalSizes = new Float32Array(numPoints)
 
     this._datas.forEach((d, i) => {
-      const newPos = fibonacciSphere(numPoints, this.radius, i)
+      const newPos = fibonacciSphere(numPoints, radius, i)
       positions[ 3 * i ] = newPos.x
       positions[3 * i + 1] = newPos.y
       positions[3 * i + 2] = newPos.z
-
       scale[i] = 0.001
 
       let color
-      const sizeWeight = numPoints > 100 ? 3 : 4.2
       if (d.type === 'DELETION') {
         finalSizes[i] = sizeWeight
         color = [0.86, 1, 1]
@@ -99,6 +93,51 @@ export class Particles {
     this.particleGeometry.addAttribute('scale', new THREE.BufferAttribute(scale, 1))
     this.particleGeometry.addAttribute('finalSizes', new THREE.BufferAttribute(finalSizes, 1))
     this.particleGeometry.matrixAutoUpdate = true
+  }
+
+  resize () {
+    const numPoints = this._datas.length
+    const sizeWeight = this.getSizeWeight(numPoints)
+    const radius = this.getRadius(numPoints)
+    this._datas.forEach((d, i) => {
+      const newPos = fibonacciSphere(numPoints, radius, i)
+      this.particleGeometry.attributes.position.array[ 3 * i ] = newPos.x
+      this.particleGeometry.attributes.position.array[3 * i + 1] = newPos.y
+      this.particleGeometry.attributes.position.array[3 * i + 2] = newPos.z
+      if (d.type === 'DELETION') {
+        this.particleGeometry.attributes.scale.array[i] = sizeWeight
+        this.particleGeometry.attributes.finalSizes.array[i] = sizeWeight
+      } else {
+        this.particleGeometry.attributes.scale.array[i] = (Number(d.Toxicity) - 0.75) * sizeWeight * 20
+        this.particleGeometry.attributes.finalSizes.array[i] = (Number(d.Toxicity) - 0.75) * sizeWeight * 20
+      }
+    })
+    this.particleGeometry.attributes.position.needsUpdate = true
+    this.particleGeometry.attributes.scale.needsUpdate = true
+  }
+
+  getRadius (num) {
+    let h = window.innerHeight
+    const w = window.innerWidth
+    h = h > 1100 ? h = 1000 : h
+    let scale
+    if (w > h) {
+      scale = h / 50
+    } else {
+      scale = w / 30
+    }
+    let r = num > 280 ? scale : scale * (num / 280)
+    this.radius = r < scale / 1.6 ? scale / 1.6 : r
+    return this.radius
+  }
+
+  getSizeWeight (num) {
+    const h = window.innerHeight
+    const w = window.innerWidth
+    let scale = (w > h ? h : w) / 300
+    scale = scale < 1.45 ? 1.45 : scale
+    const weight = num < 90 ? scale * 1.2 : scale
+    return weight
   }
 
   loadEntryAnimation () {

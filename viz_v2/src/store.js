@@ -40,9 +40,6 @@ export default new Vuex.Store({
       const endTime = `${endYear}-${endMonthString}-01`
       return { startTime, endTime }
     },
-    getDeletedLength: (state, getters) => {
-      return getters.getDeleted.length
-    },
     getTalkpage: state => {
       return state.datas.filter(data => {
         return data['page_title'].startsWith('Talk:') && data['type'] !== 'DELETION'
@@ -53,8 +50,11 @@ export default new Vuex.Store({
     },
     getUserpage: state => {
       return state.datas.filter(data => {
-        return data['page_title'].startsWith('User talk:') && data['type'] !== 'DELETION'
+        return data['page_title'].startsWith('User') && data['type'] !== 'DELETION'
       })
+    },
+    getUserpageLength: (state, getters) => {
+      return getters.getUserpage.length
     },
     getPageTrend: state => {
       const categories = ['category1', 'category2', 'category3']
@@ -83,9 +83,6 @@ export default new Vuex.Store({
         return b.count - a.count
       })
       return trends.slice(1, 5)
-    },
-    getUserpageLength: (state, getters) => {
-      return getters.getUserpage.length
     },
     getModelsLengths: state => {
       const modelObj = toxModels.map(m => {

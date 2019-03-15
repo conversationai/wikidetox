@@ -4,7 +4,7 @@
     <CommentDetails />
     <CommentControls />
     <BubbleChart />
-    <MetricsPanel />
+    <!-- <MetricsPanel /> -->
     <MonthlyMetrics />
     <DailyTrend />
     <MonthlyTrend />
@@ -77,32 +77,29 @@ export default {
   },
   methods: {
     getAllData () {
-      // this.getQuery(this.test).then(d => {
-      //   console.log(d)
-      // })
       this.getQuery(this.dataQuery).then(datas => {
         const allData = datas.map(d => {
           let dataModels = {}
           for (const prop in this.models) {
             dataModels[this.models[prop].name] = d.f[parseInt(prop) + 1].v
           }
-          const date = new Date(parseFloat(d.f[23].v) * 1000)
+          const date = new Date(parseFloat(d.f[18].v) * 1000)
 
           return {
             'Toxicity': d.f[0].v,
-            'category1': d.f[13].v,
-            'sub_category1': d.f[14].v,
-            'category2': d.f[15].v,
-            'sub_category2': d.f[16].v,
-            'category3': d.f[17].v,
-            'sub_category3': d.f[18].v,
-            'page_id': d.f[19].v,
-            'page_title': d.f[20].v,
-            'id': d.f[21].v,
-            'username': d.f[22].v,
+            'category1': d.f[8].v,
+            'sub_category1': d.f[9].v,
+            'category2': d.f[10].v,
+            'sub_category2': d.f[11].v,
+            'category3': d.f[12].v,
+            'sub_category3': d.f[13].v,
+            'page_id': d.f[14].v,
+            'page_title': d.f[15].v,
+            'id': d.f[16].v,
+            'username': d.f[17].v,
             'timestamp': date,
-            'content': d.f[24].v,
-            'type': d.f[25].v,
+            'content': d.f[19].v,
+            'type': d.f[20].v,
             ...dataModels
           }
         })
