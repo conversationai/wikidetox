@@ -7,7 +7,7 @@ automatic_scaling:
   max_pending_latency: automatic
 
 env_variables:
-  NODE_ENV: development
+  NODE_ENV: production
 
 handlers:
 - url: /(.*\.(gif|png|jpeg|jpg|css|js|ico))$

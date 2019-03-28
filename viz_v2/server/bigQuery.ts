@@ -2,7 +2,6 @@ const {BigQuery} = require('@google-cloud/bigquery');
 
 interface queryConfig {
     gcloudKey: string;
-    CLIENT_ID: string;
     bigQuery: {
         projectId: string;
         datasetID: string;

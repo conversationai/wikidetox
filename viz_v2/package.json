@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start:prod": "NODE_ENV=production node build/server/index.js",
+    "start:prod": "NODE_ENV=production node build/index.js",
     "start:dev": "concurrently \"yarn run build-server\" \"yarn run start\" \"vue-cli-service serve\"",
     "watch-server": "nodemon --watch server -e ts --exec 'yarn run build-server'",
     "build-server": "tsc -p server --forceConsistentCasingInFileNames",

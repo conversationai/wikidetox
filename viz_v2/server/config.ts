@@ -1,6 +1,5 @@
 export const Config =  {
-    gcloudKey: 'wikidetox-viz-d4ce97006395.json',
-    CLIENT_ID: '13994152710-adstr0v53mts6pbqtnkqau20fra26asm.apps.googleusercontent.com',
+    gcloudKey: '[Path_to_file]',
     bigQuery: {
         projectId: 'wikidetox-viz',
         datasetID: 'wikiviz_v2',

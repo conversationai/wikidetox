@@ -6,7 +6,6 @@ import { BigQueryData } from "./bigQuery";
 
 interface IConfig {
     gcloudKey: string;
-    CLIENT_ID: string;
     bigQuery: {
         projectId: string;
         datasetID: string;
