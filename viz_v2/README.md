@@ -24,7 +24,7 @@ to install dependencies and create a `yarn.lock` file.
 
 This project relies on Google's [BigQuery API](https://cloud.google.com/bigquery/docs/reference/rest/v2/) to query data, via an express server. To setup an instance you need a Google Cloud Project with the Perpsective API enabled.
 
-1. Download a gcloud key file under API access in your cloud project, and store it in root
+1. Download a service account key under API access in your cloud project, and store it in root folder
 2. Go to server/config.ts and enter the `gcloudKey` and `API_KEY` fields with a path to a keyfile for google cloud access, and a Perspective API key respectively.
 
 ## Development server that watches Vue project
@@ -70,8 +70,12 @@ gcloud auth login
 gcloud config set project YOUR_PROJECT_NAME
 ```
 
-Deploy for testing at `dev-dot-YOUR_PROJECT_NAME.appspot-preview.com`:
+Add a line to your Dockerfile pointing to your gcloud key file: 
+```
+COPY [keyfilename].json /app/[keyfilename].json
+```
 
+Deploy for testing at `dev-dot-YOUR_PROJECT_NAME.appspot-preview.com`:
 ```bash
 gcloud app deploy app.yaml -v dev
 ```
@@ -80,9 +84,5 @@ Deploy to production environment
 
 ```bash
 # Use the --no-promote flag to ensure you can test before migrating traffic.
-gcloud app deploy prod.yaml --no-promote
+gcloud app deploy app.yaml --no-promote
 ```
-
-
-
-
