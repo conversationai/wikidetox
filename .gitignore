@@ -98,7 +98,9 @@ conversation_reconstruction_dataflow/analysis/data/*
 
 # xml ingestion test data
 conversation_reconstruction/dataflow/ingest_revisions/ingest_utils/testdata/gigantic_xml.xml
-viz_v2/wiki_categorize/wikidetox-viz-597cf87aea29.json
+
+# v2 build files
+viz_v2/wiki_categorize/*.json
 viz_v2/wiki_categorize/build
-viz_v2/dist
+viz_v2/build
 viz_v2/yarn.lock

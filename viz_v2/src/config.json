@@ -1,7 +1,0 @@
-{
-    "projectId": "wikidetox-viz",
-    "keyFilename": [ENTER KEYFILE NAME],
-    "datasetID": "wikiviz_v2",
-    "dataTable": "201701_partitioned",
-    "client_id": [ENTER CLIENT ID]
-}

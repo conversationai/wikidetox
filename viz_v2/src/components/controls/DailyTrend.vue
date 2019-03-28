@@ -36,20 +36,19 @@
 </template>
 
 <script>
-import { mapState, mapGetters } from 'vuex'
+import { mapState } from 'vuex'
 import anime from 'animejs'
 import * as d3 from 'd3'
-import QueryMixin from '../mixin/QueryMixin.js'
 import { setTimeout } from 'timers'
+
 export default {
   name: 'DailyTrend',
-  mixins: [QueryMixin],
+  props: ['datas'],
   data () {
     return {
       width: 0,
       height: 20,
       circleLeft: -20,
-      datas: [],
       bars: [],
       hoverIndex: null,
       hide: false
@@ -60,14 +59,13 @@ export default {
       hoveredComment: state => state.selectedComment,
       commentClicked: state => state.commentClicked
     }),
-    ...mapGetters({
-      dataTimeRange: 'getDataTimeRange'
-    }),
     maxY () {
-      return d3.max(this.datas, d => parseInt(d.f[1].v))
+      return d3.max(this.datas, d => d.day_total)
     },
     scaleX () {
-      const domainX = [new Date(this.dataTimeRange.startTime), new Date(this.dataTimeRange.endTime)]
+      const minDate = new Date(this.datas[0].day.value)
+      const maxDate = new Date(this.datas[this.datas.length - 1].day.value)
+      const domainX = [minDate, maxDate]
       return d3.scaleTime()
         .domain(domainX)
         .rangeRound([this.width * 0.03 + 28, this.width - 28])
@@ -94,7 +92,7 @@ export default {
       if (!this.commentClicked) {
         if (newVal !== null) {
           const data = newVal.comment
-          const date = data.timestamp.toISOString().substr(0, 10)
+          const date = data.timestamp.value.substr(0, 10)
           const ind = this.bars.findIndex(d => d.label === date)
           this.animateMouseover(ind)
         } else if (newVal === null) {
@@ -102,24 +100,17 @@ export default {
         }
       }
     },
-    dataTimeRange () {
-      this.getData()
+    datas () {
+      this.onResize()
     }
   },
   mounted () {
     window.addEventListener('resize', this.onResize)
-    this.getData()
   },
   beforeDestroy () {
     window.removeEventListener('resize', this.onResize)
   },
   methods: {
-    getData () {
-      this.getQuery(this.dailyTimelineQuery).then(data => {
-        this.datas = data
-        this.onResize()
-      })
-    },
     onResize () {
       this.width = window.innerWidth
       this.height = window.innerHeight * 0.04 > 20 ? window.innerHeight * 0.04 : 80
@@ -133,8 +124,8 @@ export default {
     drawBars () {
       this.bars = this.datas.map((d, i) => {
         return {
-          x: this.scaleX(new Date(d.f[0].v)),
-          label: d.f[0].v
+          x: this.scaleX(new Date(d.day.value)),
+          label: d.day.value
         }
       })
     },
@@ -146,7 +137,7 @@ export default {
         targets: 'line',
         y2: {
           value: (el, i) => {
-            return this.scaleY(this.datas[i].f[1].v)
+            return this.scaleY(this.datas[i].day_total)
           },
           easing: 'linear',
           delay: (el, i) => {

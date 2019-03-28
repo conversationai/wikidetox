@@ -7,14 +7,12 @@ const toxModels = models.default
 
 export default new Vuex.Store({
   state: {
-    DATA_END_TIME: '2018-06-30',
     SELECTED_YEAR: 2018,
-    SELECTED_MONTH: 2,
+    SELECTED_MONTH: 6,
     filterby: null,
     sortby: 'all',
     datas: [],
     toxicLength: 0,
-    detoxedLength: 0,
     monthlyIncrease: 0,
     selectedComment: null, // hovered object
     commentClicked: false,
@@ -22,6 +20,9 @@ export default new Vuex.Store({
     selectedDate: null
   },
   getters: {
+    dataLength: state => {
+      return state.datas.length
+    },
     getCanvas: state => {
       if (state.filterby !== null || state.sortby === 'all') {
         return 'particles'
@@ -86,7 +87,7 @@ export default new Vuex.Store({
     },
     getModelsLengths: state => {
       const modelObj = toxModels.map(m => {
-        const modelData = state.datas.filter(data => data[m.name] > 0.8 && data['type'] !== 'DELETION')
+        const modelData = state.datas.filter(data => data[m.model] > 0.8 && data['type'] !== 'DELETION')
         return {
           model: m.model,
           name: m.name,
@@ -113,8 +114,8 @@ export default new Vuex.Store({
     },
     CHANGE_DATA_LENGTH (state, lengths) {
       state.toxicLength = lengths.toxicLength
-      state.detoxedLength = lengths.detoxedLength
-      state.monthlyIncrease = ((lengths.toxicLength - lengths.lastMonth) / lengths.lastMonth * 100).toFixed(1)
+      const increase = (lengths.toxicLength - lengths.lastToxicLength) / lengths.lastToxicLength
+      state.monthlyIncrease = (increase * 100).toFixed(1)
     },
     SET_DATA (state, data) {
       state.datas = data

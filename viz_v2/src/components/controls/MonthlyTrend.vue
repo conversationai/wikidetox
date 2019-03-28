@@ -1,13 +1,12 @@
 <template>
   <transition name="fade">
     <div :class="['monthly-timeline-wrapper', {'scrollDown': commentClicked}]"
-        v-if="datas.length !== 0">
-        <div v-for = "(d, i) in datas"
+          v-if="monthDatas.length > 0">
+        <div v-for = "(d, i) in monthDatas"
             :key="`month-${i}`"
             :class="['monthly-button', { selected: d.timestamp === dataTimeRange.startTime }]"
             @click="changeMonth(d)"
             v-ripple>
-
           <span class='year' v-if="d.month === 'JAN'">
             <span class='year-line'></span>
             <span class='year-text'>{{d.year}}</span>
@@ -24,18 +23,16 @@
 
 <script>
 import { mapState, mapGetters } from 'vuex'
-import QueryMixin from '../mixin/QueryMixin.js'
 
 const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEPT', 'OCT', 'NOV', 'DEC']
 
 export default {
   name: 'MonthlyTrend',
-  mixins: [QueryMixin],
+  props: ['datas'],
   data () {
     return {
-      datas: [],
       selected: null,
-      circleScale: 16
+      monthDatas: []
     }
   },
   computed: {
@@ -46,45 +43,42 @@ export default {
       dataTimeRange: 'getDataTimeRange'
     })
   },
-  mounted () {
-    this.getData()
+  watch: {
+    datas (newVal, oldVal) {
+      if (newVal.length > 0) {
+        this.initData()
+      }
+    }
   },
   methods: {
-    getData () {
-      this.getQuery(this.monthlyTimelineQuery).then(results => {
-        const monthDatas = results.map(async d => {
-          const timestamp = d.f[0].v
-          const year = parseInt(timestamp.substr(0, 4))
-          const monthString = timestamp.substr(5, 2)
-          const monthNum = monthString.startsWith('0') ? parseInt(monthString.substr(1, 1)) : parseInt(monthString)
-          const month = monthNames[monthNum - 1]
-          const detoxed = parseInt(d.f[2].v)
-          const total = parseInt(d.f[1].v)
-          const toxic = total - detoxed
-          const r = Math.round(Math.sqrt(total) / 5)
-          return { timestamp, year, month, total, toxic, detoxed, r }
-        })
-        Promise.all(monthDatas).then(datas => {
-          this.datas = datas
-          const selected = this.datas.find(data => data.timestamp === this.dataTimeRange.startTime)
-          const lastMonth = this.datas[this.datas.indexOf(selected) - 1] || null
-          this.$store.commit('CHANGE_DATA_LENGTH', {
-            toxicLength: selected.toxic,
-            detoxedLength: selected.detoxed,
-            lastMonth: lastMonth.toxic
-          })
-        })
+    initData () {
+      this.monthDatas = this.datas.map((d, i) => {
+        const timestamp = d.month.value
+        const year = parseInt(timestamp.substr(0, 4))
+        const monthString = timestamp.substr(5, 2)
+        const monthNum = monthString.startsWith('0') ? parseInt(monthString.substr(1, 1)) : parseInt(monthString)
+        const month = monthNames[monthNum - 1]
+        const total = d.cd
+        const r = Math.round(Math.sqrt(total) / 3)
+        return { timestamp, year, month, total, r }
+      })
+      const selectedMonth = this.monthDatas.find(d => d.timestamp === this.dataTimeRange.startTime)
+      this.commitDataLength(selectedMonth)
+    },
+    commitDataLength (selectedMonth) {
+      this.selected = selectedMonth.timestamp
+      const lastMonthInd = this.monthDatas.indexOf(selectedMonth) + 1
+      const isFirst = lastMonthInd >= this.monthDatas.length
+      const lastToxicLength = isFirst ? 0 : this.monthDatas[lastMonthInd].total
+      this.$store.commit('CHANGE_DATA_LENGTH', {
+        toxicLength: selectedMonth.total,
+        lastToxicLength: lastToxicLength
       })
     },
     changeMonth (d) {
-      if (d !== this.selected) {
+      if (d.timestamp !== this.selected) {
         this.$store.commit('CHANGE_TIME', d.timestamp)
-        const lastMonth = this.datas[this.datas.indexOf(d) + 1]
-        this.$store.commit('CHANGE_DATA_LENGTH', {
-          toxicLength: d.toxic,
-          detoxedLength: d.detoxed,
-          lastMonth: lastMonth ? lastMonth.toxic : 0
-        })
+        this.commitDataLength(d)
       }
     }
   }

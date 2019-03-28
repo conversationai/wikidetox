@@ -79,7 +79,7 @@ export class Particles {
         finalSizes[i] = sizeWeight
         color = [0.86, 1, 1]
       } else {
-        finalSizes[i] = (Number(d.Toxicity) - 0.75) * sizeWeight * 20
+        finalSizes[i] = (Number(d.RockV6_1_TOXICITY) - 0.75) * sizeWeight * 20
         color = [0.86, 0.23, 0.36]
       }
       colors[ 4 * i ] = color[0]
@@ -108,8 +108,8 @@ export class Particles {
         this.particleGeometry.attributes.scale.array[i] = sizeWeight
         this.particleGeometry.attributes.finalSizes.array[i] = sizeWeight
       } else {
-        this.particleGeometry.attributes.scale.array[i] = (Number(d.Toxicity) - 0.75) * sizeWeight * 20
-        this.particleGeometry.attributes.finalSizes.array[i] = (Number(d.Toxicity) - 0.75) * sizeWeight * 20
+        this.particleGeometry.attributes.scale.array[i] = (Number(d.RockV6_1_TOXICITY) - 0.75) * sizeWeight * 20
+        this.particleGeometry.attributes.finalSizes.array[i] = (Number(d.RockV6_1_TOXICITY) - 0.75) * sizeWeight * 20
       }
     })
     this.particleGeometry.attributes.position.needsUpdate = true

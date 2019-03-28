@@ -57,8 +57,8 @@
           <span :class="['root', {selected: sort === 'model' && filter === null }]">Toxicity Types</span>
           <ul class="nested" :class="{ expanded: sort === 'model'}">
               <li v-for="(item, i) in models" :key="`model-${i}`"
-                  @click.stop.prevent="sortSubcategory(item.name)"
-                  :class="{selected: filter === item.name }" >
+                  @click.stop.prevent="sortSubcategory(item.model)"
+                  :class="{selected: filter === item.model }" >
                 <span>{{item.name}}</span>
                 <span class="num">{{item.length}}</span>
               </li>
@@ -80,7 +80,6 @@ export default {
       sort: state => state.sortby,
       filter: state => state.filterby,
       commentClicked: state => state.commentClicked
-      // toxicLength: state => state.toxicLength
     }),
     ...mapGetters({
       talkpageLength: 'getTalkpageLength',
@@ -88,9 +87,6 @@ export default {
       models: 'getModelsLengths',
       trends: 'getPageTrend'
     })
-    // otherPagesLength () {
-    //   return (this.toxicLength - this.talkpageLength - this.userpageLength)
-    // }
   },
   methods: {
     sortClick (sortby) {

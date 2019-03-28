@@ -43,6 +43,7 @@ export default {
       models: 'getModelsLengths',
       trends: 'getPageTrend'
     }),
+    // eslint-disable-next-line vue/return-in-computed-property
     bubbleData (sortby, month) {
       if (sortby === 'all') {
         d3.selectAll('.bubbles').remove()
@@ -249,7 +250,8 @@ export default {
       selected.style('fill', '#E63C5B')
     },
     handleClick (d, i) {
-      this.$store.commit('CHANGE_FILTERBY', d.data.name)
+      console.log(d)
+      this.$store.commit('CHANGE_FILTERBY', d.data.model || d.data.name)
     },
     random (num) {
       return Math.floor(Math.random() * num) + num

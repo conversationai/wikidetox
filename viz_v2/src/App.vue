@@ -4,10 +4,10 @@
     <CommentDetails />
     <CommentControls />
     <BubbleChart />
-    <!-- <MetricsPanel /> -->
+    <MetricsPanel />
     <MonthlyMetrics />
-    <DailyTrend />
-    <MonthlyTrend />
+    <MonthlyTrend :datas="monthlyTrendsData" />
+    <DailyTrend :datas="dailyTrendsData" />
   </div>
 </template>
 
@@ -18,19 +18,13 @@ import CommentControls from './components/canvas/comments/CommentControls.vue'
 import BubbleChart from './components/canvas/BubbleChart.vue'
 import MetricsPanel from './components/controls/MetricsPanel.vue'
 import MonthlyMetrics from './components/controls/MonthlyMetrics.vue'
-import DailyTrend from './components/controls/DailyTrend.vue'
 import MonthlyTrend from './components/controls/MonthlyTrend.vue'
+import DailyTrend from './components/controls/DailyTrend.vue'
 
-import QueryMixin from './components/mixin/QueryMixin.js'
-import * as toxModels from './assets/models.json'
 import { mapState, mapGetters } from 'vuex'
-
-import * as configFile from './config'
-// import { BigQueryData } from './components/bigQuery.js'
 
 export default {
   name: 'app',
-  mixins: [QueryMixin],
   components: {
     ParticleSystem,
     CommentDetails,
@@ -43,9 +37,10 @@ export default {
   },
   data () {
     return {
-      models: toxModels.default,
-      config: configFile.default,
-      bigQuery: null
+      dataService: null,
+      dailyTrendsData: [],
+      monthlyTrendsData: [],
+      dataStart: '2017-01-01'
     }
   },
   computed: {
@@ -56,59 +51,62 @@ export default {
       dataTimeRange: 'getDataTimeRange'
     })
   },
-  created () {
-    // this.bigQuery = new BigQueryData(this.config, this.dataTimeRange)
-    // console.log(this.bigQuery)
-
-    if (this.$isAuthenticated() !== true) {
-      this.$login()
-    }
-  },
   mounted () {
-    if (this.toxLength === 0) {
-      this.getAllData()
-    }
+    this.getDatas()
+    this.getMonthlyTrends()
   },
   watch: {
-    dataTimeRange (oldVal, newVal) {
-      console.log('data range changed')
-      this.getAllData()
+    dataTimeRange (newVal, oldVal) {
+      this.getDatas()
     }
   },
   methods: {
-    getAllData () {
-      this.getQuery(this.dataQuery).then(datas => {
-        const allData = datas.map(d => {
-          let dataModels = {}
-          for (const prop in this.models) {
-            dataModels[this.models[prop].name] = d.f[parseInt(prop) + 1].v
-          }
-          const date = new Date(parseFloat(d.f[18].v) * 1000)
+    getDatas () {
+      const params = { st: this.dataTimeRange.startTime, end: this.dataTimeRange.endTime }
 
+      this.postDatas(params, '/monthsdata').then(rows => {
+        const datas = rows.map(row => {
+          const unix = (new Date(row.timestamp.value)).getTime()
           return {
-            'Toxicity': d.f[0].v,
-            'category1': d.f[8].v,
-            'sub_category1': d.f[9].v,
-            'category2': d.f[10].v,
-            'sub_category2': d.f[11].v,
-            'category3': d.f[12].v,
-            'sub_category3': d.f[13].v,
-            'page_id': d.f[14].v,
-            'page_title': d.f[15].v,
-            'id': d.f[16].v,
-            'username': d.f[17].v,
-            'timestamp': date,
-            'content': d.f[19].v,
-            'type': d.f[20].v,
-            ...dataModels
+            unix: unix,
+            ...row
           }
         })
-        allData.sort((a, b) => {
-          return a.timestamp - b.timestamp
+        const sortedDatas = datas.sort((a, b) => {
+          return a.unix - b.unix
         })
-        // console.log(allData)
-        this.$store.commit('SET_DATA', allData)
+        this.$store.commit('SET_DATA', sortedDatas)
       })
+
+      this.postDatas(params, 'dailytrends').then(rows => {
+        this.dailyTrendsData = rows
+      })
+    },
+    getMonthlyTrends () {
+      const params = { st: this.dataStart }
+      this.postDatas(params, 'monthlytrends').then(rows => {
+        this.monthlyTrendsData = rows
+      })
+    },
+    postDatas (params, url) {
+      return fetch(url, {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        redirect: 'follow',
+        body: JSON.stringify(params)
+      }).then(res => {
+        if (res.ok) {
+          return res.json()
+        } else {
+          throw Error(`Request rejected with status ${res.status}`)
+        }
+      })
+        .catch(error => console.error(error))
     }
   }
 }

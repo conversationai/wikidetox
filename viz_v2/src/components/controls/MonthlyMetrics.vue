@@ -51,6 +51,9 @@ export default {
     }),
     monthName () {
       return monthNames[this.month - 1]
+    },
+    detoxedLength () {
+      return this.$store.getters.dataLength - this.toxLength
     }
   }
 }

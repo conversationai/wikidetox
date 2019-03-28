@@ -61,16 +61,15 @@ export default {
   },
   watch: {
     commentData (newVal, oldVal) {
-      console.log(newVal)
       if (newVal !== null) {
         const d = newVal.comment
 
         this.pageType = d.page_title.startsWith('User') ? 'User page' : 'Talk page'
         this.pageTitle = d.page_title.split(':')[1]
-        this.comment = d.content
+        this.comment = d.cleaned_content
         this.detoxed = d.type === 'DELETION'
-        this.score = parseFloat(d['Toxicity']).toFixed(2) * 100
-        this.date = d.timestamp.toLocaleString()
+        this.score = parseFloat(d['RockV6_1_TOXICITY']).toFixed(2) * 100
+        this.date = (new Date(d.unix)).toLocaleString()
 
         // this.size = newVal.size * 3.6
         this.size = 286

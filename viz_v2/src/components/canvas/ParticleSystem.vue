@@ -99,7 +99,7 @@ export default {
     selectedDate (newVal, oldVal) {
       if (newVal !== null) {
         this.filteredData.forEach((d, i) => {
-          const dataDate = d.timestamp.toISOString().substr(0, 10)
+          const dataDate = d.timestamp.value.substr(0, 10)
           if (dataDate !== newVal) {
             this.growOut(i)
           } else {
@@ -179,8 +179,8 @@ export default {
       this.controls.zoomSpeed = 0.5
 
       // Helpers
-      var axesHelper = new THREE.AxesHelper(5)
-      this.scene.add(axesHelper)
+      // var axesHelper = new THREE.AxesHelper(5)
+      // this.scene.add(axesHelper)
 
       // Initialize RAYCASTER
       this.raycaster = new THREE.Raycaster()
