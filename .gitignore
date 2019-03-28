@@ -43,6 +43,16 @@ build/Release
 node_modules/
 jspm_packages/
 
+viz_v2/node_modules/
+viz_v2/wiki_categorize/node_modules/
+
+# Viz_v2 build files
+
+viz_v2/build/
+viz_v2/wiki_categorize/build/
+
+viz_v2/wiki_categorize/yarn.lock
+
 # Typescript v1 declaration files
 typings/
 

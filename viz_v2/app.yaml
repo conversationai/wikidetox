@@ -1,0 +1,15 @@
+runtime: custom
+env: flex
+service: v2
+
+automatic_scaling:
+  max_idle_instances: automatic
+  max_pending_latency: automatic
+
+env_variables:
+  NODE_ENV: production
+
+handlers:
+- url: /(.*\.(gif|png|jpeg|jpg|css|js|ico))$
+  static_files: build/static/\1
+  upload: build/static/(.*)
