@@ -33,7 +33,7 @@ export class Server {
         this.app.use(express.static(publicDir));
 
         this.app.get("/", (req, res) => {
-            res.sendFile("../static/index.html", { root: __dirname });
+            res.sendFile(path.resolve("../static/index.html"), { root: __dirname });
         });
 
         this.app.post("/monthsdata", async (req, res) => {
