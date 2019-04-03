@@ -51,7 +51,13 @@ viz_v2/wiki_categorize/node_modules/
 viz_v2/build/
 viz_v2/wiki_categorize/build/
 
+# viz_v2 yarn files
+
 viz_v2/wiki_categorize/yarn.lock
+viz_v2/.editorconfig
+
+# viz_v2 dependencies
+viz_v2/wiki_categorize/package-lock.json
 
 # Typescript v1 declaration files
 typings/
