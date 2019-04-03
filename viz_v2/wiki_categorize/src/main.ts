@@ -46,12 +46,5 @@ const chunk = (arr, size) =>
     (i % size ? 
         chunks[chunks.length - 1].push(el) : 
         chunks.push([el])) && chunks, []);
-
-// Timestamp in src table:
-// > 2018-01-01 00:01:00 UTC
-// < 2018-07-01 21:09:18 UTC
-
-// const dateAfter = '2017-12-31';
-// const dateBefore = '2018-01-02';
-
+        
 getData();

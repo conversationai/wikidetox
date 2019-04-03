@@ -21,8 +21,7 @@ export class getCategories {
         } else {
             const catString = catArray.join(', ');
             return catString;
-        }
-        
+        }     
     }
 
     getWikiCategories(title) {

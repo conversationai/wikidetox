@@ -1,7 +1,7 @@
 export const Config = {
-    'projectId': 'wikidetox-viz',
+    'projectId': '<Project ID>',
     'keyFilename': '<Path to google cloud key json file>',
-    'datasetID': 'wiki_conv_v2_categorize',
-    'originalDataTable': 'unique_pageID_rerun',
+    'datasetID': '<Dataset Name>',
+    'originalDataTable': '<Source data table with wikipedia datadump>',
     'distDataTable': 'unique_pageIDs_categorized'
 }

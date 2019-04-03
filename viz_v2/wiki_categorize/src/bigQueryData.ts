@@ -26,11 +26,8 @@ export class bigQueryData {
     }
 
     async querySourceTable() {
-
-        // max page ID 57726837
         const sqlQuery =    `SELECT * 
-                                FROM \`${this.projectId}.${this.datasetID}.${this.originalDataTable}\`
-                            WHERE page_id >= 43295130`;
+                                FROM \`${this.projectId}.${this.datasetID}.${this.originalDataTable}\` `;
         console.log(`Query job started: ${sqlQuery}`);
       
         // Query options list: https://cloud.google.com/bigquery/docs/reference/v2/jobs/query
@@ -61,9 +58,6 @@ export class bigQueryData {
                 row[`category${i+1}_confidence`] = null;
             }
         }
-
-        // console.log(row);
-        // return row.id
 
         this.table.insert(row)
             .then(() => {
