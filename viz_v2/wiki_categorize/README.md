@@ -34,20 +34,29 @@ To categorize talk pages, the scripts follow these steps:
 ```['Wikipedia', 'AC with', 'CS1', 'Good articles', 'Articles', 'All articles', 'Pages', 'Use mdy dates from', 'Use dmy dates from', 'English from', 'Webarchive template', 'births', 'deaths', 'Redirects']```
 
 Example cleaned results:
+
 Bonsai Kitten:
+
 ```["2000 hoaxes", "Cats in popular culture", "Entertainment websites", "Fiction about animal cruelty","Fictional cats", "Fictional companies", "Humorous hoaxes in science"]```
+
 Watergate:
+
 ```["Watergate scandal", "Nixon administration controversies", "20th-century scandals", "Political controversies","Political scandals in the United States", "Political terminology of the United States", "1970s in the United States", "News leaks"]```
 
 3. Run cleaned categories and page title as one string through the Google Cloud Natural Language API. The API returns up to 3 relevant category/subcategory/sub-sub category combos with confidence level greater than 0.5. If the page categories are not sufficient for categorization, this step will return null. 
+
 Example returns:
+
 Bonsai Kitten: 
+
 ```
 /Arts & Entertainment - Confidence:   0.73
 /People & Society - Confidence:   0.68
 /Hobbies & Leisure - Confidence:   0.65
 ```
+
 Watergate:
+
 ```
 /News/Gossip & Tabloid News/Scandals & Investigations - Confidence:   0.97
 /Sensitive Subjects - Confidence:   0.93
@@ -58,7 +67,7 @@ Some example results using this method (showing category/subcategory/sub-sub cat
 
 | page_title    | category1     | sub_category1  | subsub_category1 |
 | --------------------------- | -------------------- | -------------------- | -------------------- |
-| Analytical Feminism | People & Society | Social Issues & Advocacy | 
+| Analytical Feminism | People & Society | Social Issues & Advocacy | null |
 | Dogwood Alliance | People & Society | Social Issues & Advocacy | Green Living & Environmental Issues |
 | Glossary of French expressions in English | Reference | Language Resources | Foreign Language Resources | 
 | Horary astrology | People & Society | Religion & Belief | null |
