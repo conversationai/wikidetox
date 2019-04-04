@@ -101,25 +101,17 @@ export class AppComponent implements OnInit {
   errorMessage?: string = null;
 
   constructor(private http: HttpClient, private formBuilder: FormBuilder) {
-    let searchBy : string | null = null;
-    let searchFor : string | null = null;
-
-    let browseBy : string | null = null;
-    let browseUpper : number | null = null;
-    let browseLower : number | null = null;
-    let isHistorical : boolean | null = null;
-
     console.log(`init-hash: ${decodeURI(document.location.hash.substr(1))}`);
     try {
       const hashObj: HashObj = JSON.parse(decodeURI(document.location.hash.substr(1)));
       if (hashObj.searchBy) {
-        searchBy = hashObj.searchBy;
-        searchFor = hashObj.searchFor;
+        this.searchBy = hashObj.searchBy;
+        this.searchFor = hashObj.searchFor;
       }
       if (hashObj.browseBy) {
-        browseBy = hashObj.browseBy;
-        browseUpper = hashObj.browseUpper;
-        browseLower = hashObj.browseLower;
+        this.browseBy = hashObj.browseBy;
+        this.browseUpper = hashObj.browseUpper;
+        this.browseLower = hashObj.browseLower;
       }
       this.embed = hashObj.embed === undefined ? false : hashObj.embed;
       this.context = hashObj.context === undefined ? 'all' : hashObj.context;
@@ -137,22 +129,21 @@ export class AppComponent implements OnInit {
     }
 
     this.browseForm = formBuilder.group({
-      browseBy: new FormControl(browseBy, Validators.required),
-      browseUpper: new FormControl(browseUpper, Validators.required),
-      browseLower: new FormControl(browseLower, Validators.required),
-      searchBy: new FormControl(searchBy, Validators.required),
-      searchFor: new FormControl(searchFor, ),
-      isHistorical: new FormControl(isHistorical, Validators.required)
+      browseBy: new FormControl(this.browseBy, Validators.required),
+      browseUpper: new FormControl(this.browseUpper, Validators.required),
+      browseLower: new FormControl(this.browseLower, Validators.required),
+      searchBy: new FormControl(this.searchBy, Validators.required),
+      searchFor: new FormControl(this.searchFor, ),
+      isHistorical: new FormControl(this.isHistorical, Validators.required)
     });
     this.searchScopeChanged();
-    if (searchBy && browseUpper && browseLower && browseBy &&
-       this.embed && (searchFor || searchBy === 'All'))  {
+    if (this.searchBy && this.browseUpper && this.browseLower && this.browseBy &&
+       this.embed && (this.searchFor || this.searchBy === 'All'))  {
       this.submitBrowse();
     }
-    if (searchBy == 'Comment ID' && searchFor){
-      this.browseByComment(searchFor);
+    if (this.searchBy === 'Comment ID' && this.searchFor){
+      this.browseByComment(this.searchFor);
     }
-
   }
 
   ngOnInit(): void {}
@@ -234,8 +225,8 @@ export class AppComponent implements OnInit {
   browseByScore(browseBy : string, browseUpper: number, browseLower: number, searchBy: string, searchFor: string, order: string, isHistorical: boolean) {
     this.errorMessage = null;
     console.log(browseUpper, browseLower, searchBy);
-    let apiRequest: APIRequest = {upper_score: browseUpper, lower_score: browseLower, order: order, isAlive: !isHistorical};
-    apiRequest[URL_PART_FOR_SEARCHBY[searchBy]] = searchFor
+    const apiRequest: APIRequest = {upper_score: browseUpper, lower_score: browseLower, order: order, isAlive: !isHistorical};
+    apiRequest[URL_PART_FOR_SEARCHBY[searchBy]] = searchFor;
 
     this.inFlightBrowseRequest =
         this.http
@@ -253,14 +244,14 @@ export class AppComponent implements OnInit {
                     comment.isCollapsed = false;
                     let commentScore : number | null = null;
                     if (this.browseForm.value.browseBy === MOST_TOXIC_TEXT) {
-                      comment.displayScore = MOST_TOXIC_TEXT + ' Score: ' + comment.RockV6_1_TOXICITY
+                      comment.displayScore = MOST_TOXIC_TEXT + ' Score: ' + comment.RockV6_1_TOXICITY;
                       commentScore = comment.RockV6_1_TOXICITY;
                     }
                     this.scoreLower = (commentScore !== null && commentScore < this.scoreLower) ? commentScore : this.scoreLower;
                     this.scoreUpper = (commentScore !== null && commentScore > this.scoreUpper) ? commentScore : this.scoreUpper;
                   }
                   this.updateLocationHash(searchBy, searchFor, browseBy, this.scoreUpper, this.scoreLower, isHistorical);
-                  if (order == 'ASC') {comments = comments.reverse();}
+                  if (order === 'ASC') {comments = comments.reverse();}
                   this.scoreCategory = browseBy;
                   this.searchBy = searchBy;
                   this.searchFor = searchFor;
@@ -278,9 +269,7 @@ export class AppComponent implements OnInit {
 
   }
 
-  /**
-  * Fetch the so-far conversation given a comment ID
-  */
+  // Fetch the so-far conversation given a comment ID.
   browseByComment(searchFor: string) {
     this.errorMessage = null;
     console.log('Browsing by comment-id: ' + searchFor);

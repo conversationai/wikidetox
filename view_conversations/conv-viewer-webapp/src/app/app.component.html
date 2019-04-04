@@ -1,4 +1,3 @@
-<!--The content below is only a placeholder and can be replaced.-->
 <div *ngIf="!embed" style="text-align:center">
   <h3>
     WikiDetox Conversation Viewer
@@ -8,50 +7,57 @@
 <div *ngIf="!embed">
   <form [formGroup]="browseForm" (submit)="submitBrowse()">
 
-  <button mat-button type="button"
-    [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Sort by
-  </button>
-  <mat-menu #menu="matMenu">
-    <mat-radio-group class="browseby-radio-group"
-        (change)="updateLocationHash()"
-        formControlName="browseBy">
-      <mat-radio-button class="searchby-radio-button" *ngFor="let s of browseBys"
-        [value]="s">{{s}}</mat-radio-button>
-    </mat-radio-group>
-  </mat-menu>
-  Score in the range of
+    <button mat-button type="button"
+      [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Sort by
+    </button>
+    <mat-menu #menu="matMenu">
+      <mat-radio-group class="browseby-radio-group"
+          (change)="updateLocationHash()"
+          formControlName="browseBy">
+        <mat-radio-button class="searchby-radio-button" *ngFor="let s of browseBys"
+          [value]="s">{{s}}</mat-radio-button>
+      </mat-radio-group>
+    </mat-menu>
 
-  <mat-form-field class="browse-text">
-    <input matInput type="text" placeholder="Minimum value 0"
-          formControlName="browseLower">
-  </mat-form-field>
+    <br/>
 
-  to
+    Score in the range of
 
-  <mat-form-field class="browse-text">
-    <input matInput type="text" placeholder="Maximum value 1"
-          formControlName="browseUpper">
-  </mat-form-field>
-  <br />
+    <mat-form-field class="browse-text">
+      <input matInput type="text" placeholder="Minimum value 0"
+            formControlName="browseLower">
+    </mat-form-field>
 
-  <mat-select placeholder="Browse in" formControlName="searchBy" class="searchby-dropdown">
-    <mat-option *ngFor="let s of searchBys" [value]="s">
-       {{s}}
-    </mat-option>
-  </mat-select>
+    to
 
-  <mat-form-field class="search-text" *ngIf="browseForm.value.searchBy && browseForm.value.searchBy !== 'All'">
-    <input matInput type="text" placeholder="{{browseForm.value.searchBy}}"
-          formControlName="searchFor">
-  </mat-form-field>
+    <mat-form-field class="browse-text">
+      <input matInput type="text" placeholder="Maximum value 1"
+            formControlName="browseUpper">
+    </mat-form-field>
+    <br />
 
-  <mat-slide-toggle name="allHistorical" ngDefaultControl formControlName="isHistorical">
-    All historical comments
-  </mat-slide-toggle>
+    <mat-select placeholder="Browse in" formControlName="searchBy" class="searchby-dropdown">
+      <mat-option *ngFor="let s of searchBys" [value]="s">
+        {{s}}
+      </mat-option>
+    </mat-select>
 
-  <button mat-raised-button
-    [disabled]="!browseForm.valid || inFlightBrowseRequest !== undefined"
-    type="submit" color="primary">Browse</button>
+    <br/>
+
+    <mat-form-field class="search-text" *ngIf="browseForm.value.searchBy && browseForm.value.searchBy !== 'All'">
+      <input matInput type="text" placeholder="{{browseForm.value.searchBy}}"
+            formControlName="searchFor">
+    </mat-form-field>
+
+    <mat-slide-toggle name="allHistorical" ngDefaultControl formControlName="isHistorical">
+      All historical comments
+    </mat-slide-toggle>
+
+    <br/>
+
+    <button mat-raised-button
+      [disabled]="!browseForm.valid || inFlightBrowseRequest !== undefined"
+      type="submit" color="primary">Browse</button>
   </form>
 
   <mat-progress-bar *ngIf="inFlightBrowseRequest" mode="query"></mat-progress-bar>
