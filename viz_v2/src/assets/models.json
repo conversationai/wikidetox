@@ -1,0 +1,9 @@
+[
+  { "model": "RockV6_1_FLIRTATION", "name": "Flirtation" },
+  { "model": "RockV6_1_TOXICITY_THREAT", "name": "Threat" },
+  { "model": "RockV6_1_TOXICITY_IDENTITY_HATE", "name": "Identity Attack" },
+  { "model": "RockV6_1_TOXICITY_INSULT", "name": "Insult" },
+  { "model": "RockV6_1_SEXUALLY_EXPLICIT", "name": "Sexually explicit" },
+  { "model": "RockV6_1_TOXICITY_OBSCENE", "name": "Obscene" },
+  { "model": "RockV6_1_SEVERE_TOXICITY", "name": "Severe Toxicity" }
+]

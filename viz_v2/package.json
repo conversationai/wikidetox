@@ -1,0 +1,68 @@
+{
+  "name": "wikiviz-v2",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start:prod": "NODE_ENV=production node build/index.js",
+    "start:dev": "concurrently \"yarn run build-server\" \"yarn run start\" \"vue-cli-service serve\"",
+    "watch-server": "nodemon --watch server -e ts --exec 'yarn run build-server'",
+    "build-server": "tsc -p server --forceConsistentCasingInFileNames",
+    "build": "yarn run build-server; vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+  "engines": {
+    "node": "8.11.0"
+  },
+  "dependencies": {
+    "@google-cloud/bigquery": "^2.0.1",
+    "@tweenjs/tween.js": "^17.3.0",
+    "animejs": "^3.0.0",
+    "body-parser": "^1.18.3",
+    "core-js": "3",
+    "d3": "^5.7.0",
+    "express": "^4.16.4",
+    "path": "^0.12.7",
+    "three": "^0.100.0",
+    "three-orbitcontrols": "^2.99.1",
+    "vue": "^2.5.17",
+    "vue-ripple-directive": "^2.0.1",
+    "vuex": "^3.0.1"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "^3.0.5",
+    "@vue/cli-plugin-eslint": "^3.0.5",
+    "@vue/cli-service": "^3.0.5",
+    "@vue/eslint-config-standard": "^4.0.0",
+    "babel-eslint": "^10.0.1",
+    "concurrently": "^4.1.0",
+    "eslint": "^5.8.0",
+    "eslint-plugin-vue": "^5.0.0-0",
+    "node-sass": "^4.9.0",
+    "sass-loader": "^7.0.1",
+    "vue-template-compiler": "^2.5.17"
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "extends": [
+      "plugin:vue/essential",
+      "@vue/standard"
+    ],
+    "rules": {},
+    "parserOptions": {
+      "parser": "babel-eslint"
+    }
+  },
+  "postcss": {
+    "plugins": {
+      "autoprefixer": {}
+    }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not ie <= 8"
+  ]
+}
