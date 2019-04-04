@@ -1,0 +1,40 @@
+{
+  "name": "@conversationai/wikietox-wikiconv-corpus-uploader",
+  "description": "WikiConv Corpus Uploader",
+  "repository": "https://github.com/conversationai/wikidetox",
+  "version": "0.0.1",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build:watch": "tsc --outdir build/ --watch",
+    "test": "ts-mocha ./ts-bin/*_test.js"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^2.3.1",
+    "@types/axios": "^0.14.0",
+    "@types/byline": "^4.2.31",
+    "@types/csvtojson": "^1.1.5",
+    "@types/line-by-line": "^0.1.1",
+    "@types/request": "^2.0.4",
+    "@types/rx": "^4.1.1",
+    "@types/seedrandom": "^2.4.27",
+    "@types/shelljs": "^0.8.0",
+    "@types/yargs": "^12.0.1",
+    "axios": "^0.18.0",
+    "byline": "^5.0.0",
+    "concurrently": "^4.0.1",
+    "csvtojson": "^2.0.8",
+    "json2csv": "^4.3.0",
+    "line-by-line": "^0.1.5",
+    "seedrandom": "^2.4.3",
+    "shelljs": "^0.8.3",
+    "ts-node": "^7.0.1",
+    "yargs": "^12.0.2"
+  },
+  "devDependencies": {
+    "@types/mocha": "^5.2.5",
+    "ts-mocha": "^2.0.0",
+    "tslint": "^5.11.0",
+    "typedoc": "^0.13.0",
+    "typescript": "^3.1.6"
+  }
+}
