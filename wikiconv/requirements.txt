@@ -1,4 +1,4 @@
-apache-beam==2.4.0
+apache-beam==2.11.0
 beautifulsoup4==4.6.0
 boto==2.48.0
 bs4==0.0.1
@@ -20,7 +20,7 @@ google-resumable-media==0.3.1
 googleapis-common-protos==1.5.3
 grpc-google-logging-v2==0.8.1
 grpc-google-pubsub-v1==0.8.1
-gsutil==4.31
+gsutil==4.34
 lxml==4.2.1
 mwparserfromhell==0.5.1
 mwtypes==0.3.0

@@ -21,49 +21,114 @@
 # Specify the language and the dumpdate of the data you want to process, run
 # with ./run_pipeline.sh
 
+set -e  # Exit on failures.
+set -x
+
+PHASE1=1  # Download the wikipedia dump.
+PHASE2=1  # Injest to JSON
+PHASE3=1  # Page conversion
+PHASE4=1  # Page conversion
+
+while getopts "1234" opt; do
+  case "$opt" in
+    1)
+      PHASE1=0
+      ;;
+    2)
+      PHASE2=0
+      ;;
+    3)
+      PHASE3=0
+      ;;
+    4)
+      PHASE4=0
+      ;;
+    h)
+      echo "$0 (flags)"
+      echo "Specifying -k will skip that phase, eg. -1: skip download."
+      exit 0
+  esac
+done
+
 . config/wikiconv.config
 
 # Download the Dump
 
-cd ingest_revisions
-. ${pathToVirtualEnv}/bin/activate
-python dataflow_main.py --setup_file ./setup.py --download --ingestFrom=wikipedia --language=${language} --dumpdate=${dumpdate} --cloudBucket=${cloudBucket}/raw-downloads/${language}-${dumpdate} --project ${cloudProject} --bucket ${cloudBucket}|| exit 1
-deactivate
-cd ..
+if (( PHASE1 )); then
+  cd ingest_revisions
+  . "${pathToVirtualEnv}/bin/activate"
+  python dataflow_main.py --setup_file ./setup.py --download \
+    --ingestFrom=wikipedia --language="${language}" --dumpdate="${dumpdate}" \
+    --cloudBucket="${cloudBucket}/raw-downloads/${language}-${dumpdate}" \
+    --project "${cloudProject}" --bucket "${cloudBucket}"
+  deactivate
+  cd ..
+fi
 
-# Ingest dump into Json
+# Ingest dump into JSON
 
-cd ingest_revisions
-. ${pathToVirtualEnv}/bin/activate
-python dataflow_main.py --setup_file ./setup.py --ingestFrom=cloud --language=${language} --dumpdate=${dumpdate} --cloudBucket=${cloudBucket}/raw-downloads/${language}-${dumpdate} --output=gs://${cloudBucket}/ingested --project ${cloudProject} --bucket ${cloudBucket}|| exit 1
-deactivate
-cd ..
+if (( PHASE2 )); then
+  cd ingest_revisions
+  . "${pathToVirtualEnv}/bin/activate"
+  python dataflow_main.py --setup_file ./setup.py --ingestFrom=cloud \
+    --language="${language}" --dumpdate="${dumpdate}" \
+    --cloudBucket="${cloudBucket}/raw-downloads/${language}-${dumpdate}" \
+    --output="gs://${cloudBucket}/ingested" --project "${cloudProject}" \
+    --bucket "${cloudBucket}"
+  deactivate
+  cd ..
+fi
 
-# Initialize Page States
+if (( PHASE3 )); then
+  # Initialize Page States
+  gsutil -m rm -r \
+    "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/next_stage/*" \
+    "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/*" \
+    "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/bakup/*" || true
 
-gsutil -m rm -r gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/next_stage/*
-gsutil -m rm -r gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/*
-gsutil -m rm -r gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/bakup/*
+  gsutil -m cp empty_file \
+    "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/last_revisions/last_rev"
+  gsutil -m cp empty_file \
+    "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/page_states/page_states"
+  gsutil -m cp empty_file \
+    "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/error_logs/error_log"
 
-gsutil -m cp empty_file gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/last_rev
-gsutil -m cp empty_file gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/page_states
-gsutil -m cp empty_file gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/error_log
+  # Start Reconstruction
+  cd conversation_reconstruction
+  . ${pathToVirtualEnv}/bin/activate
+  python dataflow_main.py \
+    --setup_file ./setup.py \
+    --input_state "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current" \
+    --input_revisions "gs://${cloudBucket}/ingested/${dumpdate}-${language}/*/revisions*.json" \
+    --output_state "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/next_stage" \
+    --output_conversations "gs://${cloudBucket}/conversations-${language}${dumpdate}" \
+    --runner DirectRunner \
+    --project "${cloudProject}" \
+    --jobname "reconstruction" \
+    --num_workers 80
+  deactivate
+  cd ..
+fi
 
-# Start Reconstruction
-cd conversation_reconstruction
-. ${pathToVirtualEnv}/bin/activate
-python dataflow_main.py --input gs://${cloudBucket}/ingested/${dumpdate}-${language}/*/revisions*.json --setup_file ./setup.py --output_name ${language}${dumpdate} --process_file process_tmp_${language}_${dumpdate} --project ${cloudProject} --bucket ${cloudBucket}|| exit 1
-deactivate
-cd ..
+if (( PHASE4 )); then
+  # Move results
+  gsutil -m mv \
+    "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/next_stage/" \
+    "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/page_states"
+  gsutil -m rm -r "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}"
+  gsutil -m mv \
+    "gs://${cloudBucket}/reconstructed_res/reconstruction-pages-${language}${dumpdate}" \
+    "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/reconstructed_results"
 
-# Move results
-gsutil -m mv gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/next_stage/ gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/page_states
-gsutil -m rm -r gs://${cloudBucket}/process_tmp_${language}_${dumpdate}
-gsutil -m mv gs://${cloudBucket}/reconstructed_res/reconstruction-pages-${language}${dumpdate} gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/reconstructed_results
-
-# Clean Result Format
-cd conversation_reconstruction
-. ${pathToVirtualEnv}/bin/activate
-python dataflow_content_clean.py --input gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/reconstructed_results/revisions* --setup_file ./setup.py --output gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/cleaned_results/wikiconv-${language}-${dumpdate}- --error_log=gs://${cloudBucket}/format-clean/error_log_${language}_${dumpdate}- --jobname=${language}${dumpdate} --project ${cloudProject} --bucket ${cloudBucket} || exit 1
-deactivate
-cd ..
+  # Clean Result Format
+  cd conversation_reconstruction
+  . "${pathToVirtualEnv}/bin/activate"
+  python dataflow_content_clean.py --input \
+    "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/reconstructed_results/revisions*" \
+    --setup_file ./setup.py --output \
+    "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/cleaned_results/wikiconv-${language}-${dumpdate}-" \
+    --error_log="gs://${cloudBucket}/format-clean/error_log_${language}_${dumpdate}-" \
+    --jobname="${language}${dumpdate}" --project "${cloudProject}" --bucket "${cloudBucket}"
+  deactivate
+  cd ..
+fi
