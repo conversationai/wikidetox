@@ -1,6 +1,9 @@
 # mypy cache
 .mypy_cache
 
+# python virtual env folders
+.pyenv
+
 # Editors
 .vscode
 
