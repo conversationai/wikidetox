@@ -132,7 +132,7 @@ The WikiConv dataset includes all the actions led to its final state:
 
 In the *current directory*:
 
-- Follow the steps in section 1 to set up [your cloud project](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-python). Note that *do not proceed* to install the newest google cloud dataflow, which may be in-compatible with some of the packages listed in `requirements.txt`.
+- Follow the steps in [setting up your python dataflow cloud project](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-python). Note that *do not proceed* to install the newest google cloud dataflow, which may be in-compatible with some of the packages listed in `requirements.txt`.
 - Use your service account to set up boto:
   `gsutil config -e`
 - Setup your python2.7 [virtualenv environment](https://packaging.python.org/guides/installing-using-pip-and-virtualenv/) with the `requirements.txt` dependenies installed to run the pipeline:
