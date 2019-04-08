@@ -102,7 +102,7 @@ if (( PHASE3 )); then
     --input_revisions "gs://${cloudBucket}/ingested/${dumpdate}-${language}/*/revisions*.json" \
     --output_state "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/next_stage" \
     --output_conversations "gs://${cloudBucket}/conversations-${language}${dumpdate}" \
-    --runner DirectRunner \
+    --runner DataflowRunner \
     --project "${cloudProject}" \
     --jobname "reconstruction" \
     --num_workers 80
