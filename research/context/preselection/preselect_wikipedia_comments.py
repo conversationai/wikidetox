@@ -11,7 +11,6 @@ from google.cloud import bigquery
 client = bigquery.Client(project="wikidetox-viz")
 
 FLAGS = tf.app.flags.FLAGS
-
 tf.app.flags.DEFINE_integer("zones_num", 10, "Number of zones to be used for sampling.")
 tf.app.flags.DEFINE_string("output_sample_path", None, "Path where the output sample CSV should be written.")
 tf.app.flags.DEFINE_string("output_short_sample_path", None, "Path where the small (100) output sample CSV should be written.")
