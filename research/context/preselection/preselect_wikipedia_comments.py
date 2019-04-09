@@ -26,6 +26,13 @@ The BigQuery table queried to create this sample contains 240M rows (294Gb)
 and we assume that 'toxicity', 'cleaned_content', 'replyTo_id' and 'type'
 attributes exist.
 
+Run as:
+python preselect_wikipedia_comments.py \
+--gbq_project_name "wikidetox-viz" \
+--gbq_table_name "wikiconv_v2.en_20180701_external" \
+--output_csv_path "sample.csv" \
+--limit 100 \
+
 """
 
 from __future__ import absolute_import
@@ -43,7 +50,8 @@ tf.app.flags.DEFINE_integer("randomly_selected_limit", 100, "Number of comments 
 tf.app.flags.DEFINE_string("comment_type", "ADDITION", "The type of comment ('ADDITION', 'DELETION', 'CREATION', 'MODIFICATION').")
 tf.app.flags.DEFINE_integer("min_txt_len", 1, "Minimum length for comments of the sample.")
 tf.app.flags.DEFINE_integer("max_txt_len", 1000, "Maximum length for comments of the sample.")
-tf.app.flags.DEFINE_string("bgq_project_name", None, "The name of the Google BigQuery project.")
+tf.app.flags.DEFINE_string("gbq_table_name", None, "The name of the Google BigQuery table.")
+tf.app.flags.DEFINE_string("gbq_project_name", None, "The name of the Google BigQuery project.")
 tf.app.flags.DEFINE_integer("zones_num", 10, "Number of zones to be used for sampling.")
 tf.app.flags.DEFINE_string("output_csv_path", None, "Path where the output sample CSV should be written.")
 tf.app.flags.DEFINE_string("output_json_path", None, "Path where the output sample JSON should be written.")
@@ -57,7 +65,7 @@ def connect_to_gbq(gbq_project_name):
     client = bigquery.Client(project=gbq_project_name)
     return client
 
-def query(low_tox, high_tox, limit, max_txt_len, min_txt_len, type):
+def query(low_tox, high_tox, limit, max_txt_len, min_txt_len, type, gbq_table_name):
     """
     Google Big Query sampling data of specific types
     :param low_tox: comments should be higher than that
@@ -70,28 +78,28 @@ def query(low_tox, high_tox, limit, max_txt_len, min_txt_len, type):
     assert low_tox>=0 and high_tox<=1
     query = """
     SELECT *, rand() as r 
-        FROM `wikiconv_v2.en_20180701_external`
+        FROM `{gbq_table_name}`
         WHERE length(cleaned_content)>1 AND length(cleaned_content)<{max_txt_len} AND replyTo_id!="null" AND type="{typ}" AND toxicity>{low} AND toxicity<{high}
         order by r
         LIMIT {lim}
-    """.format(low=low_tox, high=high_tox, lim=limit, typ=type, max_txt_len=max_txt_len, min_txt_len=min_txt_len)
+    """.format(gbq_table_name=gbq_table_name, low=low_tox, high=high_tox, lim=limit, typ=type, max_txt_len=max_txt_len, min_txt_len=min_txt_len)
     query_job = client.query(query)
     results = query_job.result()
     return results.to_dataframe()
 
 
-def sample(toxic_zones_num, min_txt_len, max_txt_len, type, limit, randomly_selected_limit):
+def sample(gbq_table_name, toxic_zones_num, min_txt_len, max_txt_len, type, limit, randomly_selected_limit):
     """
     Create a sample of comments using toxic zones and a random batch.
     :param toxic_zones_num:
     :return: toxic_zones_num samples + one with randomly selected comments
     """
     # Create random sample (initialization)
-    table = query(low_tox=0, high_tox=1, min_txt_len=min_txt_len, max_txt_len=max_txt_len, limit=randomly_selected_limit, type=type)
+    table = query(low_tox=0, high_tox=1, min_txt_len=min_txt_len, max_txt_len=max_txt_len, limit=randomly_selected_limit, type=type, gbq_table_name=gbq_table_name)
     table["toxic_zone"] = [-1] * table.shape[0]
     # Add samples following a toxicity-preselection
     for i in tqdm(range(toxic_zones_num)):
-        preselected = query(low_tox=float(i)/toxic_zones_num, high_tox=float(i+1)/toxic_zones_num, min_txt_len=min_txt_len, max_txt_len=max_txt_len, limit=limit, type=type)
+        preselected = query(low_tox=float(i)/toxic_zones_num, high_tox=float(i+1)/toxic_zones_num, min_txt_len=min_txt_len, max_txt_len=max_txt_len, limit=limit, type=type, gbq_table_name=gbq_table_name)
         preselected["toxic_zone"] = [i] * preselected.shape[0]
         # Stack to initialized/updated table
         table = pd.concat([table, preselected], axis=0)
@@ -101,12 +109,12 @@ def sample(toxic_zones_num, min_txt_len, max_txt_len, type, limit, randomly_sele
 
 
 if __name__ == "__main__":
-    assert FLAGS.bgq_project_name is not None
+    assert FLAGS.gbq_project_name is not None
     assert (FLAGS.output_json_path is None and FLAGS.output_csv_path is not None) or (FLAGS.output_json_path is not None and FLAGS.output_csv_path is None)
     assert FLAGS.comment_type in {'ADDITION', 'DELETION', 'CREATION', 'MODIFICATION'}
     # connect to gbq, sample and save
-    client = connect_to_gbq(FLAGS.bgq_project_name)
-    table = sample(toxic_zones_num=FLAGS.zones_num, min_txt_len=FLAGS.min_txt_len, max_txt_len=FLAGS.max_txt_len, limit=FLAGS.limit, type=FLAGS.comment_type, randomly_selected_limit=FLAGS.randomly_selected_limit)
+    client = connect_to_gbq(FLAGS.gbq_project_name)
+    table = sample(gbq_table_name=FLAGS.gbq_table_name, toxic_zones_num=FLAGS.zones_num, min_txt_len=FLAGS.min_txt_len, max_txt_len=FLAGS.max_txt_len, limit=FLAGS.limit, type=FLAGS.comment_type, randomly_selected_limit=FLAGS.randomly_selected_limit)
     if FLAGS.output_csv_path is not None:
         # e.g., "sample.11-toxic-zones.addition.csv"
         table.to_csv(FLAGS.output_csv_path, index=False)
