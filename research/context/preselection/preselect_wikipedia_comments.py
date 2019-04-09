@@ -22,7 +22,9 @@ the sample was stratified to ensure existence of toxic comments. If one
 uses 3 zones, then [0,1] will be divided in [0,0.33), [0.33,0.66) and
 [0.66,1], so that the comments are scored from all three zones.
 
-The BigQuery table queried to create this sample contains 240M rows (332Gb).
+The BigQuery table queried to create this sample contains 240M rows (294Gb)
+and we assume that 'toxicity', 'cleaned_content', 'replyTo_id' and 'type'
+attributes exist.
 
 """
 
@@ -39,6 +41,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer("limit", 100, "Number of comments per zone (zones_num*limit + 1).")
 tf.app.flags.DEFINE_integer("randomly_selected_limit", 100, "Number of comments selected at random, not based on toxicity.")
 tf.app.flags.DEFINE_string("comment_type", "ADDITION", "The type of comment ('ADDITION', 'DELETION', 'CREATION', 'MODIFICATION').")
+tf.app.flags.DEFINE_integer("min_txt_len", 1, "Minimum length for comments of the sample.")
 tf.app.flags.DEFINE_integer("max_txt_len", 1000, "Maximum length for comments of the sample.")
 tf.app.flags.DEFINE_string("bgq_project_name", None, "The name of the Google BigQuery project.")
 tf.app.flags.DEFINE_integer("zones_num", 10, "Number of zones to be used for sampling.")
@@ -54,7 +57,7 @@ def connect_to_gbq(gbq_project_name):
     client = bigquery.Client(project=gbq_project_name)
     return client
 
-def query(low_tox, high_tox, limit, max_txt_len, type):
+def query(low_tox, high_tox, limit, max_txt_len, min_txt_len, type):
     """
     Google Big Query sampling data of specific types
     :param low_tox: comments should be higher than that
@@ -71,24 +74,24 @@ def query(low_tox, high_tox, limit, max_txt_len, type):
         WHERE length(cleaned_content)>1 AND length(cleaned_content)<{max_txt_len} AND replyTo_id!="null" AND type="{typ}" AND toxicity>{low} AND toxicity<{high}
         order by r
         LIMIT {lim}
-    """.format(low=low_tox, high=high_tox, lim=limit, typ=type, max_txt_len=max_txt_len)
+    """.format(low=low_tox, high=high_tox, lim=limit, typ=type, max_txt_len=max_txt_len, min_txt_len=min_txt_len)
     query_job = client.query(query)
     results = query_job.result()
     return results.to_dataframe()
 
 
-def sample(toxic_zones_num, max_txt_len, type, limit, randomly_selected_limit):
+def sample(toxic_zones_num, min_txt_len, max_txt_len, type, limit, randomly_selected_limit):
     """
     Create a sample of comments using toxic zones and a random batch.
     :param toxic_zones_num:
     :return: toxic_zones_num samples + one with randomly selected comments
     """
     # Create random sample (initialization)
-    table = query(low_tox=0, high_tox=1, max_txt_len=max_txt_len, limit=randomly_selected_limit, type=type)
+    table = query(low_tox=0, high_tox=1, min_txt_len=min_txt_len, max_txt_len=max_txt_len, limit=randomly_selected_limit, type=type)
     table["toxic_zone"] = [-1] * table.shape[0]
     # Add samples following a toxicity-preselection
     for i in tqdm(range(toxic_zones_num)):
-        preselected = query(low_tox=float(i)/toxic_zones_num, high_tox=float(i+1)/toxic_zones_num, max_txt_len=max_txt_len, limit=limit, type=type)
+        preselected = query(low_tox=float(i)/toxic_zones_num, high_tox=float(i+1)/toxic_zones_num, min_txt_len=min_txt_len, max_txt_len=max_txt_len, limit=limit, type=type)
         preselected["toxic_zone"] = [i] * preselected.shape[0]
         # Stack to initialized/updated table
         table = pd.concat([table, preselected], axis=0)
@@ -103,7 +106,7 @@ if __name__ == "__main__":
     assert FLAGS.comment_type in {'ADDITION', 'DELETION', 'CREATION', 'MODIFICATION'}
     # connect to gbq, sample and save
     client = connect_to_gbq(FLAGS.bgq_project_name)
-    table = sample(toxic_zones_num=FLAGS.zones_num, max_txt_len=FLAGS.max_txt_len, limit=FLAGS.limit, type=FLAGS.comment_type, randomly_selected_limit=FLAGS.randomly_selected_limit)
+    table = sample(toxic_zones_num=FLAGS.zones_num, min_txt_len=FLAGS.min_txt_len, max_txt_len=FLAGS.max_txt_len, limit=FLAGS.limit, type=FLAGS.comment_type, randomly_selected_limit=FLAGS.randomly_selected_limit)
     if FLAGS.output_csv_path is not None:
         # e.g., "sample.11-toxic-zones.addition.csv"
         table.to_csv(FLAGS.output_csv_path, index=False)
