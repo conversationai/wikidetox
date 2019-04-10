@@ -1,13 +1,16 @@
 <template>
   <div id="app">
-    <ParticleSystem />
-    <CommentDetails />
-    <CommentControls />
-    <BubbleChart />
     <MetricsPanel />
-    <MonthlyMetrics />
-    <MonthlyTrend :datas="monthlyTrendsData" />
-    <DailyTrend :datas="dailyTrendsData" />
+    <div class="canvas-wrapper">
+      <ParticleSystem />
+      <BubbleChart />
+
+      <CommentDetails />
+      <CommentControls />
+
+      <MonthlyTrend :datas="monthlyTrendsData" />
+      <DailyTrend :datas="dailyTrendsData" />
+    </div>
   </div>
 </template>
 
@@ -17,7 +20,6 @@ import CommentDetails from './components/canvas/comments/CommentDetails.vue'
 import CommentControls from './components/canvas/comments/CommentControls.vue'
 import BubbleChart from './components/canvas/BubbleChart.vue'
 import MetricsPanel from './components/controls/MetricsPanel.vue'
-import MonthlyMetrics from './components/controls/MonthlyMetrics.vue'
 import MonthlyTrend from './components/controls/MonthlyTrend.vue'
 import DailyTrend from './components/controls/DailyTrend.vue'
 
@@ -31,7 +33,6 @@ export default {
     CommentControls,
     BubbleChart,
     MetricsPanel,
-    MonthlyMetrics,
     MonthlyTrend,
     DailyTrend
   },
@@ -126,11 +127,16 @@ export default {
     overflow: hidden;
   }
 
+  h1,h2,h3,h4 {
+    font-family: $merriweather;
+    font-weight: 400;
+  }
+
   #app {
     width: 100vw;
     height: 100vh;
     font-size: 13px;
-    font-family: 'Roboto Mono', sans-serif;
+    font-family: $libre;
     overflow: hidden;
     position: relative;
     -webkit-font-smoothing: antialiased;
@@ -138,5 +144,13 @@ export default {
     background: $light-bg;
     color: $dark-text;
     line-height: 1.5;
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-start;
+
+    .canvas-wrapper {
+      flex-grow: 1;
+      position: relative;
+    }
   }
 </style>

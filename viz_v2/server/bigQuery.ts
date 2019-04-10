@@ -51,17 +51,30 @@ export class BigQueryData {
     }
 
     public getMonthTimeline (datastart) {
-        return `SELECT 
+        return ` WITH total AS (
+                    SELECT 
                     DATE_TRUNC(DATE(timestamp), MONTH) as month, 
-                    count(distinct id) as cd 
-                FROM  \`${this.table}\` 
-                WHERE
-                    timestamp > TIMESTAMP('${datastart}')
-                AND RockV6_1_TOXICITY > .8
-                AND type != 'DELETION'
-                GROUP BY month 
-                ORDER BY month DESC
-                `;
+                    count(distinct id) as total_cd 
+                    FROM  \`${this.table}\`
+                    WHERE timestamp > TIMESTAMP('${datastart}')
+                    AND type != 'DELETION'
+                    GROUP BY month 
+                ),
+                tox AS (
+                    SELECT 
+                    DATE_TRUNC(DATE(timestamp), MONTH) as toxmonth, 
+                    count(distinct id) as tox_cd 
+                    FROM  \`${this.table}\`
+                    WHERE timestamp > TIMESTAMP('${datastart}')
+                    AND RockV6_1_TOXICITY > .8
+                    AND type != 'DELETION'
+                    GROUP BY toxmonth 
+                )
+                SELECT month, tox_cd / total_cd as share
+                    FROM total
+                    JOIN tox ON total.month = tox.toxmonth 
+                    ORDER BY total.month DESC 
+        `
     }
 
     public async queryTable(query: string): Promise<object> {

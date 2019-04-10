@@ -1,5 +1,5 @@
 <template>
-  <div id="container"
+  <div id="container" ref="container"
       :class="{'expanded': commentClicked}"
       :style="{ zIndex: zindex }">
   </div>
@@ -114,6 +114,8 @@ export default {
       }
     },
     commentClicked (newVal, oldVal) {
+      this.resize()
+
       if (newVal) { // if clicked = true
         const clickedIndex = this.INTERSECTED
         this.zoomAnimation(clickedIndex, true) // zoom in
@@ -133,6 +135,8 @@ export default {
 
     // When "previous" / "next" is clicked on fullscreen comment
     this.$root.$on('next', d => {
+      this.hoverAnimation(this.INTERSECTED, false, null) // hover leave from last comment
+
       if (this.INTERSECTED === 0 && d < 0) {
         this.INTERSECTED = this.filteredData.length - 1
       } else if (this.INTERSECTED === this.filteredData.length - 1 && d > 0) {
@@ -141,7 +145,7 @@ export default {
         this.INTERSECTED = this.INTERSECTED + d
       }
       // console.log(this.INTERSECTED)
-      this.hoverAnimation(this.INTERSECTED, true, null)
+      this.hoverAnimation(this.INTERSECTED, true, null) // hover leave
       this.zoomAnimation(this.INTERSECTED, true)
     })
   },
@@ -156,8 +160,8 @@ export default {
         alpha: true
       })
       this.view = document.getElementById('container')
-      this.width = window.innerWidth
-      this.height = window.innerHeight - 76
+      this.height = window.innerHeight
+      this.width = window.innerWidth - 262
 
       this.renderer.setSize(this.width, this.height)
       this.view.appendChild(this.renderer.domElement)
@@ -178,23 +182,21 @@ export default {
       this.controls.rotateSpeed = 0.5
       this.controls.zoomSpeed = 0.5
 
-      // Helpers
-      // var axesHelper = new THREE.AxesHelper(5)
-      // this.scene.add(axesHelper)
-
       // Initialize RAYCASTER
       this.raycaster = new THREE.Raycaster()
       this.mouse = new THREE.Vector2()
+
       this.animate()
     },
     resize () {
-      this.width = window.innerWidth
+      this.height = this.$refs.container.clientHeight
       if (this.commentClicked) {
-        this.height = window.innerHeight
+        this.width = window.innerWidth
       } else {
-        this.height = window.innerHeight - 76
-        this.particleSystem.resize()
+        // TODO: mobile width
+        this.width = window.innerWidth - 262
       }
+
       this.camera.aspect = this.width / this.height
       this.camera.updateProjectionMatrix()
       this.renderer.setSize(this.width, this.height)
@@ -222,9 +224,9 @@ export default {
           this.particleSystem.spin = false
           // clear previous hover and add new hover animation
           if (this.INTERSECTED !== intersects[0].index) {
-            // console.log(intersects[0])
             this.$store.commit('CHANGE_COMMENT', null)
             this.hoverAnimation(this.INTERSECTED, false, null) // hover out of previous
+
             if (intersects[0].index !== null) {
               this.INTERSECTED = intersects[0].index
               this.hoverAnimation(this.INTERSECTED, true, intersects[0].distance) // if mouse in = true
@@ -265,6 +267,7 @@ export default {
       } else if (this.sortby === 'trend') {
         datas = this.datas.filter(d => d['type'] !== 'DELETION')
         const categories = ['category1', 'sub_category1', 'category2', 'sub_category2', 'category3', 'sub_category3']
+
         datas = this.datas.filter(d => {
           for (const c of categories) {
             if (d[c] === this.filterby) { return true }
@@ -280,8 +283,9 @@ export default {
     },
     onMouseMove (event) {
       event.preventDefault()
-      this.mouse.x = (event.clientX / this.view.clientWidth) * 2 - 1
-      this.mouse.y = -(event.clientY / this.view.clientHeight) * 2 + 1
+      const offsetX = 262
+      this.mouse.x = ((event.clientX - offsetX) / this.view.clientWidth) * 2 - 1
+      this.mouse.y = -((event.clientY) / this.view.clientHeight) * 2 + 1
     },
     growOut (i) { // todo: move to particle class
       new TWEEN.Tween({ scale: this.attributes.scale.array[ i ] })
@@ -332,7 +336,6 @@ export default {
       this.animateParticleSize(isMouseIn, commentIndex, finalSize)
     },
     zoomAnimation (commentIndex, ifZoomIn) { // Zoom animation on particle click
-      this.resize()
       let camPos, controlTarget
       const vec = this.getVectorPos(commentIndex)
       this.controls.minDistance = 0
@@ -466,14 +469,10 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="scss">
   #container {
-    position: fixed;
+    position: absolute;
     top: 0;
-    left: 0;
-    width: 100vw;
-    height: calc(100vh - 76px);
-    transition: .2s top;
-    &.expanded {
-      height: 100vh;
-    }
+    right: 0;
+    width:  100%;
+    height: 100vh;
   }
 </style>
