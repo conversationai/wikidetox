@@ -1,21 +1,25 @@
 <template>
   <transition name="fade">
-    <div :class="['monthly-timeline-wrapper', {'scrollDown': commentClicked}]"
+    <div :class="['monthly-timeline-wrapper', {'scrollUp': commentClicked}]"
           v-if="monthDatas.length > 0">
         <div v-for = "(d, i) in monthDatas"
             :key="`month-${i}`"
-            :class="['monthly-button', { selected: d.timestamp === dataTimeRange.startTime }]"
-            @click="changeMonth(d)"
-            v-ripple>
-          <span class='year' v-if="d.month === 'JAN'">
-            <span class='year-line'></span>
-            <span class='year-text'>{{d.year}}</span>
+            class="button-wrapper">
+          <div :class="['monthly-button', { selected: d.timestamp === dataTimeRange.startTime }]"
+              @click="changeMonth(d)"
+              v-ripple>
+            <span class="percent">{{d.percentage}}%</span>
+            <span class="month-name">{{d.month}}</span>
+            <svg :width="d.r * 2"
+                :height="d.r * 2">
+              <circle :cx="d.r" :cy="d.r" :r="d.r" fill="#E73C5B" />
+            </svg>
+          </div>
+
+           <span class='year' v-if="d.month === 'JAN'">
+            <span>{{d.year}}</span>
           </span>
-          <span class="month-name">{{d.month}}</span>
-          <svg :width="d.r * 2"
-               :height="d.r * 2">
-            <circle :cx="d.r" :cy="d.r" :r="d.r" fill="#E73C5B" />
-          </svg>
+
         </div>
     </div>
   </transition>
@@ -58,28 +62,24 @@ export default {
         const monthString = timestamp.substr(5, 2)
         const monthNum = monthString.startsWith('0') ? parseInt(monthString.substr(1, 1)) : parseInt(monthString)
         const month = monthNames[monthNum - 1]
-        const total = d.cd
-        const r = Math.round(Math.sqrt(total) / 3)
-        return { timestamp, year, month, total, r }
+        const share = d.share
+        const percentage = (share * 100).toFixed(3)
+        const r = Math.round(Math.sqrt(percentage * 1000))
+        return { timestamp, year, month, percentage, r }
       })
-      const selectedMonth = this.monthDatas.find(d => d.timestamp === this.dataTimeRange.startTime)
-      this.commitDataLength(selectedMonth)
-    },
-    commitDataLength (selectedMonth) {
-      this.selected = selectedMonth.timestamp
-      const lastMonthInd = this.monthDatas.indexOf(selectedMonth) + 1
-      const isFirst = lastMonthInd >= this.monthDatas.length
-      const lastToxicLength = isFirst ? 0 : this.monthDatas[lastMonthInd].total
-      this.$store.commit('CHANGE_DATA_LENGTH', {
-        toxicLength: selectedMonth.total,
-        lastToxicLength: lastToxicLength
-      })
+      this.commitDataLength(this.monthDatas[this.monthDatas.length - 1])
     },
     changeMonth (d) {
       if (d.timestamp !== this.selected) {
         this.$store.commit('CHANGE_TIME', d.timestamp)
         this.commitDataLength(d)
       }
+    },
+    commitDataLength (d) {
+      const ind = this.monthDatas.indexOf(d)
+      const pert = this.monthDatas[ind].percentage
+      const increase = (pert - this.monthDatas[ind - 1].percentage) / this.monthDatas[ind - 1].percentage
+      this.$store.commit('MONTHLY_CHANGE', increase.toFixed(3))
     }
   }
 }
@@ -88,66 +88,64 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="scss">
   .monthly-timeline-wrapper {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    background: $white;
-    height: 76px;
-    width: 100vw;
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 52px;
+    width: 100%;
     overflow-x: scroll;
     direction: rtl;
     overflow-y: hidden;
     white-space: nowrap;
     transition: .2s bottom;
     z-index: 1000;
+    @include box-shadow
+
     &::-webkit-scrollbar {
       display: none;
     }
-    &.scrollDown{
-      bottom: -78px;
+    &.scrollUp{
+      top: -52px;
     }
-    .monthly-button {
+
+    .button-wrapper {
       position: relative;
-      display: inline-block;
-      cursor: pointer;
-      max-width: 168px;
-      min-width: 108px;
-      width: 8.8vw;
-      height: 76px;
       display: inline-flex;
       align-items: center;
-      justify-content: center;
+      cursor: pointer;
+      height: 100%;
+      font-size: 12px;
+      color: $darker-text;
 
-      &.selected {
-        border-top: 3px solid $red;
-        .month-name {
-          color: $darker-text;
-          font-weight: 600;
-        }
-      }
       .year {
-        position: absolute;
-        top: 0;
-        left: 0;
-        .year-line {
-          display: block;
-          position: absolute;
-          width: 2px;
-          height: 50px;
-          background: $light-border;
-          top: 24px;
-          left: 0;
-        }
-        .year-text {
-          display: block;
-          position: absolute;
-          top: 2px;
-          left: -15px;
-        }
+        margin: -5px 20px 0 20px;
       }
-      svg {
-        display: inline-block;
-        margin-right: 10px;
+
+      .percent {
+        color: $red;
+      }
+
+      .monthly-button {
+        width: 168px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.6;
+
+        .month-name {
+          margin: 0 10px;
+        }
+        svg {
+          display: inline-block;
+        }
+        &.selected {
+          border-bottom: 5px solid $red;
+          opacity: 1;
+          .month-name {
+            font-weight: 600;
+          }
+        }
       }
     }
   }

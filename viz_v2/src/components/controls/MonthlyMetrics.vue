@@ -1,42 +1,48 @@
 <template>
   <transition name="fade">
     <div v-if="toxLength" :class="['monthly-data', {'fadeOut': commentClicked}]">
-      <div class="date-wrapper">
-        {{monthName}} {{year}}
+      <h3>
+        {{monthName}}, {{year}}
+      </h3>
+      <div class="increase">
+        <span v-if="monthlyIncrease < 100 && monthlyIncrease > -100">({{Math.abs(monthlyIncrease)}}%)</span>
+        &ensp;
+        <span v-if="monthlyIncrease < 0 && monthlyIncrease > -100">&darr;</span>
+        <span v-if="monthlyIncrease > 0 && monthlyIncrease < 100">&uarr;</span>
       </div>
+
       <div class="data-wrapper">
-        <div class="increase">
-          <span v-if="monthlyIncrease < 0 && monthlyIncrease > -100">&darr;</span>
-          <span v-if="monthlyIncrease > 0 && monthlyIncrease < 100">&uarr;</span>
-          <span v-if="monthlyIncrease < 100 && monthlyIncrease > -100">{{Math.abs(monthlyIncrease)}}%</span>
+        <div>
+          <h4 class="toxic">
+            {{toxLength}}
+          </h4>
+          <div class="type">
+            <span class="circle"></span>
+            <span>TOXIC</span>
+          </div>
         </div>
-        <div class="num">
-          {{toxLength}}
-        </div>
-        <div class="type">
-          <span class="circle"></span>
-          <span>TOXIC</span>
-        </div>
-      </div>
-      <div class="data-wrapper">
-        <div class="num">
-          {{detoxedLength}}
-        </div>
-        <div class="type">
-          <span class="circle"></span>
-          <span>DETOXED</span>
+        <div>
+          <h4>
+            {{detoxedLength}}
+          </h4>
+          <div class="type">
+            <span class="circle detoxed"></span>
+            <span>DETOXED</span>
+          </div>
         </div>
       </div>
+
     </div>
   </transition>
 </template>
 
 <script>
 import {
-  mapState
+  mapState,
+  mapGetters
 } from 'vuex'
 
-const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEPT', 'OCT', 'NOV', 'DEC']
+const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 export default {
   name: 'MonthlyMetrics',
@@ -44,10 +50,12 @@ export default {
     ...mapState({
       month: state => state.SELECTED_MONTH,
       year: state => state.SELECTED_YEAR,
-      toxLength: state => state.toxicLength,
-      detoxedLength: state => state.detoxedLength,
       monthlyIncrease: state => state.monthlyIncrease,
       commentClicked: state => state.commentClicked
+    }),
+    ...mapGetters({
+      toxLength: 'getToxLength',
+      detoxedLength: 'getDetoxLength'
     }),
     monthName () {
       return monthNames[this.month - 1]
@@ -61,50 +69,57 @@ export default {
 
 <style scoped lang="scss">
   .monthly-data {
-    position: fixed;
-    top: 3em;
-    right: 3em;
-    z-index: 1000;
     opacity: 1;
     transition: .2s opacity;
+
     &.fadeOut {
       opacity: 0;
     }
-    .date-wrapper {
-      color: $dark-text;
-      font-weight: 600;
-      margin-bottom: 14px;
+
+    h3 {
+      color: #000;
+      font-size: 18px;
+      margin: 0 0 34px 0;
     }
+    .increase {
+      color: $red;
+      font-size: 10px;
+    }
+
     .data-wrapper {
-      margin-bottom: 14px;
-      .increase {
-        color: $red;
-        font-size: 14px;
-      }
-      .num {
-        font-size: 32px;
-        line-height: 1.2;
-        color: $darker-text;
-        font-weight: 600;
-      }
-      .type {
-        font-size: 12px;
-        color: $light-text;
-      }
-      .circle {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: $red;
-        margin-right: 15px;
-        border: 1px solid $dark-text;
-      }
-      &:last-of-type {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+
+      &>div {
+        padding-right: 20px;
+        h4 {
+          font-size: 30px;
+          line-height: 1.2;
+          color: $darker-text;
+          margin-top: 0;
+          margin-bottom: 14px;
+          &.toxic {
+            color: $red;
+          }
+        }
+        .type {
+          font-size: 12px;
+          color: $light-text;
+        }
         .circle {
-          background: $white;
+          display: inline-block;
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background-color: $red;
+          margin-right: 15px;
+          &.detoxed {
+            background-color: $light-red;
+          }
         }
       }
+
     }
   }
 
