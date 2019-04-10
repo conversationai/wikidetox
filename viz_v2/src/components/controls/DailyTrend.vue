@@ -1,17 +1,19 @@
 <template>
-  <div :class = "['timeline-wrapper', {'hide': hide}]" >
+  <div :class = "['timeline-wrapper', {'hide': hide}]" ref="timelineWrapper">
+
     <svg :width="width" :height="20" v-if="bars.length !== 0">
         <text
           v-for="(d, i) in bars"
+          font-size="10px"
           :key="`text${i}`"
           :class="{ hover: hoverIndex === i }"
           text-anchor="middle"
-          :width="rangeWidth"
-          :x="d.x + rangeWidth/2 - 30"
+          :x="d.x + rangeWidth/2 - 18"
           y="18">
           {{d.label}}
         </text>
     </svg>
+
     <svg :width="width" :height="height"
           v-if="bars.length !== 0"
           @mouseleave="mouseOut()">
@@ -19,7 +21,7 @@
           v-for="(d, i) in bars"
           :key="`line${i}`"
           :x1="d.x" y1="0" :x2="d.x" y2="0"
-          stroke="rgba(0,0,0,0.8)"
+          stroke="rgba(0,0,0,0.4)"
           stroke-width="2" />
       <rect
           v-for="(d, i) in bars"
@@ -68,12 +70,12 @@ export default {
       const domainX = [minDate, maxDate]
       return d3.scaleTime()
         .domain(domainX)
-        .rangeRound([this.width * 0.03 + 28, this.width - 28])
+        .rangeRound([28, this.width - 28])
     },
     scaleY () {
       return d3.scaleLinear()
         .domain([this.maxY, 0]).nice()
-        .rangeRound([this.height - 18, 0])
+        .rangeRound([this.height - 24, 0])
     },
     rangeWidth () {
       return this.width / this.datas.length
@@ -112,8 +114,8 @@ export default {
   },
   methods: {
     onResize () {
-      this.width = window.innerWidth
-      this.height = window.innerHeight * 0.04 > 20 ? window.innerHeight * 0.04 : 80
+      this.width = this.$refs.timelineWrapper.clientWidth
+      this.height = window.innerHeight * 0.04 > 20 ? window.innerHeight * 0.04 : 60
       this.drawBars()
       if (!this.commentClicked) {
         setTimeout(() => {
@@ -182,7 +184,7 @@ export default {
         targets: 'line',
         stroke: {
           value: (el, i) => {
-            return i === index ? '#FF4B4B' : 'rgba(0,0,0,.8)'
+            return i === index ? '#FF4B4B' : 'rgba(0,0,0,.4)'
           },
           easing: 'linear',
           duration: 100
@@ -201,7 +203,7 @@ export default {
       anime({
         targets: 'line',
         stroke: {
-          value: 'rgba(0,0,0,.8)',
+          value: 'rgba(0,0,0,.4)',
           easing: 'linear',
           duration: 100,
           delay: 100
@@ -221,11 +223,10 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="scss">
   .timeline-wrapper {
-    height: 8vh;
-    width: 100vw;
-    position: fixed ;
-    left: 0;
-    bottom: $bottom;
+    position: absolute;
+    height: 60px;
+    width: 100%;
+    bottom: 12px;
     background: transparent;
     display: flex;
     flex-direction: column;
@@ -233,16 +234,18 @@ export default {
     align-items: center;
     z-index: 1000;
     display: block;
+
     .hide {
       display: none;
     }
+
     svg {
       rect {
         cursor: pointer;
       }
       text {
         opacity: 0;
-        transition: .2s opacity;
+        transition: .4s opacity;
         z-index: 1000;
         &.hover {
           opacity: 1;

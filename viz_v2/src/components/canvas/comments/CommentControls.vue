@@ -36,34 +36,32 @@ export default {
 <style scoped lang="scss">
 .controls-wrapper {
     position: fixed;
-    width: 30vw;
-    left: 50%;
-    margin-left: -15vw;
-    min-width: 400px;
-    max-width: 90vw;
-    bottom: 10vh;
-    height: 58px;
+    width: 100vw;
+    left: 0;
+    bottom: 0;
+    height: 66px;
     z-index: 2000;
+
     .controls{
         position: relative;
         width: 100%;
-        height: 58px;
+        height: 100%;
         background-color: #fff;
-        border-radius: 33px;
         color: $red;
-        border: 1px solid $red;
         display: flex;
-        justify-content: space-between;
+        justify-content: center;
         align-items: center;
+
         i {
-            flex-grow: 1;
             cursor: pointer;
-            padding: 8px 12px;
+            padding: 28px;
+
             &:nth-of-type(1) {
-                text-align: left;
+              text-align: left;
             }
             &:nth-of-type(2) {
-                text-align: center;
+              text-align: center;
+
             }
             &:nth-of-type(3) {
                 text-align: right;
