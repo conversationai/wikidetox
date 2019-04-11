@@ -39,7 +39,8 @@ export default {
       lookAtPos: [0, 0, 0],
       filteredData: [],
       viewedData: [],
-      lastCommentIndex: null
+      lastCommentIndex: null,
+      menuWidth: 262
     }
   },
   computed: {
@@ -161,7 +162,7 @@ export default {
       })
       this.view = document.getElementById('container')
       this.height = window.innerHeight
-      this.width = window.innerWidth - 262
+      this.width = window.innerWidth - this.menuWidth
 
       this.renderer.setSize(this.width, this.height)
       this.view.appendChild(this.renderer.domElement)
@@ -194,7 +195,7 @@ export default {
         this.width = window.innerWidth
       } else {
         // TODO: mobile width
-        this.width = window.innerWidth - 262
+        this.width = window.innerWidth - this.menuWidth
       }
 
       this.camera.aspect = this.width / this.height
