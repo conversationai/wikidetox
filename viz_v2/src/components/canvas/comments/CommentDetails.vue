@@ -1,30 +1,32 @@
 <template>
-  <transition name="fade">
-    <div v-if = "ifVisible"
-      :class = "['detail-circle-wrapper', {'transparent': transparent, 'fullScreen': showFullScreen, 'white': detoxed}]"
+  <transition name="fade" v-if="ifVisible">
+    <div 
+      :class = "['detail-circle-wrapper', {'transparent': transparent, 'fullScreen': showFullScreen, 'detoxed': detoxed}]"
       :style = "{ top: circleTop + 'px', left: circleLeft + 'px', width: size + 'px', height: size + 'px' }"
       @mouseup = "commentClick()"
       id="commentCircle"
       >
-      <div class="content">
+      <div class="title">
+        <p>{{pageType}}</p>
         <h4>
-          {{pageType}}:<br>
           {{pageTitle}}
         </h4>
         <p v-if="showFullScreen">{{date}}</p>
-        <p class="comment">
-          {{comment}}
-        </p>
-        <p v-if="showFullScreen">TOXICITY SCORE</p>
-        <div v-if="showFullScreen" class="score-wrapper">
-          <div class="score">
-            {{score}}%
-          </div>
-          <div class="btn" v-ripple>change score</div>
-          <div class="btn" v-ripple>view edit</div>
+      </div>
+      <p class="comment">
+        {{comment}}
+      </p>
+        <div class="score-wrapper">
+          <h4 v-if="!detoxed">
+            {{score}}% <span v-if="showFullScreen">Toxicity Score</span>
+          </h4>
+          <h4 v-if="detoxed">
+            Detoxed
+          </h4>
+          <div class="btn" v-if="showFullScreen" v-ripple>Not toxic</div>
+          <div class="btn action " v-if="showFullScreen && !detoxed" v-ripple>Detox comment</div>
         </div>
       </div>
-    </div>
   </transition>
 </template>
 
@@ -72,10 +74,10 @@ export default {
         this.date = (new Date(d.unix)).toLocaleString()
 
         // this.size = newVal.size * 3.6
-        this.size = 286
+        this.size = 266
 
         this.circleTop = newVal.pos.y - this.size / 2
-        this.circleLeft = newVal.pos.x - this.size / 2
+        this.circleLeft = newVal.pos.x - this.size / 2 + 262 // 262 = left panel size
       }
     },
     commentClicked (clicked, oldVal) {
@@ -119,36 +121,69 @@ export default {
     background: radial-gradient(rgb(255,60,91), transparent);
     transition: height .3s ease, width .3s ease, opacity 0.1s ease;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-
     overflow: hidden;
     cursor: pointer;
 
-    &.white {
-      color: $darker-text;
-      background: radial-gradient(#fff, transparent);
-      .score-wrapper {
-        border-top: 1px solid $red !important;
+    &.detoxed {
+      color: $red;
+      background: radial-gradient($light-red, transparent);
+
+      &.fullScreen {
+        .score-wrapper {
+          width: 100%;
+          border-top: 1px solid $red;
+          .btn {
+            color: $red;
+            border: 1px solid $red !important;
+            &.action {
+              background-color: $red !important;
+              color: #fff !important;
+            }
+          }
+        }
       }
     }
+
     &.transparent {
       background: none !important;
     }
-    .content {
+
+    .title {
+      text-align: center;
       max-width: 180px;
+      margin: 0 auto;
+      p {
+        padding: 0;
+        margin: 0;
+      }
       h4 {
         font-size: 14px;
-        margin-bottom: 0;
+        margin: 0;
       }
-      .comment {
-        font-size: 11px;
-        max-width: 100%;
-        overflow: hidden;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
+    }
+    
+    .comment {
+      font-size: 14px;
+      max-width: 180px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+
+    .score-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+        h4 {
+          font-size: 14px;
+          margin: 0;
+        }
     }
 
     &.fullScreen {
@@ -162,42 +197,54 @@ export default {
       text-align: left;
       cursor: auto;
 
-      .content {
+      &>div {
         width: 78%;
         max-width: 646px;
-        padding-bottom: 8em;
+      }
+
+      .title {
         h4 {
-          font-size: 24px;
-          max-width: 646px;
-        }
-        .comment {
-          font-size: 15px;
-          white-space: normal;
-          overflow-y: scroll;
-          max-width: 646px;
-          max-height: 24vh;
-          padding: 1.6em 0 2em 0;
-        }
-        .score-wrapper {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-top: 1px solid #fff;
-          padding-top: 14px;
-          .score {
-            font-size: 24px;
-            flex-grow: 1;
-          }
-          .btn {
-            text-transform: uppercase;
-            font-size: 15px;
-            margin-left: 20px;
-            margin-right: -20px;
-            padding: 20px;
-            cursor: pointer;
-          }
+          font-size: 28px;
+          margin-top: 18px;
         }
       }
+
+      .score-wrapper {
+        justify-content: space-between;
+        border-top: 1px solid #fff;
+        padding-top: 14px;
+        h4 {
+          font-size: 20px;
+          flex-grow: 1;
+        }
+        .btn {
+            text-transform: uppercase;
+            font-size: 12px;
+            padding: 10px 18px;
+            border-radius: 20px;
+            margin-left: 18px;
+            border: 1px solid #fff;
+            cursor: pointer;
+            background-color: transparent;
+
+            &.action {
+              background-color: #fff;
+              color: $red;
+            }
+        }
+      }
+
+      .comment {
+        font-size: 20px;
+        white-space: normal;
+        overflow-y: scroll;
+        max-width: 646px;
+        max-height: 24vh;
+        padding: 3em 0 2.6em;
+        margin: 0;
+        text-align: left;
+      }
+        
     }
   }
 

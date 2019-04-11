@@ -1,18 +1,21 @@
-$light-bg: #ECECEC;
+$light-bg: #F8F9FA;
 $lighter-bg: #F8F8F8;
-$red: #E63C5B;
+$red: #EF002F;
+$light-red: #FCE8E6;
 $white: #fff;
 $darker-text: rgba(0,0,0,0.9);
 $dark-text: rgba(0,0,0,0.5);
 $light-text: #8C8C8C;
 $light-border: #F1F1F1;
 
-$bottom: 76px;
+$panel-width: 262px;
+$merriweather: 'Merriweather', serif;
+$libre: 'Libre Franklin', sans-serif;
 
 @mixin box-shadow() {
-    -webkit-box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.2);
-    -moz-box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.2);
-    box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.2);
+    -webkit-box-shadow: 0px 0px 2px 0px rgba(0,0,0,0.2);
+    -moz-box-shadow: 0px 0px 2px 0px rgba(0,0,0,0.2);
+    box-shadow: 0px 0px 2px 0px rgba(0,0,0,0.2);
 }
 
 @mixin gradient() {

@@ -77,10 +77,10 @@ export class Particles {
       let color
       if (d.type === 'DELETION') {
         finalSizes[i] = sizeWeight
-        color = [0.86, 1, 1]
+        color = [0.988, 0.91, 0.92]
       } else {
         finalSizes[i] = (Number(d.RockV6_1_TOXICITY) - 0.75) * sizeWeight * 20
-        color = [0.86, 0.23, 0.36]
+        color = [0.937, 0, 0.184]
       }
       colors[ 4 * i ] = color[0]
       colors[ 4 * i + 1 ] = color[1]

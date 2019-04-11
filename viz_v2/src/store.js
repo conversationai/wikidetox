@@ -41,6 +41,18 @@ export default new Vuex.Store({
       const endTime = `${endYear}-${endMonthString}-01`
       return { startTime, endTime }
     },
+    getToxLength: state => {
+      const data = state.datas.filter(data => {
+        return data['type'] !== 'DELETION'
+      })
+      return data.length
+    },
+    getDetoxLength: state => {
+      const data = state.datas.filter(data => {
+        return data['type'] === 'DELETION'
+      })
+      return data.length
+    },
     getTalkpage: state => {
       return state.datas.filter(data => {
         return data['page_title'].startsWith('Talk:') && data['type'] !== 'DELETION'
@@ -112,10 +124,9 @@ export default new Vuex.Store({
       state.SELECTED_YEAR = parseInt(newtime.substr(0, 4))
       state.SELECTED_MONTH = monthString.startsWith('0') ? parseInt(monthString.substr(1, 1)) : parseInt(monthString)
     },
-    CHANGE_DATA_LENGTH (state, lengths) {
-      state.toxicLength = lengths.toxicLength
-      const increase = (lengths.toxicLength - lengths.lastToxicLength) / lengths.lastToxicLength
-      state.monthlyIncrease = (increase * 100).toFixed(1)
+    MONTHLY_CHANGE (state, newChange) {
+      state.monthlyIncrease = newChange
+      console.log(newChange)
     },
     SET_DATA (state, data) {
       state.datas = data
