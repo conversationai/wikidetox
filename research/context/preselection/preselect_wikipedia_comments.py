@@ -37,6 +37,11 @@ python preselect_wikipedia_comments.py \
 --zones_num 10 \
 --limit_per_zone 10 \
 --randomly_selected_limit 0 \
+--stratified 1 \
+
+WARNING: In order to read the saved JSON through pandas, use the following.
+>>> sample = pandas.read_json("my_sample.json", orient="records", lines=True)
+
 """
 
 from __future__ import absolute_import
@@ -93,8 +98,48 @@ def query(low_tox, high_tox, limit, max_txt_len, min_txt_len, type, bq_table_nam
     return results.to_dataframe()
 
 
-def sample(bq_table_name, toxic_zones_num, min_txt_len, max_txt_len, type, limit, randomly_selected_limit):
+def sample_based_on_toxicity(limit, max_txt_len, min_txt_len, type, bq_table_name, toxic_zones_num, randomly_selected_limit):
     """
+    Google Big Query sampling data of specific types
+    :param limit: fetch some
+    :param type: kind of comments (wikipedia specific)
+    :param max_txt_len: max length of comment
+    :param bq_table_name: the table name in BigQuery
+    :param toxic_zones_num: number of toxic zones to be created from 0 to 1
+    :return: dataframe with results
+    """
+    query = """"""
+    if randomly_selected_limit>0:
+        query = """
+            (SELECT *, rand() as r 
+            FROM `{bq_table_name}`
+            WHERE length(cleaned_content)>{min_txt_len} AND length(cleaned_content)<{max_txt_len} AND replyTo_id!="null" AND type="{typ}" 
+            LIMIT {limit} 
+            )
+            """.format(bq_table_name=bq_table_name, typ=type, max_txt_len=max_txt_len, min_txt_len=min_txt_len, limit=randomly_selected_limit)
+    for i in range(toxic_zones_num):
+        low_tox_zone = float(i) / toxic_zones_num
+        high_tox_zone = float(i + 1) / toxic_zones_num
+        new_query = """
+            (SELECT *, rand() as r 
+            FROM `{bq_table_name}`
+            WHERE length(cleaned_content)>{min_txt_len} AND length(cleaned_content)<{max_txt_len} AND replyTo_id!="null" AND type="{typ}" AND toxicity>={low} AND toxicity<{high}
+            LIMIT {limit})
+            """.format(bq_table_name=bq_table_name, low=low_tox_zone, high=high_tox_zone, typ=type, max_txt_len=max_txt_len, min_txt_len=min_txt_len, limit=limit)
+        if len(query)==0: # if no random query done already
+            query = new_query
+        else:
+            query += """\n\nUNION ALL\n\n""" + new_query # else, unite the queries
+        # Order randomly and limit
+    query += """ORDER BY r\n"""
+    query_job = client.query(query)
+    results = query_job.result()
+    return results.to_dataframe()
+
+
+def sample_with_multiple_queries(bq_table_name, toxic_zones_num, min_txt_len, max_txt_len, type, limit, randomly_selected_limit):
+    """
+    @DEPRECATED
     Create a sample of comments using toxic zones and a random batch.
     :param toxic_zones_num:
     :return: toxic_zones_num samples + one with randomly selected comments
@@ -119,7 +164,8 @@ if __name__ == "__main__":
     assert FLAGS.comment_type in {'ADDITION', 'DELETION', 'CREATION', 'MODIFICATION'}
     # connect to bq, sample and save
     client = connect_to_bq(FLAGS.bq_project_name)
-    table = sample(bq_table_name=FLAGS.bq_table_name, toxic_zones_num=FLAGS.zones_num, min_txt_len=FLAGS.min_txt_len, max_txt_len=FLAGS.max_txt_len, limit=FLAGS.limit_per_zone, type=FLAGS.comment_type, randomly_selected_limit=FLAGS.randomly_selected_limit)
+    # call the query
+    table = sample_based_on_toxicity(bq_table_name=FLAGS.bq_table_name, toxic_zones_num=FLAGS.zones_num, min_txt_len=FLAGS.min_txt_len, max_txt_len=FLAGS.max_txt_len, limit=FLAGS.limit_per_zone, type=FLAGS.comment_type, randomly_selected_limit=FLAGS.randomly_selected_limit)
     if FLAGS.output_csv_path is not None:
         # e.g., "sample.11-toxic-zones.addition.csv"
         table.to_csv(FLAGS.output_csv_path, index=False)
