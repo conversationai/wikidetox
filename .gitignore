@@ -1,3 +1,6 @@
+# PyCharm files
+.idea
+
 # mypy cache
 .mypy_cache
 
