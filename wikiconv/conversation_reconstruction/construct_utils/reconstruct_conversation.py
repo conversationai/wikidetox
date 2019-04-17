@@ -6,6 +6,7 @@ import tempfile
 import resource
 import os
 from os import path
+from google.cloud import storage
 
 from construct_utils.conversation_constructor import Conversation_Constructor
 
@@ -103,7 +104,10 @@ class ReconstructConversation(beam.DoFn):
     logging.info('Reconstruction on page %s started.' % (page_id))
     if 'text' not in revision_lst[0]:
       tempfile_path = tempfile.mkdtemp()
-      os.system("gsutil -m cp -r %s %s" % (path.join(tmp_input, page_id), tempfile_path + '/'))
+      storage_client = storage.Client()
+      bucket = storage_client.get_bucket(tmp_input)
+      blob = bucket.blub(page_id)
+      blob.download_to_filename(path.join(tempfile_path, page_id))
     for key in revision_lst:
         if 'text' not in key:
            with open(path.join(tempfile_path, page_id, str(key['rev_id'])), 'r') as f:

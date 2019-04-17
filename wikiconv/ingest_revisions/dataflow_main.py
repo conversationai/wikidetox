@@ -76,6 +76,7 @@ import re
 import argparse
 import boto
 import gcs_oauth2_boto_plugin
+from google.cloud import storage
 # boto needs to be configured, see here:
 # https://cloud.google.com/storage/docs/boto-plugin#setup-python
 
@@ -131,10 +132,12 @@ class DownloadDataDumps(beam.DoFn):
     logging.info('USERLOG: Download data dump %s to store in cloud storage.' % chunk_name)
     # Download data dump from Wikipedia and upload to cloud storage.
     url = mirror + "/" + chunk_name
-    write_path = path.join('gs://', bucket, chunk_name)
     urllib.urlretrieve(url, chunk_name)
-    os.system("gsutil cp %s %s" % (chunk_name, write_path))
-    os.system("rm %s" % chunk_name)
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(bucket)
+    blob = bucket.blob(chunk_name)
+    blop.upload_from_filename(chunk_name)
+    os.remove(chunk_name)
     yield chunk_name
     return
 
@@ -150,10 +153,13 @@ class WriteDecompressedFile(beam.DoFn):
     chunk_name = element
     logging.info('USERLOG: Running ingestion process on %s' % chunk_name)
     if ingestFrom == 'local':
-       input_stream = chunk_name
+      input_stream = chunk_name
     else:
-       os.system("gsutil -m cp %s %s" % (path.join('gs://', bucket, chunk_name), chunk_name))
-       input_stream = chunk_name
+      storage_client = storage.Client()
+      bucket = storage_client.get_bucket(bucket)
+      blob = bucket.blob(chunk_name)
+      blob.download_to_filename(chunk_name)
+      input_stream = chunk_name
     # Running ingestion on the xml file
     last_revision = 'None'
     last_completed = time.time()
@@ -181,7 +187,7 @@ class WriteDecompressedFile(beam.DoFn):
     if page_size >= MEMORY_THERESHOLD:
       self.large_page_revision_count.inc(cur_page_revision_cnt)
 
-    if ingestFrom != 'local': os.system("rm %s" % chunk_name)
+    if ingestFrom != 'local': os.remove(chunk_name)
     logging.info('USERLOG: Ingestion on file %s complete! %s lines emitted, last_revision %s' % (chunk_name, i, last_revision))
 
 class WriteToStorage(beam.DoFn):
