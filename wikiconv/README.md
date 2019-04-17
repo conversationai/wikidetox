@@ -141,7 +141,7 @@ In the *current directory*:
     # Create virtual env in a filder called `.pyenv`
     python2.7 -m virtualenv .pyenv
     # Enter your python virtual environment.
-    .pyenv/bin/activate
+    . .pyenv/bin/activate
     # Install dependenies.
     pip install -r requirements.txt
     # ... do stuff like run the pipline....
