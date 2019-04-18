@@ -1,4 +1,4 @@
-apache-beam==2.11.0
+apache-beam==2.7.0
 beautifulsoup4==4.6.0
 bs4==0.0.1
 deltas==0.4.6
