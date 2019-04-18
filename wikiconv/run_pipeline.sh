@@ -59,7 +59,6 @@ if (( PHASE1 )); then
   . "${pathToVirtualEnv}/bin/activate"
   python dataflow_main.py --setup_file ./setup.py --download \
     --ingestFrom=wikipedia --language="${language}" --dumpdate="${dumpdate}" \
-    --cloudBucket="${cloudBucket}/raw-downloads/${language}-${dumpdate}" \
     --project "${cloudProject}" --bucket "${cloudBucket}"
   deactivate
   cd ..
@@ -72,7 +71,6 @@ if (( PHASE2 )); then
   . "${pathToVirtualEnv}/bin/activate"
   python dataflow_main.py --setup_file ./setup.py --ingestFrom=cloud \
     --language="${language}" --dumpdate="${dumpdate}" \
-    --cloudBucket="${cloudBucket}/raw-downloads/${language}-${dumpdate}" \
     --output="gs://${cloudBucket}/ingested" --project "${cloudProject}" \
     --bucket "${cloudBucket}"
   deactivate

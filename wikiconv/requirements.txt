@@ -1,13 +1,11 @@
 apache-beam==2.11.0
 beautifulsoup4==4.6.0
-boto==2.48.0
 bs4==0.0.1
 deltas==0.4.6
 future==0.16.0
 gax-google-logging-v2==0.8.3
 gax-google-pubsub-v1==0.8.3
 gcloud==0.18.3
-gcs-oauth2-boto-plugin==1.14
 google==2.0.1
 google-api-core==0.1.4
 google-apitools==0.5.23
