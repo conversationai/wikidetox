@@ -1,4 +1,4 @@
-"""Dataflow Main.
+r"""Dataflow Main.
 
 Copyright 2017 Google Inc. Licensed under the Apache License, Version 2.0
 (the "License"); you may not use this file except in compliance with the
@@ -25,18 +25,23 @@ python dataflow_main.py --setup_file ./setup.py
 
 Args:
 ingestFrom: choose from the three options : {wikipedia, local, cloud}:
-  - wikipedia: performs the downloading job from Wikipedia, run with: [python
-    dataflow_main.py --setup_file ./setup.py --ingestFrom=wikipedia --download
-    --language=YourLanguage --dumpdate=YourDumpdate --blobPrefix=YourCloudBucket
-    --project=YourGoogleCloudProject --bucket=TemporaryFileBucket]
-  - local: Tests the pipeline locally, run the code with [python
-    dataflow_main.py --setup_file ./setup.py --ingestFrom=local
-    --localStorage=YourLocalStorage --testmode --output=YourOutputStorage
-    --project=YourGoogleCloudProject --bucket=TemporaryFileBucket]
+  - wikipedia: performs the downloading job from Wikipedia, run with: [
+    python dataflow_main.py --setup_file ./setup.py --ingestFrom=wikipedia \
+        --download --language=YourLanguage --dumpdate=YourDumpdate \
+        --blobPrefix=YourCloudBucket --project=YourGoogleCloudProject \
+        --bucket=TemporaryFileBucket
+  ]
+  - local: Tests the pipeline locally, run the code with [
+    python dataflow_main.py --setup_file ./setup.py --ingestFrom=local \
+    --localStorage=YourLocalStorage --testmode --output=YourOutputStorage \
+    --project=YourGoogleCloudProject --bucket=TemporaryFileBucket
+  ]
   - cloud: Reads from downloaded bz2 files on cloud, performs the ingestion job,
-    run the code with [python dataflow_main.py --setup_file ./setup.py
-    [--ingestFrom=cloud --output=gs://bucket/YourOutputStorage --blobPrefix=YourCloudBucket
-    --project=YourGoogleCloudProject --bucket=TemporaryFileBucket]
+    run the code with [
+    python dataflow_main.py --setup_file ./setup.py --ingestFrom=cloud \
+        --output=gs://bucket/YourOutputStorage --blobPrefix=YourCloudBucket \
+        --project=YourGoogleCloudProject --bucket=TemporaryFileBucket
+  ]
 output: the data storage where you want to store the ingested results
 language: the language of the wikipedia data you want to extract, e.g. en, fr,
   zh
