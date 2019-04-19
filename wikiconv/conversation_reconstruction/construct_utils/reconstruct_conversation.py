@@ -5,7 +5,7 @@ import json
 import tempfile
 import resource
 import os
-from os import path
+import shutil
 from google.cloud import storage
 
 from construct_utils.conversation_constructor import Conversation_Constructor
@@ -31,10 +31,11 @@ class ReconstructConversation(beam.DoFn):
        ret_p['authors'] = ret_p['authors']
        return ret_p
 
-  def process(self, info, tmp_input):
+  def process(self, info, bucket, tmp_input):
     """
     Args:
-      tmp_input: a cloud storage path to copy JSON revision files from. This
+      bucket: a cloud storage bucket.
+      tmp_input: a path to copy JSON revision files from. This
         allows data to be copied to this local machine's disk for external
         sorting (when there are more revisions than can fit in memory).
     """
@@ -104,15 +105,20 @@ class ReconstructConversation(beam.DoFn):
     logging.info('Reconstruction on page %s started.' % (page_id))
     if 'text' not in revision_lst[0]:
       tempfile_path = tempfile.mkdtemp()
-      storage_client = storage.Client()
-      bucket = storage_client.get_bucket(tmp_input)
-      blob = bucket.blub(page_id)
-      blob.download_to_filename(path.join(tempfile_path, page_id))
+      if tmp_input.startswith('gs://'):
+        storage_client = storage.Client()
+        end = tmp_input.find('/', 5)
+        bucket = storage_client.get_bucket(tmp_input[5, end])
+        blob = bucket.blob(os.path.join(tempfile_path, page_id))
+        blob.download_to_filename(os.path.join(tempfile_path, page_id))
+      else:
+        shutil.copyfile(os.path.join(tmp_input, page_id),
+                        os.path.join(tempfile_path, page_id))
     for key in revision_lst:
         if 'text' not in key:
-           with open(path.join(tempfile_path, page_id, str(key['rev_id'])), 'r') as f:
+           with open(os.path.join(tempfile_path, page_id, str(key['rev_id'])), 'r') as f:
               revision = json.load(f)
-           os.system("rm %s" % path.join(tempfile_path, page_id, str(key['rev_id'])))
+           os.remove(os.path.join(tempfile_path, page_id, str(key['rev_id'])))
         else:
            revision = key
         revision['rev_id'] = int(revision['rev_id'])
