@@ -5,7 +5,6 @@ import json
 import tempfile
 import resource
 import os
-import shutil
 from google.cloud import storage
 
 from construct_utils.conversation_constructor import Conversation_Constructor
@@ -103,25 +102,20 @@ class ReconstructConversation(beam.DoFn):
     revision_lst = sorted(rev_ids, key=lambda x: (x['timestamp'], x['rev_id']))
     last_loading = 0
     logging.info('Reconstruction on page %s started.' % (page_id))
-    if 'text' not in revision_lst[0]:
-      tempfile_path = tempfile.mkdtemp()
-      if tmp_input.startswith('gs://'):
-        storage_client = storage.Client()
-        bucket_name_end = tmp_input.find('/', 5)
-        bucket = storage_client.get_bucket(tmp_input[5:bucket_name_end])
-        prefix = os.path.join(tmp_input[bucket_name_end+1:], page_id)
-        os.mkdir(os.path.join(tempfile_path, page_id))
-        for blob in bucket.list_blobs(delimiter='/', prefix=prefix):
-          suffix = os.path.basename(blob.name)
-          blob.download_to_filename(os.path.join(tempfile_path, page_id, suffix))
-      else:
-        shutil.copytree(os.path.join(tmp_input, page_id),
-                        os.path.join(tempfile_path, page_id))
     for key in revision_lst:
+        rev_id_str = str(key['rev_id'])
         if 'text' not in key:
-           with open(os.path.join(tempfile_path, page_id, str(key['rev_id'])), 'r') as f:
+          if tmp_input.startswith('gs://'):
+            # Read from cloud storage
+            bucket_name_end = tmp_input.find('/', 5)
+            bucket = storage.Client().get_bucket(tmp_input[5:bucket_name_end])
+            revision = json.loads(bucket.get_blob(os.path.join(
+                tmp_input[bucket_name_end+1:], page_id,
+                rev_id_str)).download_as_string())
+          else:
+            # Read directly.
+            with open(os.path.join(tmp_input, page_id, rev_id_str), 'r') as f:
               revision = json.load(f)
-           os.remove(os.path.join(tempfile_path, page_id, str(key['rev_id'])))
         else:
            revision = key
         revision['rev_id'] = int(revision['rev_id'])
