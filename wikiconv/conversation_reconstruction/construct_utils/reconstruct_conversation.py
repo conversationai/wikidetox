@@ -110,6 +110,7 @@ class ReconstructConversation(beam.DoFn):
         bucket_name_end = tmp_input.find('/', 5)
         bucket = storage_client.get_bucket(tmp_input[5:bucket_name_end])
         prefix = os.path.join(tmp_input[bucket_name_end+1:], page_id)
+        os.mkdir(tempfile_path, page_id)
         for blob in bucket.list_blobs(delimiter='/', prefix=prefix):
           suffix = os.path.basename(blob.name)
           blob.download_to_filename(os.path.join(tempfile_path, page_id, suffix))
