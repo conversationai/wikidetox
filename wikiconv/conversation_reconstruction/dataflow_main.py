@@ -304,7 +304,7 @@ class Locations:
       known_args.output_state + "/dataflow_tmp/temp/")
 
     self.output_revs_with_marks = (
-      known_args.output_state + "/revs_with_marks/revs_with_marks")
+      known_args.output_state + "/revs_with_marks")
     self.output_page_states = (
       known_args.output_state + "/page_states/page_states")
     self.output_last_revisions = (
