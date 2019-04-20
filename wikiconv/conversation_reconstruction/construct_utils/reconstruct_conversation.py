@@ -31,7 +31,7 @@ class ReconstructConversation(beam.DoFn):
        ret_p['authors'] = ret_p['authors']
        return ret_p
 
-  def process(self, info, bucket, tmp_input):
+  def process(self, info, tmp_input):
     """
     Args:
       bucket: a cloud storage bucket.
@@ -107,12 +107,14 @@ class ReconstructConversation(beam.DoFn):
       tempfile_path = tempfile.mkdtemp()
       if tmp_input.startswith('gs://'):
         storage_client = storage.Client()
-        end = tmp_input.find('/', 5)
-        bucket = storage_client.get_bucket(tmp_input[5, end])
-        blob = bucket.blob(os.path.join(tempfile_path, page_id))
-        blob.download_to_filename(os.path.join(tempfile_path, page_id))
+        bucket_name_end = tmp_input.find('/', 5)
+        bucket = storage_client.get_bucket(tmp_input[5:bucket_name_end])
+        prefix = os.path.join(tmp_input[bucket_name_end+1:], page_id)
+        for blob in bucket.list_blobs(delimiter='/', prefix=prefix):
+          suffix = os.path.basename(blob.name)
+          blob.download_to_filename(os.path.join(tempfile_path, page_id, suffix))
       else:
-        shutil.copyfile(os.path.join(tmp_input, page_id),
+        shutil.copytree(os.path.join(tmp_input, page_id),
                         os.path.join(tempfile_path, page_id))
     for key in revision_lst:
         if 'text' not in key:
