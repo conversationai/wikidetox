@@ -33,7 +33,7 @@ class ReconstructConversation(beam.DoFn):
   def process(self, info, tmp_input):
     """
     Args:
-      bucket: a cloud storage bucket.
+      info: the beam DoFn input, a tuple of the page_id and data.
       tmp_input: a path to copy JSON revision files from. This
         allows data to be copied to this local machine's disk for external
         sorting (when there are more revisions than can fit in memory).
