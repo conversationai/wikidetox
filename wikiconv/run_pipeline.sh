@@ -112,16 +112,16 @@ if (( PHASE4 )); then
   gsutil -m mv \
     "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/next_stage/" \
     "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/page_states"
-  gsutil -m rm -r "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}"
   gsutil -m mv \
-    "gs://${cloudBucket}/reconstructed_res/reconstruction-pages-${language}${dumpdate}" \
-    "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/reconstructed_results"
+    "gs://${cloudBucket}/conversations-${language}${dumpdate}" \
+    "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/conversations"
+  gsutil -m rm -r "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}"
 
   # Clean Result Format
   cd conversation_reconstruction
   . "${pathToVirtualEnv}/bin/activate"
   python dataflow_content_clean.py --input \
-    "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/reconstructed_results/revisions*" \
+    "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/conversations/conversations*" \
     --setup_file ./setup.py --output \
     "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/cleaned_results/wikiconv-${language}-${dumpdate}-" \
     --error_log="gs://${cloudBucket}/format-clean/error_log_${language}_${dumpdate}-" \

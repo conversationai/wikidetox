@@ -313,7 +313,7 @@ class Locations:
       known_args.output_state + "/error_logs/error_log")
 
     self.output_conversations = (
-      known_args.output_conversations + "/conversations/conversations")
+      known_args.output_conversations + "/conversations")
 
 if __name__ == '__main__':
   # logging.basicConfig(filename="debug.log", level=logging.INFO)
