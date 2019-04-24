@@ -1,0 +1,262 @@
+<template>
+  <div :class="['panel-wrapper', {'hidden': commentClicked}]">
+    <!-- Title & Description -->
+    <div>
+      <img src="../../assets/logo.svg" />
+      <p>
+        Help our <span>community</span> improve the conversations behind Wikipedia. Find and edit comment <span>toxicity</span> on <span>talk pages</span>.
+      </p>
+    </div>
+
+    <!-- Month data -->
+    <div>
+      <MonthlyMetrics />
+    </div>
+
+    <!-- LIST OF METRICS -->
+    <div>
+      <h4>Toxicity filters</h4>
+      <ul>
+        <!-- ALL COMMENTS -->
+        <li @click="sortClick('all')" v-ripple>
+          <span :class="['root', { selected: sort === 'all'}]">All</span>
+        </li>
+
+        <!-- TOP TRENDS -->
+        <li :class="{ expanded: sort === 'trend'}"
+            @click="sortClick('trend')" v-ripple>
+          <span :class="['root', {selected: sort === 'trend' && filter === null }]"> Trending </span>
+          <ul class="nested" :class="{'expand': sort === 'trend'}">
+              <li v-for="(item, i) in trends" :key="`trend-${i}`"
+                  :class="{selected: filter === item.cat }"
+                  @click.stop.prevent="sortSubcategory(item.cat)"
+                  >
+                  <span>{{item.cat}}</span>
+                  <span class="num">
+                    {{item.count}}
+                    <div class="circle"></div>
+                  </span>
+              </li>
+          </ul>
+        </li>
+
+        <!-- PAGE CATEGORY -->
+        <li :class="{ expanded: sort === 'type'}"
+            @click="sortClick('type')" v-ripple>
+          <span :class="['root', {selected: sort === 'type' && filter === null }]">Page Type</span>
+          <ul class="nested" :class="{ expanded: sort === 'type'}">
+              <li @click.stop.prevent="sortSubcategory('User page')"
+                  :class="{selected: filter === 'User page' }">
+                <span>User Page</span>
+                <span class="num">
+                  {{userpageLength}}
+                  <div class="circle"></div>
+                </span>
+              </li>
+              <li @click.stop.prevent="sortSubcategory('Talk page')"
+                  :class="{selected: filter === 'Talk page' }" >
+                <span>Talk Page</span>
+                <span class="num">
+                  {{talkpageLength}}
+                  <div class="circle"></div>
+                </span>
+              </li>
+          </ul>
+        </li>
+
+        <!-- TOXICITY TYPES -->
+        <li :class="{ expanded: sort === 'model'}"
+            @click="sortClick('model')" v-ripple>
+          <span :class="['root', {selected: sort === 'model' && filter === null }]">Toxicity Subtype</span>
+          <ul class="nested" :class="{ expanded: sort === 'model'}">
+              <li v-for="(item, i) in models" :key="`model-${i}`"
+                  @click.stop.prevent="sortSubcategory(item.model)"
+                  :class="{selected: filter === item.model }" >
+                <span>{{item.name}}</span>
+                <span class="num">
+                  {{item.length}}
+                  <div class="circle"></div>
+                </span>
+              </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+
+    <a href="https://jigsaw.google.com" target="_blank">
+      <img src="../../assets/jigsaw-logo.svg" />
+    </a>
+
+  </div>
+</template>
+
+<script>
+import { mapState, mapGetters } from 'vuex'
+import MonthlyMetrics from './MonthlyMetrics.vue'
+
+export default {
+  name: 'MetricsPanel',
+  components: {
+    MonthlyMetrics
+  },
+  computed: {
+    ...mapState({
+      sort: state => state.sortby,
+      filter: state => state.filterby,
+      commentClicked: state => state.commentClicked
+    }),
+    ...mapGetters({
+      talkpageLength: 'getTalkpageLength',
+      userpageLength: 'getUserpageLength',
+      models: 'getModelsLengths',
+      trends: 'getPageTrend'
+    })
+  },
+  methods: {
+    sortClick (sortby) {
+      this.$store.commit('CHANGE_SORTBY', sortby)
+      if (sortby !== 'all') {
+        this.$store.commit('CHANGE_FILTERBY', null)
+      }
+    },
+    sortSubcategory (selected) {
+      this.$store.commit('CHANGE_FILTERBY', selected)
+    }
+  }
+}
+</script>
+
+<style scoped lang="scss">
+  .panel-wrapper{
+    width: $panel-width;
+    height: 100vh;
+    z-index: 2000;
+    color: $dark-text;
+    background-color: #fff;
+    transition: .2s margin-left;
+    @include box-shadow;
+
+    &.hidden {
+      margin-left: -$panel-width;
+    }
+
+    &>div {
+      p {
+        color: $light-text;
+      }
+
+      &:first-of-type {
+        padding: 22px 16px;
+        font-family: $merriweather;
+        border-bottom: 1px solid $light-border;
+        span {
+          color: #000;
+        }
+        img {
+          margin-bottom: 34px;
+        }
+      }
+      &:nth-of-type(2) {
+        padding: 16px;
+        border-bottom: 1px solid $light-border;
+      }
+      &:nth-of-type(3) {
+        h4 {
+          padding: 4px 16px 0;
+          font-size: 10px;
+          font-weight: 600;
+          text-transform: uppercase;
+          font-family: $libre;
+        }
+      }
+    }
+
+    &>a {
+      img {
+        position: absolute;
+        bottom: 16px;
+        left: 16px;
+      }
+    }
+
+    /* LIST OF METRICS */
+
+    ul {
+      padding: 0;
+      margin: 0;
+      font-size: 16px;
+      font-family: $merriweather;
+
+      li {
+        list-style-type: none;
+        padding: 0;
+        transition: .2s all;
+        cursor: pointer;
+        font-weight: 400;
+        width: 100%;
+        position: relative;
+        display: inline-block;
+
+        span {
+          padding: 14px 12px 14px 16px;
+          display: inline-block;
+        }
+
+        .root {
+          width: 100%;
+          border-left: 3px solid transparent;
+          &.selected {
+            color: $red;
+            background-color: $lighter-bg;
+            border-left: 3px solid $red;
+          }
+        }
+
+        .nested {
+          max-height: 0;
+          overflow: hidden;
+          opacity: 0;
+          transition: all .2s;
+          will-change: opacity, max-height;
+
+          li {
+            display: flex;
+            justify-content: space-between;
+            border-left: 3px solid transparent;
+            padding-left: 12px;
+
+            .num {
+              color: $red;
+              opacity: .4;
+              .circle {
+                display: inline-block;
+                width: 8px;
+                height: 8px;
+                margin: 0 4px;
+                border-radius: 50%;
+                background-color: $red;
+              }
+            }
+
+            &.selected {
+              color: $red;
+              border-left: 3px solid $red;
+              .num {
+                opacity: 1;
+              }
+            }
+          }
+        }
+
+        &.expanded {
+          background: $lighter-bg;
+          padding-bottom: 0;
+          .nested {
+            max-height: 650px;
+            opacity: 1;
+          }
+        }
+      }
+    }
+  }
+</style>

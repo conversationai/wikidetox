@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 """Setup.py module for the workflow's worker utilities.
 
 All the workflow related code is gathered in a package that will be built as a
@@ -25,9 +24,8 @@ This behavior is triggered by specifying the --setup_file command line option
 when running the workflow for remote execution.
 """
 
-from distutils.command.build import build as _build
 import subprocess
-
+from distutils.command.build import build as _build
 import setuptools
 
 
@@ -62,10 +60,9 @@ class build(_build):  # pylint: disable=invalid-name
 #
 # The output of custom commands (including failures) will be logged in the
 # worker-startup log.
-CUSTOM_COMMANDS = [
-    ['apt-get', 'update'],
-    ['apt-get', '--assume-yes', 'install', 'p7zip-full'],
-    ['echo', 'Custom command worked!']]
+CUSTOM_COMMANDS = [['apt-get', 'update'],
+                   ['apt-get', '--assume-yes', 'install', 'p7zip-full'],
+                   ['echo', 'Custom command worked!']]
 
 
 class CustomCommands(setuptools.Command):
@@ -81,14 +78,16 @@ class CustomCommands(setuptools.Command):
     print 'Running command: %s' % command_list
     p = subprocess.Popen(
         command_list,
-        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT)
     # Can use communicate(input='y\n'.encode()) if the command run requires
     # some confirmation.
     stdout_data, _ = p.communicate()
     print 'Command output: %s' % stdout_data
     if p.returncode != 0:
-      raise RuntimeError(
-          'Command %s failed: exit code: %s' % (command_list, p.returncode))
+      raise RuntimeError('Command %s failed: exit code: %s' %
+                         (command_list, p.returncode))
 
   def run(self):
     for command in CUSTOM_COMMANDS:
@@ -101,13 +100,10 @@ class CustomCommands(setuptools.Command):
 # restriction is specified.
 REQUIRED_PACKAGES = [
     'google-cloud == 0.27.0',
-    'google-cloud-storage == 1.3.2',
+    'google-cloud-storage == 1.12.0',
     'google-apitools == 0.5.10',
     'lxml == 4.2.1',
-    'boto == 2.48.0',
-    'gcs_oauth2_boto_plugin == 2.1'
-    ]
-
+]
 
 setuptools.setup(
     name='ingest_utils',
@@ -119,5 +115,4 @@ setuptools.setup(
         # Command class instantiated and run during pip install scenarios.
         'build': build,
         'CustomCommands': CustomCommands,
-        }
-    )
+    })

@@ -12,7 +12,7 @@ WikiConv is a multilingual corpus, it currently includes all conversations extra
 
 ## License
 
-The dataset is released under the [CC0 license v1.0](http://creativecommons.org/publicdomain/zero/1.0/). The content of individual comments is released under the [CC-SA license v3.0](https://creativecommons.org/licenses/by-sa/3.0/), consistently with Wikipedia's attribution requirements.
+The dataset is released under the [CC0 license v1.0](http://creativecommons.org/publicdomain/zero/1.0/). The content of individual comments is released under the [CC BY-SA license v3.0](https://creativecommons.org/licenses/by-sa/3.0/), consistently with Wikipedia's attribution requirements.
 
 ## Downloading the dataset
 
@@ -132,13 +132,21 @@ The WikiConv dataset includes all the actions led to its final state:
 
 In the *current directory*:
 
-- Follow the steps in section 1 to set up [your cloud project](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-python). Note that *do not proceed* to install the newest google cloud dataflow, which may be in-compatible with some of the packages listed in requirements.txt.
+- Follow the steps in [setting up your python dataflow cloud project](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-python). Note that *do not proceed* to install the newest google cloud dataflow, which may be in-compatible with some of the packages listed in `requirements.txt`.
 - Use your service account to set up boto:
   `gsutil config -e`
-- Setup your python environment:
-    - Set up a [virtualenv environment](https://packaging.python.org/guides/installing-using-pip-and-virtualenv/)
-    - Do . /path/to/directory/bin/activate
-    - pip install -r requirements.txt
+- Setup your python2.7 [virtualenv environment](https://packaging.python.org/guides/installing-using-pip-and-virtualenv/) with the `requirements.txt` dependenies installed to run the pipeline:
+
+    ```bash
+    # Create virtual env in a filder called `.pyenv`
+    python2.7 -m virtualenv .pyenv
+    # Enter your python virtual environment.
+    . .pyenv/bin/activate
+    # Install dependenies.
+    pip install -r requirements.txt
+    # ... do stuff like run the pipline....
+    deactivate
+    ```
 
 ### Run the pipeline
 - Copy the template configuration `template.config` to `config/wikiconv.config` e.g. using
