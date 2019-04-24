@@ -3,11 +3,8 @@
     <MetricsPanel />
     <div class="canvas-wrapper">
       <ParticleSystem />
-      <BubbleChart />
-
       <CommentDetails />
       <CommentControls />
-
       <MonthlyTrend :datas="monthlyTrendsData" />
       <DailyTrend :datas="dailyTrendsData" />
     </div>
@@ -18,20 +15,16 @@
 import ParticleSystem from './components/canvas/ParticleSystem.vue'
 import CommentDetails from './components/canvas/comments/CommentDetails.vue'
 import CommentControls from './components/canvas/comments/CommentControls.vue'
-import BubbleChart from './components/canvas/BubbleChart.vue'
 import MetricsPanel from './components/controls/MetricsPanel.vue'
 import MonthlyTrend from './components/controls/MonthlyTrend.vue'
 import DailyTrend from './components/controls/DailyTrend.vue'
-
 import { mapState, mapGetters } from 'vuex'
-
 export default {
   name: 'app',
   components: {
     ParticleSystem,
     CommentDetails,
     CommentControls,
-    BubbleChart,
     MetricsPanel,
     MonthlyTrend,
     DailyTrend
@@ -64,7 +57,6 @@ export default {
   methods: {
     getDatas () {
       const params = { st: this.dataTimeRange.startTime, end: this.dataTimeRange.endTime }
-
       this.postDatas(params, '/monthsdata').then(rows => {
         const datas = rows.map(row => {
           const unix = (new Date(row.timestamp.value)).getTime()
@@ -78,7 +70,6 @@ export default {
         })
         this.$store.commit('SET_DATA', sortedDatas)
       })
-
       this.postDatas(params, 'dailytrends').then(rows => {
         this.dailyTrendsData = rows
       })
@@ -117,7 +108,6 @@ export default {
   * {
     box-sizing: border-box;
   }
-
   html,
   body {
     margin: 0;
@@ -126,12 +116,10 @@ export default {
     height: 100vh;
     overflow: hidden;
   }
-
   h1,h2,h3,h4 {
     font-family: $merriweather;
     font-weight: 400;
   }
-
   #app {
     width: 100vw;
     height: 100vh;
@@ -147,7 +135,6 @@ export default {
     display: flex;
     align-items: stretch;
     justify-content: flex-start;
-
     .canvas-wrapper {
       flex-grow: 1;
       position: relative;
