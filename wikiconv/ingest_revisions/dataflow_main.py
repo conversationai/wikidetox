@@ -320,19 +320,14 @@ def main(argv=None):
     # If specified downloading from Wikipedia
     dumpstatus_url = 'https://dumps.wikimedia.org/{lan}wiki/{date}/dumpstatus.json'.format(
         lan=known_args.language, date=known_args.dumpdate)
-    try:
-      response = urllib2.urlopen(dumpstatus_url)
-      dumpstatus = json.loads(response.read())
-      url = 'https://dumps.wikimedia.org/{lan}wiki/{date}'.format(
-          lan=known_args.language, date=known_args.dumpdate)
-      sections = [(url, filename) for filename in dumpstatus['jobs']
-                  ['metahistorybz2dump']['files'].keys()]
-    except (urllib2.URLError, json.JSONDecodeError):
-      # In the case dumpdate is not specified or is invalid, download the
-      # latest version.
-      latest_mirror = 'http://dumps.wikimedia.your.org/{lan}wiki/latest'.format(
-          lan=known_args.language)
-      sections = directory(latest_mirror)
+    response = urllib2.urlopen(dumpstatus_url)
+    dumpstatus = json.loads(response.read())
+    url = 'https://dumps.wikimedia.org/{lan}wiki/{date}'.format(
+        lan=known_args.language, date=known_args.dumpdate)
+    if 'files' not in dumpstatus['jobs']['metahistorybz2dump']:
+      raise ValueError('Unable to find data for specifid date')
+    sections = [(url, filename) for filename in dumpstatus['jobs']
+                ['metahistorybz2dump']['files'].keys()]
   prefix = 'raw-downloads/%s-%s' % (known_args.language, known_args.dumpdate)
   if known_args.ingest_from == 'cloud':
     sections = get_sections(known_args.bucket, prefix)
