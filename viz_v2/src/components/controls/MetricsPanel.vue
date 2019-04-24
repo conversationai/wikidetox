@@ -19,13 +19,13 @@
       <ul>
         <!-- ALL COMMENTS -->
         <li @click="sortClick('all')" v-ripple>
-          <span :class="['root', { selected: sort === 'all'}]">All</span>
+          <span :class="['root', { selected: filter === null}]">All</span>
         </li>
 
         <!-- TOP TRENDS -->
         <li :class="{ expanded: sort === 'trend'}"
             @click="sortClick('trend')" v-ripple>
-          <span :class="['root', {selected: sort === 'trend' && filter === null }]"> Trending </span>
+          <span class="root"> Trending </span>
           <ul class="nested" :class="{'expand': sort === 'trend'}">
               <li v-for="(item, i) in trends" :key="`trend-${i}`"
                   :class="{selected: filter === item.cat }"
@@ -41,9 +41,9 @@
         </li>
 
         <!-- PAGE CATEGORY -->
-        <li :class="{ expanded: sort === 'type'}"
+        <li :class="{ expanded: expanded === 'type'}"
             @click="sortClick('type')" v-ripple>
-          <span :class="['root', {selected: sort === 'type' && filter === null }]">Page Type</span>
+          <span class="root">Page Type</span>
           <ul class="nested" :class="{ expanded: sort === 'type'}">
               <li @click.stop.prevent="sortSubcategory('User page')"
                   :class="{selected: filter === 'User page' }">
@@ -65,9 +65,9 @@
         </li>
 
         <!-- TOXICITY TYPES -->
-        <li :class="{ expanded: sort === 'model'}"
+        <li :class="{ expanded: sort === 'model' }"
             @click="sortClick('model')" v-ripple>
-          <span :class="['root', {selected: sort === 'model' && filter === null }]">Toxicity Subtype</span>
+          <span class="root">Toxicity Subtype</span>
           <ul class="nested" :class="{ expanded: sort === 'model'}">
               <li v-for="(item, i) in models" :key="`model-${i}`"
                   @click.stop.prevent="sortSubcategory(item.model)"
@@ -99,6 +99,11 @@ export default {
   components: {
     MonthlyMetrics
   },
+  data () {
+    return {
+      expanded: ''
+    }
+  },
   computed: {
     ...mapState({
       sort: state => state.sortby,
@@ -109,14 +114,24 @@ export default {
       talkpageLength: 'getTalkpageLength',
       userpageLength: 'getUserpageLength',
       models: 'getModelsLengths',
-      trends: 'getPageTrend'
+      trends: 'getPageTrend',
+      dataTime: 'getDataTimeRange'
     })
+  },
+  watch: {
+    dataTime () {
+      console.log('data time range changed')
+      this.$store.commit('CHANGE_SORTBY', 'all')
+      this.$store.commit('CHANGE_FILTERBY', null)
+    }
   },
   methods: {
     sortClick (sortby) {
       this.$store.commit('CHANGE_SORTBY', sortby)
-      if (sortby !== 'all') {
+      if (sortby === 'all') {
         this.$store.commit('CHANGE_FILTERBY', null)
+      } else {
+        this.expanded = sortby
       }
     },
     sortSubcategory (selected) {
@@ -134,6 +149,7 @@ export default {
     color: $dark-text;
     background-color: #fff;
     transition: .2s margin-left;
+    overflow: scroll;
     @include box-shadow;
 
     &.hidden {
@@ -171,12 +187,8 @@ export default {
       }
     }
 
-    &>a {
-      img {
-        position: absolute;
-        bottom: 16px;
-        left: 16px;
-      }
+    &>a img{
+      padding: 58px 16px 16px;
     }
 
     /* LIST OF METRICS */
@@ -186,6 +198,7 @@ export default {
       margin: 0;
       font-size: 16px;
       font-family: $merriweather;
+      overflow-y: scroll;
 
       li {
         list-style-type: none;
@@ -205,9 +218,9 @@ export default {
         .root {
           width: 100%;
           border-left: 3px solid transparent;
+
           &.selected {
             color: $red;
-            background-color: $lighter-bg;
             border-left: 3px solid $red;
           }
         }

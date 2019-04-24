@@ -3,11 +3,8 @@
     <MetricsPanel />
     <div class="canvas-wrapper">
       <ParticleSystem />
-      <BubbleChart />
-
       <CommentDetails />
       <CommentControls />
-
       <MonthlyTrend :datas="monthlyTrendsData" />
       <DailyTrend :datas="dailyTrendsData" />
     </div>
@@ -18,7 +15,6 @@
 import ParticleSystem from './components/canvas/ParticleSystem.vue'
 import CommentDetails from './components/canvas/comments/CommentDetails.vue'
 import CommentControls from './components/canvas/comments/CommentControls.vue'
-import BubbleChart from './components/canvas/BubbleChart.vue'
 import MetricsPanel from './components/controls/MetricsPanel.vue'
 import MonthlyTrend from './components/controls/MonthlyTrend.vue'
 import DailyTrend from './components/controls/DailyTrend.vue'
@@ -31,7 +27,6 @@ export default {
     ParticleSystem,
     CommentDetails,
     CommentControls,
-    BubbleChart,
     MetricsPanel,
     MonthlyTrend,
     DailyTrend

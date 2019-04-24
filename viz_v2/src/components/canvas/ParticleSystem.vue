@@ -1,7 +1,6 @@
 <template>
   <div id="container" ref="container"
-      :class="{'expanded': commentClicked}"
-      :style="{ zIndex: zindex }">
+      :class="{'expanded': commentClicked}">
   </div>
 </template>
 
@@ -25,7 +24,6 @@ export default {
     return {
       width: 0,
       height: 0,
-      zindex: 100,
       view: null,
       renderer: null,
       scene: null,
@@ -34,13 +32,17 @@ export default {
       controls: null,
       particleSystem: null,
       particles: null,
+      preZoomPos: null,
+      zDist: 60,
+      fov: 0,
+      menuWidth: 0,
+      radiusScale: 18,
       pointclouds: null,
       INTERSECTED: null, // Changes with raycaster every paint
       lookAtPos: [0, 0, 0],
       filteredData: [],
       viewedData: [],
-      lastCommentIndex: null,
-      menuWidth: 262
+      lastCommentIndex: null
     }
   },
   computed: {
@@ -48,54 +50,31 @@ export default {
       sortby: state => state.sortby,
       filterby: state => state.filterby,
       datas: state => state.datas,
-      month: state => state.SELECTED_MONTH,
       commentClicked: state => state.commentClicked, // boolean
       selectedDate: state => state.selectedDate
     }),
     ...mapGetters({
-      canvasState: 'getCanvas',
-      dataTimeRange: 'getDataTimeRange',
       talkPage: 'getTalkpage',
-      userPage: 'getUserpage'
+      userPage: 'getUserpage',
+      dataTime: 'getDataTimeRange'
     })
   },
   watch: {
-    canvasState (newVal, oldVal) {
-      if (newVal === 'particles') {
-        this.zindex = 100
-      } else {
-        this.zindex = 1
-      }
-    },
-    sortby (newVal, oldVal) {
-      if (newVal === 'all') {
-        this.addParticles(this.datas)
-        this.particlesZoomIn()
-      } else {
-        this.particlesZoomout()
-      }
-    },
     filterby (newVal, oldVal) {
       if (newVal === null) {
-        this.particlesZoomout()
+        this.addParticles(this.datas)
       } else {
         this.addFilteredParticles()
       }
     },
-    month (newVal, oldVal) {
+    dataTime () {
       if (this.datas.length > 0) {
         this.particleSystem.animateExit()
       }
     },
     datas (newVal, oldVal) {
       TWEEN.removeAll()
-      if (this.canvasState === 'particles') {
-        if (this.sortby === 'all') {
-          this.addParticles(newVal)
-        } else {
-          this.addFilteredParticles()
-        }
-      }
+      this.addParticles(newVal)
     },
     selectedDate (newVal, oldVal) {
       if (newVal !== null) {
@@ -119,12 +98,10 @@ export default {
 
       if (newVal) { // if clicked = true
         const clickedIndex = this.INTERSECTED
-        this.zoomAnimation(clickedIndex, true) // zoom in
-        const zoomSize = this.particleSystem.radius * 2.4
-        this.animateParticleSize(true, clickedIndex, zoomSize)
+        this.zoomAnimation(clickedIndex, true, true) // zoom in
         this.controls.enabled = false
       } else {
-        this.zoomAnimation(this.lastCommentIndex, false) // zoom out
+        this.zoomAnimation(this.lastCommentIndex, false, false) // zoom out
         this.controls.enabled = true
       }
     }
@@ -136,7 +113,7 @@ export default {
 
     // When "previous" / "next" is clicked on fullscreen comment
     this.$root.$on('next', d => {
-      this.hoverAnimation(this.INTERSECTED, false, null) // hover leave from last comment
+      this.hoverAnimation(this.INTERSECTED, false) // hover leave from last comment
 
       if (this.INTERSECTED === 0 && d < 0) {
         this.INTERSECTED = this.filteredData.length - 1
@@ -146,8 +123,8 @@ export default {
         this.INTERSECTED = this.INTERSECTED + d
       }
       // console.log(this.INTERSECTED)
-      this.hoverAnimation(this.INTERSECTED, true, null) // hover leave
-      this.zoomAnimation(this.INTERSECTED, true)
+      this.hoverAnimation(this.INTERSECTED, true) // hover leave
+      this.zoomAnimation(this.INTERSECTED, true, false)
     })
   },
   beforeDestroy () {
@@ -161,14 +138,12 @@ export default {
         alpha: true
       })
       this.view = document.getElementById('container')
-      this.height = window.innerHeight
-      this.width = window.innerWidth - this.menuWidth
+      this.getResizedValue()
 
       this.renderer.setSize(this.width, this.height)
       this.view.appendChild(this.renderer.domElement)
-
-      this.camera = new THREE.PerspectiveCamera(45, this.width / this.height, 1, 10000)
-      this.camera.position.set(0, 0, 60)
+      this.camera = new THREE.PerspectiveCamera(this.fov, this.width / this.height, 1, 1000)
+      this.camera.position.set(0, 0, this.zDist)
 
       this.scene = new THREE.Scene()
       this.scene.add(new THREE.AmbientLight(0xffffff))
@@ -190,17 +165,31 @@ export default {
       this.animate()
     },
     resize () {
-      this.height = this.$refs.container.clientHeight
-      if (this.commentClicked) {
-        this.width = window.innerWidth
-      } else {
-        // TODO: mobile width
-        this.width = window.innerWidth - this.menuWidth
-      }
+      this.getResizedValue()
 
+      this.camera.fov = this.fov
       this.camera.aspect = this.width / this.height
       this.camera.updateProjectionMatrix()
       this.renderer.setSize(this.width, this.height)
+    },
+    getResizedValue () {
+      const w = window.innerWidth
+      if (w < 759) {
+        // mobile
+        this.menuWidth = 0
+        this.fov = 2 * Math.tan((this.radiusScale / 0.74) / this.zDist) * (180 / Math.PI)
+      } else {
+        // desktop
+        this.menuWidth = 262
+        this.fov = 2 * Math.atan((this.radiusScale / 0.74) / this.zDist) * (180 / Math.PI)
+      }
+      this.height = this.$refs.container.clientHeight
+
+      if (this.commentClicked) {
+        this.width = w
+      } else {
+        this.width = w - this.menuWidth
+      }
     },
     animate () {
       requestAnimationFrame(this.animate)
@@ -216,6 +205,7 @@ export default {
 
       // raycaster events HOVER TRIGGER
       let intersects = this.raycaster.intersectObjects(this.scene.children, true)
+
       if (this.particles && this.particleSystem.finishedLoading && !this.commentClicked) {
         // If particles exist and finished loading animation
         this.particles.updateMatrixWorld()
@@ -226,11 +216,11 @@ export default {
           // clear previous hover and add new hover animation
           if (this.INTERSECTED !== intersects[0].index) {
             this.$store.commit('CHANGE_COMMENT', null)
-            this.hoverAnimation(this.INTERSECTED, false, null) // hover out of previous
+            this.hoverAnimation(this.INTERSECTED, false) // hover out of previous
 
             if (intersects[0].index !== null) {
               this.INTERSECTED = intersects[0].index
-              this.hoverAnimation(this.INTERSECTED, true, intersects[0].distance) // if mouse in = true
+              this.hoverAnimation(this.INTERSECTED, true) // if mouse in = true
             }
           }
         } else {
@@ -239,7 +229,7 @@ export default {
             this.particleSystem.spin = true
             // clear previous intersection
             this.$store.commit('CHANGE_COMMENT', null)
-            this.hoverAnimation(this.INTERSECTED, false, null) // if mouse in = true
+            this.hoverAnimation(this.INTERSECTED, false) // if mouse in = true
             this.INTERSECTED = null
           }
         }
@@ -248,17 +238,19 @@ export default {
     },
     addParticles (datas) {
       this.controls.reset()
-
+      console.log(datas)
       this.filteredData = datas
       if (this.particles !== null) {
         this.scene.remove(this.particles)
       }
       this.particleSystem = new Particles({
-        datas: datas
+        datas: datas,
+        scale: this.radiusScale
       })
 
       this.particles = this.particleSystem.particles
       this.attributes = this.particles.geometry.attributes
+      console.log(this.particles)
       this.scene.add(this.particles)
     },
     addFilteredParticles () {
@@ -324,27 +316,29 @@ export default {
         this.lastCommentIndex = commentIndex
       }
     },
-    hoverAnimation (commentIndex, isMouseIn, dist) { // animation on particle hover
+    hoverAnimation (commentIndex, isMouseIn) { // animation on particle hover
       let finalSize
       if (isMouseIn) {
         // Mouse in
-        finalSize = (dist > 86 ? 86 : dist) || 60
-        // console.log(finalSize)
+        finalSize = 46
       } else {
         // Mouse out
         finalSize = this.attributes.finalSizes.array[ commentIndex ] // final scale = finalsizes
       }
       this.animateParticleSize(isMouseIn, commentIndex, finalSize)
     },
-    zoomAnimation (commentIndex, ifZoomIn) { // Zoom animation on particle click
+    zoomAnimation (commentIndex, ifZoomIn, firstZoom) { // Zoom animation on particle click
       let camPos, controlTarget
       const vec = this.getVectorPos(commentIndex)
+
       this.controls.minDistance = 0
       this.controls.update()
-      const altitude = 12
+      const altitude = 10
       const coeff = 1 + altitude / this.particleSystem.radius
 
       if (ifZoomIn) {
+        if (firstZoom) { this.preZoomPos = Object.assign({}, this.camera.position) }
+
         this.animateParticleColor(commentIndex)
         camPos = {
           x: vec.x * coeff,
@@ -353,7 +347,7 @@ export default {
         }
         controlTarget = vec
       } else {
-        camPos = { x: this.camera.position.x * 2, y: this.camera.position.y * 2, z: this.camera.position.z * 2 }
+        camPos = this.preZoomPos
         controlTarget = { x: 0, y: 0, z: 0 }
       }
 
@@ -475,5 +469,6 @@ export default {
     right: 0;
     width:  100%;
     height: 100vh;
+    z-index: 1;
   }
 </style>
