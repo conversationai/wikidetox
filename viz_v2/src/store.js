@@ -23,13 +23,6 @@ export default new Vuex.Store({
     dataLength: state => {
       return state.datas.length
     },
-    getCanvas: state => {
-      if (state.filterby !== null || state.sortby === 'all') {
-        return 'particles'
-      } else {
-        return 'bubbles'
-      }
-    },
     getDataTimeRange: state => {
       const month = state.SELECTED_MONTH
       const year = state.SELECTED_YEAR
@@ -126,7 +119,6 @@ export default new Vuex.Store({
     },
     MONTHLY_CHANGE (state, newChange) {
       state.monthlyIncrease = newChange
-      console.log(newChange)
     },
     SET_DATA (state, data) {
       state.datas = data
