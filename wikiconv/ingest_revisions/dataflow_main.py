@@ -327,7 +327,7 @@ def main(argv=None):
           lan=known_args.language, date=known_args.dumpdate)
       sections = [(url, filename) for filename in dumpstatus['jobs']
                   ['metahistorybz2dump']['files'].keys()]
-    except (urllib2.URLError, json.JSONDecodeError):
+    except (urllib2.URLError):
       # In the case dumpdate is not specified or is invalid, download the
       # latest version.
       latest_mirror = 'http://dumps.wikimedia.your.org/{lan}wiki/latest'.format(
