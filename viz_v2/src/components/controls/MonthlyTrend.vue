@@ -88,6 +88,7 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="scss">
   .monthly-timeline-wrapper {
+    background-color: #fff;
     position: absolute;
     top: 0;
     right: 0;
