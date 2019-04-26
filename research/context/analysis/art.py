@@ -22,6 +22,9 @@ in an annotation task is st. significantly higher than another one.
 It is based on the a.r. test used to compare the superiority of a system against
 a baseline (see https://cs.stanford.edu/people/wmorgan/sigtest.pdf).
 
+The returned values are the difference in agreement between the two tasks
+and the p-value (the lower the better).
+
 INFO: The two tasks should contain annotations of the same texts
 for the result to be valid.
 
