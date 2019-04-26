@@ -34,25 +34,17 @@ python art.py \
 
 import tensorflow as tf
 import numpy as np
-import pandas as pd
+from scipy.stats import pearsonr, spearmanr, kendalltau
 import json
 import krippendorff
 from sklearn.metrics import accuracy_score, roc_auc_score
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_integer("alpha", 1, "1 for Krippendorff's alpha and 0 for system comparison")
 tf.app.flags.DEFINE_integer("repetitions", 1000, "Number of samples to be performed.")
-# Krippendorff's alpha mode
 tf.app.flags.DEFINE_string("et_coders", None, "JSON file with easier task coders UIDs - required for Krippendorff's alpha")
 tf.app.flags.DEFINE_string("et_judgments", None, "JSON file with easier task judgments (1:1 with et coders) - required for Krippendorff's alpha")
 tf.app.flags.DEFINE_string("ht_coders", None, "JSON file with harder task coders UIDs - required for Krippendorff's alpha")
 tf.app.flags.DEFINE_string("ht_judgments", None, "JSON file with harder task judgments (1:1 with ht coders) - required for Krippendorff's alpha")
-# System comparison mode
-tf.app.flags.DEFINE_string("gold_labels", None, "JSON file with gold labels - required for systems comparison")
-tf.app.flags.DEFINE_string("system_predictions", None, "JSON file with predictions of the system in question - required for systems comparison")
-tf.app.flags.DEFINE_string("baseline_predictions", None, "JSON file with predictions of the baseline - required for systems comparison")
-tf.app.flags.DEFINE_integer("auc", 1, "ROC AUC evaluation between systems under comparison; alternatively, sklearn.metrics.accuracy is used.\n Use appropriate data format with the selected metric.\nSee https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html.")
-
 
 def scramble(judgments, columns_only=True):
     """
@@ -115,12 +107,15 @@ def sided_test(t, t_obs):
 
 def compare_systems(gold, system_predictions, baseline_predictions, repetitions=1000, evaluator=None):
     """
+    Use an approximate randomization test to assess whether a "system" is better than a "baseline".
+    (See https://cs.stanford.edu/people/wmorgan/sigtest.pdf for more about approx. randomization)
+
     :param gold: ground truth labels
     :param system_predictions: predictions of the system of interest, testing if it outperfoms a baseline
     :param baseline_predictions: predictions of the baseline
     :param repetitions: How many samples to be tested; the more the better
     :param evaluator: a function like auc (operating on predictions that are real numbers)
-    :return:
+    :return: p value
 
     An example would be a Gaussian (with mean close to major class) winning a 'uniform' on an imbalanced problem:
     >>> system_predictions = [round(x) for x in np.random.normal(0.8, 0.3, 100)] # normal close to 1
@@ -160,12 +155,26 @@ def compare_systems(gold, system_predictions, baseline_predictions, repetitions=
     return np.mean(outcome)
 
 
-def alpha(et_coders, et_judgments, ht_coders, ht_judgments, repetitions=1000):
+def compare(et_coders, et_judgments, ht_coders, ht_judgments):
     """
-    Assess whether job1 annotators agree more than job2 annotators, employing
-    Krippendorff's alpha to measure agreement and approximate randomization test
-    for st. significance.
-    See https://cs.stanford.edu/people/wmorgan/sigtest.pdf for more about approx. randomization
+    Compare the agreement between two annotation jobs <et> and <ht>.
+    :param et_coders: coders of the easier task
+    :param et_judgments: labels assigned by the coders of the easier task
+    :param ht_coders: coders of the harder task
+    :param ht_judgments: labels assigned by the coders of the harder task
+    :return: difference between the agreement of <et> and <ht>
+    """
+    rd1 = build_reliability_data(et_coders, et_judgments)
+    a1 = krippendorff.alpha(rd1)
+    rd2 = build_reliability_data(ht_coders, ht_judgments)
+    a2 = krippendorff.alpha(rd2)
+    return a1 - a2
+
+
+def sample(et_coders, et_judgments, ht_coders, ht_judgments, repetitions=1000):
+    """
+    Assess the statistical significance of the claim that the Easier Task Coders (et_coders)
+    agree more than the Harder Task Coders (ht_coders).
 
     :param et_coders: Easier task coders; each row has the coders IDs for a question - aligned with et_judgments
     :param et_judgments: Easier task judgments; each row has the judgments for a question - done by different coders
@@ -174,11 +183,7 @@ def alpha(et_coders, et_judgments, ht_coders, ht_judgments, repetitions=1000):
     :param repetitions: How many samples to be tested; the more the better
     :return: p-value rejecting that alpha of 1st job is greater than that of the 2nd
     """
-    rd1 = build_reliability_data(et_coders, et_judgments)
-    a1 = krippendorff.alpha(rd1)
-    rd2 = build_reliability_data(ht_coders, ht_judgments)
-    a2 = krippendorff.alpha(rd2)
-    t_obs = a1 - a2
+    t_obs = compare(et_coders, et_judgments, ht_coders, ht_judgments)
     outcome = []
     for _ in range(repetitions):
         _et_coders, _et_judgments = [],[]
@@ -195,40 +200,34 @@ def alpha(et_coders, et_judgments, ht_coders, ht_judgments, repetitions=1000):
                 _ht_coders.append(et_coders[i])
                 _ht_judgments.append(et_judgments[i])
         # compare the two
-        _et_rd = build_reliability_data(_et_coders, _et_judgments)
-        _et_a = krippendorff.alpha(_et_rd)
-        _ht_rd = build_reliability_data(_ht_coders, _ht_judgments)
-        _ht_a = krippendorff.alpha(_ht_rd)
-
-        outcome.append(sided_test(t=(_et_a-_ht_a), t_obs=t_obs))
+        t = compare(_et_coders, _et_judgments, _ht_coders, _ht_judgments)
+        outcome.append(sided_test(t=t, t_obs=t_obs))
     return t_obs, np.mean(outcome)
 
 
-if __name__ == "__main__":
-    # art for Krippendorff's alpha
-    if FLAGS.alpha == 1:
-        et_coders = json.load(open(FLAGS.et_coders))
-        et_judgments = json.load(open(FLAGS.et_judgments))
-        ht_coders = json.load(open(FLAGS.ht_coders))
-        ht_judgments = json.load(open(FLAGS.ht_judgments))
-        et_rd = build_reliability_data(et_coders, et_judgments)
-        ht_rd = build_reliability_data(ht_coders, ht_judgments)
-        print (krippendorff.alpha(et_rd), "VS", krippendorff.alpha(ht_rd))
-        a = alpha(et_coders=et_coders,
-                  et_judgments=et_judgments,
-                  ht_coders=ht_coders,
-                  ht_judgments=ht_judgments,
-                  repetitions=FLAGS.repetitions)
-        print(a)
-    # art for system comparison
+def load_json(filepath=None, gs=True):
+    """
+    Load a JSON file from Google Storage or a local path.
+    :param filepath:
+    :param gs: if true, the filepath is in GS
+    :return: the JSON file
+    """
+    assert filepath is not None
+    if gs:
+        with tf.gfile.Open(filepath, 'r') as o:
+            return json.load(o)
     else:
-        # todo: compile JSON files to test this case
-        gold = pd.read_json(FLAGS.gold_labels, orient="records", lines=True)
-        system_predictions = pd.read_json(FLAGS.system_predictions, orient="records", lines=True)
-        baseline_predictions = pd.read_json(FLAGS.baseline_predictions, orient="records", lines=True)
-        # todo: add assertions for labels being in the right format
-        if FLAGS.accuracy == 1:
-            metric = accuracy_score
-        else:
-            metric = roc_auc_score
-        compare_systems(gold, system_predictions, baseline_predictions, FLAGS.repetitions, metric)
+        return json.load(open(filepath))
+
+
+if __name__ == "__main__":
+    et_coders = load_json(FLAGS.et_coders)
+    et_judgments = load_json(FLAGS.et_judgments)
+    ht_coders = load_json(FLAGS.ht_coders)
+    ht_judgments = load_json(FLAGS.ht_judgments)
+    a = sample(et_coders=et_coders,
+               et_judgments=et_judgments,
+               ht_coders=ht_coders,
+               ht_judgments=ht_judgments,
+               repetitions=FLAGS.repetitions)
+    print(a)
