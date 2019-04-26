@@ -49,8 +49,10 @@ tf.app.flags.DEFINE_string("et_coders", None, "JSON file with easier task coders
 tf.app.flags.DEFINE_string("et_judgments", None, "JSON file with easier task judgments (1:1 with et coders) - required for Krippendorff's alpha")
 tf.app.flags.DEFINE_string("ht_coders", None, "JSON file with harder task coders UIDs - required for Krippendorff's alpha")
 tf.app.flags.DEFINE_string("ht_judgments", None, "JSON file with harder task judgments (1:1 with ht coders) - required for Krippendorff's alpha")
+
 for flag in ["et_coders", "ht_coders", "et_judgments", "ht_judgments"]:
     tf.app.flags.mark_flag_as_required(flag)
+
 
 def scramble(judgments, columns_only=True):
     """
