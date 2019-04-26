@@ -16,28 +16,32 @@
 """
 approximate randomization test (art)
 
-Statistical Significance Testing method, used to compare the superiority of a system against
-a baseline (based on https://cs.stanford.edu/people/wmorgan/sigtest.pdf)
-and whether the agreement (measured with Krippendorff's alpha) of one task is lower
-than another.
+This is a st. significance testing method to assess whether the agreement
+in an annotation task is st. significantly higher than another one.
 
-run as:
+It is based on the a.r. test used to compare the superiority of a system against
+a baseline (see https://cs.stanford.edu/people/wmorgan/sigtest.pdf).
+
+INFO: The two tasks should contain annotations of the same texts
+for the result to be valid.
+
+Run as:
 
 python art.py \
---alpha 1 \
---et_coders "gs://path_to_JSON_files/context_pilots_results/agreement/et_coders.json" \
---et_judgments "gs://path_to_JSON_files/context_pilots_results/agreement/et_judgments.json" \
---ht_coders "gs://path_to_JSON_files/context_pilots_results/agreement/ht_coders.json" \
---ht_judgments "gs://path_to_JSON_files/context_pilots_results/agreement/ht_judgments.json" \
+--et_coders "et_coders.json" \
+--et_judgments "et_labels.json" \
+--ht_coders "ht_coders.json" \
+--ht_judgments "ht_labels.json" \
+--repetitions 1000 \
 
+# You can also use "gs://path.json" file paths.
 """
 
 import tensorflow as tf
 import numpy as np
-from scipy.stats import pearsonr, spearmanr, kendalltau
 import json
 import krippendorff
-from sklearn.metrics import accuracy_score, roc_auc_score
+from sklearn.metrics import accuracy_score
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer("repetitions", 1000, "Number of samples to be performed.")
@@ -45,6 +49,8 @@ tf.app.flags.DEFINE_string("et_coders", None, "JSON file with easier task coders
 tf.app.flags.DEFINE_string("et_judgments", None, "JSON file with easier task judgments (1:1 with et coders) - required for Krippendorff's alpha")
 tf.app.flags.DEFINE_string("ht_coders", None, "JSON file with harder task coders UIDs - required for Krippendorff's alpha")
 tf.app.flags.DEFINE_string("ht_judgments", None, "JSON file with harder task judgments (1:1 with ht coders) - required for Krippendorff's alpha")
+for flag in ["et_coders", "ht_coders", "et_judgments", "ht_judgments"]:
+    tf.app.flags.mark_flag_as_required(flag)
 
 def scramble(judgments, columns_only=True):
     """
@@ -57,7 +63,7 @@ def scramble(judgments, columns_only=True):
     if columns_only:
         return judgments[:, np.random.permutation(n)]
     else:
-        # todo: make this more efficient
+        # This can/should be more efficient
         for rec in judgments:
             np.random.shuffle(rec)
         return judgments
@@ -205,19 +211,16 @@ def sample(et_coders, et_judgments, ht_coders, ht_judgments, repetitions=1000):
     return t_obs, np.mean(outcome)
 
 
-def load_json(filepath=None, gs=True):
+def load_json(filepath=None):
     """
     Load a JSON file from Google Storage or a local path.
     :param filepath:
-    :param gs: if true, the filepath is in GS
     :return: the JSON file
     """
     assert filepath is not None
-    if gs:
-        with tf.gfile.Open(filepath, 'r') as o:
-            return json.load(o)
-    else:
-        return json.load(open(filepath))
+    with tf.gfile.Open(filepath, 'r') as o:
+        read_file = o.read()
+    return json.loads(read_file)
 
 
 if __name__ == "__main__":
