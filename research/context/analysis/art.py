@@ -22,6 +22,8 @@ in an annotation task is st. significantly higher than another one.
 It is based on the a.r. test used to compare the superiority of a system against
 a baseline (see https://cs.stanford.edu/people/wmorgan/sigtest.pdf).
 
+The output is the observed difference of alpha's and the respective p-value.
+
 INFO: The two tasks should contain annotations of the same texts
 for the result to be valid.
 
@@ -189,7 +191,7 @@ def sample(et_coders, et_judgments, ht_coders, ht_judgments, repetitions=1000):
     :param ht_coders: Harder task coders; each row has the coders IDs for a question - aligned with ht_judgments
     :param ht_judgments: Harder task judgments; each row has the judgments for a question - done by different coders
     :param repetitions: How many samples to be tested; the more the better
-    :return: p-value rejecting that alpha of 1st job is greater than that of the 2nd
+    :return: the observed difference between alpha's and the p-value that alpha of 1st is greater than that of the 2nd
     """
     t_obs = compare(et_coders, et_judgments, ht_coders, ht_judgments)
     outcome = []
