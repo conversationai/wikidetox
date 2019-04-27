@@ -111,7 +111,7 @@ def sided_test(t, t_obs):
     :param t_obs: original assessment between the two candidates
     :return: 1 if sample assessment is better else 0
     """
-    comparison = t > t_obs
+    comparison = t >= t_obs
     return int(comparison)
 
 
