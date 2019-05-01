@@ -1,6 +1,20 @@
 <template>
   <div id="app">
-    <MetricsPanel />
+    <div class="mobile-nav">
+      <div @click="menuClick(true)" v-ripple>
+        <i class="material-icons">menu</i>
+      </div>
+      <div>
+        <img src="./assets/mobile-logo.svg">
+      </div>
+    </div>
+
+    <MetricsPanel ref="sidePanelomponent" />
+    <div class="click-outside-layer"
+        @click="menuClick(false)"
+        v-if="menuOpened">
+    </div>
+
     <div class="canvas-wrapper">
       <ParticleSystem />
       <CommentDetails />
@@ -34,7 +48,8 @@ export default {
       dataService: null,
       dailyTrendsData: [],
       monthlyTrendsData: [],
-      dataStart: '2017-01-01'
+      dataStart: '2017-01-01',
+      menuOpened: false
     }
   },
   computed: {
@@ -99,6 +114,10 @@ export default {
         }
       })
         .catch(error => console.error(error))
+    },
+    menuClick (ifOpen) {
+      this.menuOpened = ifOpen
+      this.$refs.sidePanelomponent.openNav(ifOpen)
     }
   }
 }
@@ -140,4 +159,45 @@ export default {
       position: relative;
     }
   }
+
+  .mobile-nav {
+    position: fixed;
+    width: 100vw;
+    height: 64px;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fff;
+    padding: 0 12px;
+    z-index: 1000;
+
+    &>div:first-of-type {
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    &>div:last-of-type {
+      flex-grow: 1;
+      text-align: center;
+
+      img {
+        width: 143px;
+        height: 18px;
+        margin-right: 16px;
+      }
+    }
+
+    @include tablet {
+      display: flex;
+    }
+  }
+
+.click-outside-layer {
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  background-color: transparent;
+  z-index: 1000;
+}
 </style>

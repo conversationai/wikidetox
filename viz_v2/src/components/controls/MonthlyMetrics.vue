@@ -80,6 +80,11 @@ export default {
       color: #000;
       font-size: 18px;
       margin: 0 0 34px 0;
+
+      @include tablet {
+        font-size: 14px;
+        margin: 0 0 24px 0;
+      }
     }
     .increase {
       color: $red;
@@ -93,20 +98,28 @@ export default {
 
       &>div {
         padding-right: 20px;
+
         h4 {
           font-size: 30px;
           line-height: 1.2;
           color: $darker-text;
           margin-top: 0;
           margin-bottom: 14px;
+
+          @include tablet {
+            font-size: 24px;
+          }
+
           &.toxic {
             color: $red;
           }
         }
+
         .type {
           font-size: 12px;
           color: $light-text;
         }
+
         .circle {
           display: inline-block;
           width: 10px;
@@ -114,6 +127,7 @@ export default {
           border-radius: 50%;
           background-color: $red;
           margin-right: 15px;
+
           &.detoxed {
             background-color: $light-red;
           }

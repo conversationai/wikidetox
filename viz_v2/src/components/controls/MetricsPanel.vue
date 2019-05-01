@@ -1,5 +1,5 @@
 <template>
-  <div :class="['panel-wrapper', {'hidden': commentClicked}]">
+  <div :class="['panel-wrapper', {'hidden': commentClicked || !navOpened}]">
     <!-- Title & Description -->
     <div>
       <img src="../../assets/logo.svg" />
@@ -86,7 +86,6 @@
     <a href="https://jigsaw.google.com" target="_blank">
       <img src="../../assets/jigsaw-logo.svg" />
     </a>
-
   </div>
 </template>
 
@@ -100,7 +99,8 @@ export default {
   },
   data () {
     return {
-      expanded: ''
+      expanded: '',
+      navOpened: false
     }
   },
   computed: {
@@ -123,7 +123,20 @@ export default {
       this.$store.commit('CHANGE_FILTERBY', null)
     }
   },
+  mounted () {
+    this.resize()
+    window.addEventListener('resize', this.resize)
+  },
+  beforeDestroy () {
+    window.removeEventListener('resize', this.resize)
+  },
   methods: {
+    resize () {
+      const breakPoint = 768
+      if (window.innerWidth > breakPoint) {
+        this.navOpened = true
+      }
+    },
     sortClick (sortby) {
       this.$store.commit('CHANGE_SORTBY', sortby)
       if (sortby === 'all') {
@@ -134,6 +147,9 @@ export default {
     },
     sortSubcategory (selected) {
       this.$store.commit('CHANGE_FILTERBY', selected)
+    },
+    openNav (ifOpen) {
+      this.navOpened = ifOpen
     }
   }
 }
@@ -144,27 +160,46 @@ export default {
     width: $panel-width;
     height: 100vh;
     z-index: 2000;
+    margin-left: 0;
     color: $dark-text;
     background-color: #fff;
     transition: .2s margin-left;
     overflow: scroll;
     @include box-shadow;
+
+    @include tablet {
+      -webkit-box-shadow: 0px 0px 42px 4px rgba(0,0,0,0.2);
+      -moz-box-shadow: 0px 0px 42px 4px rgba(0,0,0,0.2);
+      box-shadow: 0px 0px 42px 4px rgba(0,0,0,0.2);
+    }
+
     &.hidden {
-      margin-left: -$panel-width;
+      margin-left: calc(-#{$panel-width});
+      box-shadow: none;
     }
     &>div {
       p {
         color: $light-text;
+
+        @include tablet {
+          font-size: 12px;
+        }
       }
       &:first-of-type {
         padding: 22px 16px;
         font-family: $merriweather;
         border-bottom: 1px solid $light-border;
+
         span {
           color: #000;
         }
+
         img {
           margin-bottom: 34px;
+
+          @include tablet {
+            margin-bottom: 12px;
+          }
         }
       }
       &:nth-of-type(2) {
@@ -181,8 +216,16 @@ export default {
         }
       }
     }
-    &>a img{
+
+    &>a img{ // jigsaw logo
       padding: 58px 16px 16px;
+      width: 119px;
+      height: autp;
+
+      @include tablet {
+        padding: 28px 16px 16px;
+        width: 99px;
+      }
     }
     /* LIST OF METRICS */
     ul {
@@ -191,6 +234,11 @@ export default {
       font-size: 16px;
       font-family: $merriweather;
       overflow-y: scroll;
+
+      @include tablet {
+        font-size: 13px;
+      }
+
       li {
         list-style-type: none;
         padding: 0;

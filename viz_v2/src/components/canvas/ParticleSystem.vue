@@ -179,17 +179,18 @@ export default {
     },
     getResizedValue () {
       const w = window.innerWidth
-      if (w < 759) {
-        // mobile
+      const breakPoint = 768
+      if (w <= breakPoint) {
+        // mobile / tablet
         this.menuWidth = 0
         this.height = this.$refs.container.clientHeight - 64
-        this.fov = 2 * Math.tan((this.radiusScale / 0.6) / this.zDist) * (180 / Math.PI)
+        this.fov = 2 * Math.tan((this.radiusScale / 0.66) / this.zDist) * (180 / Math.PI)
       } else {
         // desktop
         this.menuWidth = 262
+        this.height = this.$refs.container.clientHeight
         this.fov = 2 * Math.atan((this.radiusScale / 0.74) / this.zDist) * (180 / Math.PI)
       }
-      this.height = this.$refs.container.clientHeight
 
       if (this.commentClicked) {
         this.width = w
@@ -495,5 +496,9 @@ export default {
     width:  100%;
     height: 100vh;
     z-index: 1;
+
+    @include tablet {
+      top: 64px;
+    }
   }
 </style>
