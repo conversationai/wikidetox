@@ -1,6 +1,6 @@
 <template>
   <transition name="fade" v-if="ifVisible">
-    <div 
+    <div
       :class = "['detail-circle-wrapper', {'transparent': transparent, 'fullScreen': showFullScreen, 'detoxed': detoxed}]"
       :style = "{ top: circleTop + 'px', left: circleLeft + 'px', width: size + 'px', height: size + 'px' }"
       @mouseup = "commentClick()"
@@ -112,6 +112,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
+  $max-fullscreen-w: 596px;
+
   .detail-circle-wrapper {
     position: fixed;
     z-index: 2000;
@@ -127,14 +129,18 @@ export default {
     overflow: hidden;
     cursor: pointer;
 
+    @include tablet {
+      border-radius: 0;
+    }
+
     &.detoxed {
       color: $red;
       background: radial-gradient($light-red, transparent);
 
       &.fullScreen {
         .score-wrapper {
-          width: 100%;
           border-top: 1px solid $red;
+
           .btn {
             color: $red;
             border: 1px solid $red !important;
@@ -164,7 +170,7 @@ export default {
         margin: 0;
       }
     }
-    
+
     .comment {
       font-size: 14px;
       max-width: 180px;
@@ -174,16 +180,22 @@ export default {
       -webkit-box-orient: vertical;
       text-overflow: ellipsis;
       text-align: center;
+
+      @include tablet {
+        font-size: 12px;
+      }
     }
 
     .score-wrapper {
+      width: 100%;
       display: flex;
       justify-content: center;
       align-items: center;
-        h4 {
-          font-size: 14px;
-          margin: 0;
-        }
+
+      h4 {
+        font-size: 14px;
+        margin: 0;
+      }
     }
 
     &.fullScreen {
@@ -197,26 +209,49 @@ export default {
       text-align: left;
       cursor: auto;
 
-      &>div {
-        width: 78%;
-        max-width: 646px;
+      @include tablet {
+        width: 100vw !important;
+        height: 100vh !important;
       }
 
       .title {
+        width: 78%;
+        max-width: $max-fullscreen-w;
+
+        @include tablet {
+          width: 90%;
+        }
+
         h4 {
           font-size: 28px;
           margin-top: 18px;
+
+          @include tablet {
+            font-size: 22px;
+          }
         }
       }
 
       .score-wrapper {
         justify-content: space-between;
         border-top: 1px solid #fff;
-        padding-top: 14px;
+        padding: 14px 0 0 0;
+
+        @include tablet {
+          width: 100vw;
+          padding: 14px 20px;
+          max-width: $max-fullscreen-w;
+        }
+
         h4 {
           font-size: 20px;
           flex-grow: 1;
+
+          @include tablet {
+            font-size: 14px;
+          }
         }
+
         .btn {
             text-transform: uppercase;
             font-size: 12px;
@@ -226,6 +261,10 @@ export default {
             border: 1px solid #fff;
             cursor: pointer;
             background-color: transparent;
+
+            @include tablet {
+              padding: 10px 18px;
+            }
 
             &.action {
               background-color: #fff;
@@ -238,13 +277,21 @@ export default {
         font-size: 20px;
         white-space: normal;
         overflow-y: scroll;
-        max-width: 646px;
+        max-width: $max-fullscreen-w;
         max-height: 24vh;
-        padding: 3em 0 2.6em;
-        margin: 0;
+        padding: 0 0 2.6em;
+        margin: 3em 0 0 0;
         text-align: left;
+
+        @include tablet {
+          font-size: 14px;
+        }
+
+        @include tablet {
+          height: 50vh;
+          padding: 0 20px 2.6em;
+        }
       }
-        
     }
   }
 

@@ -19,7 +19,6 @@
            <span class='year' v-if="d.month === 'JAN'">
             <span>{{d.year}}</span>
           </span>
-
         </div>
     </div>
   </transition>
@@ -100,7 +99,11 @@ export default {
     white-space: nowrap;
     transition: .2s bottom;
     z-index: 1000;
-    @include box-shadow
+    @include box-shadow;
+
+    @include tablet {
+      top: 62px;
+    }
 
     &::-webkit-scrollbar {
       display: none;
@@ -115,7 +118,6 @@ export default {
       align-items: center;
       cursor: pointer;
       height: 100%;
-      font-size: 12px;
       color: $darker-text;
 
       .year {
@@ -129,10 +131,16 @@ export default {
       .monthly-button {
         width: 168px;
         height: 100%;
+        font-size: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
         opacity: 0.6;
+
+        @include tablet {
+          width: 128px;
+          font-size: 10px;
+        }
 
         .month-name {
           margin: 0 10px;

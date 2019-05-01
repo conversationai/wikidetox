@@ -1,6 +1,20 @@
 <template>
   <div id="app">
-    <MetricsPanel />
+    <div class="mobile-nav">
+      <div @click="menuClick(true)" v-ripple>
+        <i class="material-icons">menu</i>
+      </div>
+      <div>
+        <img src="./assets/mobile-logo.svg">
+      </div>
+    </div>
+
+    <MetricsPanel ref="sidePanelomponent" />
+    <div class="click-outside-layer"
+        @click="menuClick(false)"
+        v-if="menuOpened">
+    </div>
+
     <div class="canvas-wrapper">
       <ParticleSystem />
       <CommentDetails />
@@ -18,9 +32,7 @@ import CommentControls from './components/canvas/comments/CommentControls.vue'
 import MetricsPanel from './components/controls/MetricsPanel.vue'
 import MonthlyTrend from './components/controls/MonthlyTrend.vue'
 import DailyTrend from './components/controls/DailyTrend.vue'
-
 import { mapState, mapGetters } from 'vuex'
-
 export default {
   name: 'app',
   components: {
@@ -36,7 +48,8 @@ export default {
       dataService: null,
       dailyTrendsData: [],
       monthlyTrendsData: [],
-      dataStart: '2017-01-01'
+      dataStart: '2017-01-01',
+      menuOpened: false
     }
   },
   computed: {
@@ -59,7 +72,6 @@ export default {
   methods: {
     getDatas () {
       const params = { st: this.dataTimeRange.startTime, end: this.dataTimeRange.endTime }
-
       this.postDatas(params, '/monthsdata').then(rows => {
         const datas = rows.map(row => {
           const unix = (new Date(row.timestamp.value)).getTime()
@@ -73,7 +85,6 @@ export default {
         })
         this.$store.commit('SET_DATA', sortedDatas)
       })
-
       this.postDatas(params, 'dailytrends').then(rows => {
         this.dailyTrendsData = rows
       })
@@ -103,6 +114,10 @@ export default {
         }
       })
         .catch(error => console.error(error))
+    },
+    menuClick (ifOpen) {
+      this.menuOpened = ifOpen
+      this.$refs.sidePanelomponent.openNav(ifOpen)
     }
   }
 }
@@ -112,7 +127,6 @@ export default {
   * {
     box-sizing: border-box;
   }
-
   html,
   body {
     margin: 0;
@@ -121,12 +135,10 @@ export default {
     height: 100vh;
     overflow: hidden;
   }
-
   h1,h2,h3,h4 {
     font-family: $merriweather;
     font-weight: 400;
   }
-
   #app {
     width: 100vw;
     height: 100vh;
@@ -148,4 +160,45 @@ export default {
       position: relative;
     }
   }
+
+  .mobile-nav {
+    position: fixed;
+    width: 100vw;
+    height: 64px;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fff;
+    padding: 0 12px;
+    z-index: 1000;
+
+    &>div:first-of-type {
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    &>div:last-of-type {
+      flex-grow: 1;
+      text-align: center;
+
+      img {
+        width: 143px;
+        height: 18px;
+        margin-right: 16px;
+      }
+    }
+
+    @include tablet {
+      display: flex;
+    }
+  }
+
+.click-outside-layer {
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  background-color: transparent;
+  z-index: 1000;
+}
 </style>
