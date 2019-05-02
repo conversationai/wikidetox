@@ -34,10 +34,12 @@ import json
 import datetime
 import copy
 import logging
+import os
 import unittest
 import resource
 import argparse
 import copy
+import sys
 from construct_utils.conversation_constructor import Conversation_Constructor
 from construct_utils.utils.third_party.rev_clean import clean_html
 
@@ -86,9 +88,13 @@ class TestReconstruction(unittest.TestCase):
         latest_content = ""
         ans = []
         if not(p == "dummy_test"):
-           filename = "construct_utils/testdata/reversed_page_%d.json" % p
+           filename = os.path.join(
+               os.getenv("TEST_SRCDIR"), '__main__', 'conversation_reconstruction', 'testdata',
+               "reversed_page_%d.json" % p)
         else:
-           filename = "construct_utils/testdata/%s.json" % p
+           filename = os.path.join(
+               os.getenv("TEST_SRCDIR"), '__main__', 'conversation_reconstruction', 'testdata',
+               "%s.json" % p)
         with open(filename, "r") as f:
           last_week = -1
           for ind, line in enumerate(f):
@@ -151,7 +157,7 @@ if __name__ == '__main__':
   parser.add_argument('-l', '--test_loading_on', dest='load_test',\
                       nargs='+', default=default_load_test, type=int)
   PAGES = parser.parse_args().page_ids
-  PAGES.append("dummy_test")
+  #PAGES.append("dummy_test")
   LOADING_TEST = parser.parse_args().load_test
   LOG_INTERVAL = 100
   memory_boundary = 2000000 # in KB
