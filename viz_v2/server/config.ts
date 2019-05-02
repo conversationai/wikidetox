@@ -12,7 +12,8 @@ limitations under the License.
 */
 
 export const Config =  {
-    gcloudKey: '[Path_to_file]',
+    gcloudAPIKey: '[API_KEY]',
+    gcloudKeyFilePath: '[Path_to_file]',
     bigQuery: {
         projectId: '[PROJECT_ID]',
         datasetID: '[DATESET]',

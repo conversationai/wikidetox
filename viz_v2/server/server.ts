@@ -18,8 +18,11 @@ import * as path from 'path';
 import { BigQueryData } from './bigQuery';
 import { WikiBot } from './wikiBot';
 
+const googleapis = require('googleapis');
+
 interface IConfig {
-    gcloudKey: string;
+    gcloudAPIKey: string;
+    gcloudKeyFilePath: string;
     bigQuery: {
         projectId: string;
         datasetID: string;
@@ -160,4 +163,41 @@ export class Server {
             });
         });
     }
+
+    private sendSuggestCommentScoreRequest(request): Promise<Object> {
+        return new Promise((resolve, reject) => {
+            this.analyzeApiClient.comments.suggestscore({
+                key: this.config.gcloudAPIKey,
+                resource: request
+            },
+            (error: Error, response) => {
+                if (error) {
+                    reject(error);
+                    return;
+                }
+                resolve(response);
+            });
+        });
+    }
+
+    public startClient(): Promise<void> {
+        return new Promise<void>((resolve: () => void,
+                                  reject: () => void) => {
+            googleapis.discoverAPI(COMMENT_ANALYZER_DISCOVERY_URL, (discoverErr, client) => {
+                if (discoverErr) {
+                    console.error('ERROR: discoverAPI failed.');
+                    reject();
+                    return;
+                }
+                if (!(client.comments.suggestscore)) {
+                    console.error(
+                        'ERROR: !(client.comments.suggestscore) in analyze API');
+                    reject();
+                    return;
+                }
+                this.analyzeApiClient = client;
+                resolve();
+            });
+        });
+    };
 }

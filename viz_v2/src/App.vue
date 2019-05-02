@@ -104,7 +104,6 @@ export default {
         headers: {
           'Content-Type': 'application/json'
         },
-        redirect: 'follow',
         body: JSON.stringify(params)
       }).then(res => {
         if (res.ok) {
