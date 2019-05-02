@@ -21,6 +21,7 @@
     "core-js": "3",
     "d3": "^5.7.0",
     "express": "^4.16.4",
+    "googleapis": "^17.0.0",
     "path": "^0.12.7",
     "three": "^0.100.0",
     "three-orbitcontrols": "^2.99.1",

@@ -1,7 +1,7 @@
 const {BigQuery} = require('@google-cloud/bigquery');
 
 interface queryConfig {
-    gcloudKey: string;
+    gcloudKeyFilePath: string;
     bigQuery: {
         projectId: string;
         datasetID: string;
@@ -15,7 +15,7 @@ export class BigQueryData {
 
     constructor(public config: queryConfig) {
         this.bigquery = new BigQuery({
-            keyFilename: config.gcloudKey,
+            keyFilename: config.gcloudKeyFilePath,
             projectId: config.bigQuery.projectId,
         });
         this.table = `${config.bigQuery.projectId}.${config.bigQuery.datasetID}.${config.bigQuery.dataTable}`

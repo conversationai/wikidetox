@@ -1,9 +1,10 @@
 export const Config =  {
-    gcloudKey: '[Path_to_file]',
+    gcloudAPIKey: '[API_KEY]',
+    gcloudKeyFilePath: '[Path_to_file]',
     bigQuery: {
-        projectId: 'wikidetox-viz',
-        datasetID: 'wikiviz_v2',
-        dataTable: '201701_partitioned'
+        projectId: '[PROJECT_ID]',
+        datasetID: '[DATASET_ID]',
+        dataTable: '[DATA_TABLE]'
     },
     port: 8080
 }

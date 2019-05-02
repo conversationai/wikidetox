@@ -23,8 +23,12 @@
           <h4 v-if="detoxed">
             Detoxed
           </h4>
-          <div class="btn" v-if="showFullScreen" v-ripple>Not toxic</div>
-          <div class="btn action " v-if="showFullScreen && !detoxed" v-ripple>Detox comment</div>
+          <span v-if="showFullScreen" class="btn-wrapper">
+            <div class="btn" v-if="feedbackSent === ''" @click="sendFeedbacks()" v-ripple>Not toxic</div>
+            <div class="feedbacks" v-if="feedbackSent === 'success'">Thanks for your feedback :)</div>
+            <div class="feedbacks" v-if="feedbackSent === 'failed'">Oops! Something went wrong :(</div>
+            <div class="btn action " v-if="!detoxed" v-ripple>Detox comment</div>
+          </span>
         </div>
       </div>
   </transition>
@@ -48,7 +52,8 @@ export default {
       circleLeft: 0,
       size: 0,
       showFullScreen: false,
-      transparent: false
+      transparent: false,
+      feedbackSent: ''
     }
   },
   computed: {
@@ -89,6 +94,7 @@ export default {
       } else {
         this.showFullScreen = false
         this.transparent = false
+        this.feedbackSent = ''
       }
     }
   },
@@ -106,6 +112,27 @@ export default {
       if (!this.commentClicked) {
         this.$store.commit('COMMENT_CLICK', true)
       }
+    },
+    sendFeedbacks () {
+      const params = { comment: this.comment }
+      return fetch('suggest_score', {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
+      }).then(res => {
+        if (res.ok) {
+          this.feedbackSent = 'success'
+        } else {
+          this.feedbackSent = 'failed'
+          throw Error(`Request rejected with status ${res.status}`)
+        }
+      })
+        .catch(error => console.error(error))
     }
   }
 }
@@ -144,6 +171,7 @@ export default {
           .btn {
             color: $red;
             border: 1px solid $red !important;
+
             &.action {
               background-color: $red !important;
               color: #fff !important;
@@ -187,10 +215,20 @@ export default {
     }
 
     .score-wrapper {
-      width: 100%;
       display: flex;
       justify-content: center;
       align-items: center;
+      max-width: $max-fullscreen-w;
+      width: 100%;
+
+      .btn-wrapper {
+        display: flex;
+        align-items: center;
+
+        @include tablet {
+          margin-top: 20px;
+        }
+      }
 
       h4 {
         font-size: 14px;
@@ -241,6 +279,7 @@ export default {
           width: 100vw;
           padding: 14px 20px;
           max-width: $max-fullscreen-w;
+          flex-direction: column;
         }
 
         h4 {
@@ -279,7 +318,7 @@ export default {
         overflow-y: scroll;
         max-width: $max-fullscreen-w;
         max-height: 24vh;
-        padding: 0 0 2.6em;
+        padding: 0 0 3.6em;
         margin: 3em 0 0 0;
         text-align: left;
 
