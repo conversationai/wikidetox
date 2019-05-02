@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 """Setup.py module for the workflow's worker utilities.
 
 All the workflow related code is gathered in a package that will be built as a
@@ -32,14 +31,10 @@ import setuptools
 # so this dependency will not trigger anything to be installed unless a version
 # restriction is specified.
 REQUIRED_PACKAGES = [
-    'google-cloud == 0.32.0',
-    'google-cloud-storage == 1.6.0',
-    'google-apitools == 0.5.22',
-    'NoAho==0.9.6.1',
-    'mwparserfromhell==0.5.1',
-    'yamlconf==0.2.3',
-    'mwtypes==0.3.0',
-    'beautifulsoup4==4.5.1']
+    'google-cloud == 0.32.0', 'google-cloud-storage == 1.6.0',
+    'google-apitools == 0.5.22', 'NoAho==0.9.6.1', 'mwparserfromhell==0.5.1',
+    'yamlconf==0.2.3', 'mwtypes==0.3.0', 'beautifulsoup4==4.5.1'
+]
 
 setuptools.setup(
     name='construct_utils',
