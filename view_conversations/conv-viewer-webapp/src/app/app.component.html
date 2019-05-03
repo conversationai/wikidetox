@@ -5,15 +5,17 @@
 </div>
 
 <div *ngIf="!embed">
-  <form [formGroup]="browseForm" (submit)="submitBrowse()">
 
+  <form [formGroup]="searchForm" (submit)="submitBrowse()">
+
+    Sort by
     <button mat-button type="button"
-      [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>Sort by
+      [matMenuTriggerFor]="menu"><i class="material-icons">menu</i>
+      <span>{{sortByAttr}}</span>
     </button>
     <mat-menu #menu="matMenu">
       <mat-radio-group class="browseby-radio-group"
-          (change)="updateLocationHash()"
-          formControlName="browseBy">
+          formControlName="sortByAttr">
         <mat-radio-button class="searchby-radio-button" *ngFor="let s of browseBys"
           [value]="s">{{s}}</mat-radio-button>
       </mat-radio-group>
@@ -44,8 +46,8 @@
 
     <br/>
 
-    <mat-form-field class="search-text" *ngIf="browseForm.value.searchBy && browseForm.value.searchBy !== 'All'">
-      <input matInput type="text" placeholder="{{browseForm.value.searchBy}}"
+    <mat-form-field class="search-text" *ngIf="searchForm.value.searchBy && searchForm.value.searchBy !== 'All'">
+      <input matInput type="text" placeholder="{{searchForm.value.searchBy}}"
             formControlName="searchFor">
     </mat-form-field>
 
@@ -66,7 +68,7 @@
 <div *ngIf="errorMessage" class="errorMessage">{{errorMessage}}</div>
 
 <div class="conversation" *ngIf="rootComment">
-  <div *ngIf="showPageContext">
+  <div *ngIf="showTitleContext">
     <div>In page: <b>{{rootComment.page_title}}</b></div>
     <div class="convid">
         <span class="convid-text">(conversation id: {{rootComment.id}})</span>
@@ -78,15 +80,14 @@
 
 <div class="comments" *ngIf="answerComments">
   <button mat-raised-button *ngIf="!embed"
-    [disabled]="inFlightRequest !== undefined || scoreUpper === undefined || scoreCategory === undefined"
+    [disabled]="inFlightRequest"
     class = "moreToxicButton"
-    (click)="browseByScore(scoreCategory, 1, scoreUpper, searchBy, searchFor, 'ASC', isHistorical)" color="primary">More Toxic</button>
+    (click)="browseByScore()" color="primary">More Toxic</button>
 
   <button mat-raised-button *ngIf="!embed"
-    [disabled]="inFlightRequest !== undefined || scoreLower === undefined || scoreCategory === undefined"
+    [disabled]="inFlightRequest !== undefined"
     class = "lessToxicButton"
-    (click)="browseByScore(scoreCategory, scoreLower, 0, searchBy, searchFor, 'DESC', isHistorical)" color="primary">Less Toxic</button>
-
+    (click)="browseByScore()" color="primary">Less Toxic</button>
 
   <div *ngFor="let comment of answerComments">
 
@@ -112,7 +113,7 @@
     <div id="collapseComment" *ngIf="comment.isCollapsed">
       <div *ngIf="errorMessage" class="errorMessage">{{errorMessage}}</div>
       <div class="collapsedConversation" *ngIf="comment.rootComment">
-        <div *ngIf="showPageContext && (context=='all'|| context=='titles')">
+        <div *ngIf="showParentContext">
           <div>In page: <a href="https://en.wikipedia.org/w/index.php?oldid={{comment.rev_id}}"><b>{{comment.rootComment.page_title}}</b></a> </div>
           <div class="section_title" *ngIf="comment.rootComment.type=='CREATION'">Section Title: {{comment.rootComment.cleaned_content}}</div>
           <div class="section_creator">
@@ -123,7 +124,7 @@
             <span class="convid-text">(conversation id: {{comment.rootComment.id}})</span>
           </div>
         </div>
-        <app-conversation *ngIf="comment.rootComment && (context=='all' || context=='previous')" [rootComment]="comment.rootComment"></app-conversation>
+        <app-conversation *ngIf="comment.rootComment" [rootComment]="comment.rootComment"></app-conversation>
       </div>
     </div>
 
@@ -133,4 +134,4 @@
 </div>
 
 
-<div *ngIf="!embed" id="debug-pre-output">{{searchResult}}</div>
+<div *ngIf="!embed" id="debug-pre-output">{{rawResultJson}}</div>

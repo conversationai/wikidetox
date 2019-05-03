@@ -11,15 +11,13 @@ const COMMENT_ID_TEXT = 'Comment ID';
 const REVISION_ID_TEXT = 'Revision ID';
 const PAGE_ID_TEXT = 'Page ID';
 const PAGE_TITLE_TEXT = 'Page Name';
-const ALL_TEXT = 'All';
 const USER_ID_TEXT = 'User ID';
 const USER_NAME_TEXT = 'User Name';
 
-const MOST_TOXIC_TEXT = 'Toxicity';
+const ATTRIBUTE_TOXICITY = 'Toxicity';
 
 const URL_PART_FOR_SEARCHBY: {[text: string]: string} = {};
-const URL_PART_FOR_BROWSEBY: {[text: string]: string} = {};
-URL_PART_FOR_SEARCHBY[ALL_TEXT] = 'all';
+const URL_PART_FOR_SORT_BY_ATTR: {[text: string]: string} = {};
 URL_PART_FOR_SEARCHBY[COMMENT_ID_TEXT] = 'comment_id';
 URL_PART_FOR_SEARCHBY[CONVERSATION_ID_TEXT] = 'conversation_id';
 URL_PART_FOR_SEARCHBY[REVISION_ID_TEXT] = 'revision_id';
@@ -28,18 +26,19 @@ URL_PART_FOR_SEARCHBY[PAGE_ID_TEXT] = 'page_id';
 URL_PART_FOR_SEARCHBY[USER_ID_TEXT] = 'user_id';
 URL_PART_FOR_SEARCHBY[USER_NAME_TEXT] = 'user_text';
 
-URL_PART_FOR_BROWSEBY[MOST_TOXIC_TEXT] = 'toxicity';
+URL_PART_FOR_SORT_BY_ATTR[ATTRIBUTE_TOXICITY] = 'toxicity';
 
-interface HashObj {
+interface FormObj {
   searchBy?: string;
   searchFor?: string;
-  browseBy?: string;
-  browseUpper?: number;
-  browseLower?: number;
-  embed: boolean;
-  context?: string;
-  showPageContext: boolean;
   highlightId?: string;
+  sortByAttr?: string;
+  maxScore?: number;
+  minScore?: number;
+  showTitleContext?: boolean;
+  showParentContext: boolean;
+  order: 'ASC' | 'DESC';
+  embed: boolean;
   isHistorical?: boolean;
 }
 
@@ -72,111 +71,105 @@ function highlightComments(actions : wpconvlib.Comment[], highlightId: string | 
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
-  browseBys = [MOST_TOXIC_TEXT];
+  browseBys = [ATTRIBUTE_TOXICITY];
   searchBys = [
-    ALL_TEXT,
     CONVERSATION_ID_TEXT, COMMENT_ID_TEXT, REVISION_ID_TEXT, PAGE_ID_TEXT,
     PAGE_TITLE_TEXT, USER_ID_TEXT, USER_NAME_TEXT
   ];
+
   inFlightRequest?: Subscription;
   inFlightBrowseRequest?: Subscription;
   rootComment?: wpconvlib.Comment;
   answerComments?: wpconvlib.Comment[];
+
+  // Form values.
   searchForm: FormGroup;
-  browseForm: FormGroup;
-  scoreLower?: number;
-  scoreUpper?: number;
-  scoreCategory?: string;
-  searchBy?: string;
-  searchFor?: string | null;
-  isHistorical?: boolean;
 
-  embed = false;
-  context = "all";
-  showPageContext = true;
-  highlightId: string;
+  sortByAttr = new FormControl('', Validators.required);
+  minScore = new FormControl(0, Validators.required);
+  maxScore = new FormControl(1, Validators.required);
+  sortOrder = new FormControl('DESC', Validators.required);
+  searchBy = new FormControl(URL_PART_FOR_SEARCHBY[COMMENT_ID_TEXT], Validators.required);
+  searchFor = new FormControl('');
+  isHistorical = new FormControl(false, Validators.required);
+  showTitleContext = new FormControl(true, Validators.required);
+  showParentContext = new FormControl(true, Validators.required);
+  embed = new FormControl(false, Validators.required);
 
-  searchResult = '';
-  browseResult = '';
+  // Id of an individual comment to highlight.
+  highlightId = new FormControl('');
+
+  rawResultJson = '';
   errorMessage?: string = null;
 
   constructor(private http: HttpClient, private formBuilder: FormBuilder) {
+
+    this.searchForm = formBuilder.group({
+      searchBy: this.searchBy,
+      searchFor: this.searchFor,
+      sortOrder: this.sortOrder,
+      sortByAttr: this.sortByAttr,
+      maxScore: this.maxScore,
+      minScore: this.minScore,
+      isHistorical: this.isHistorical,
+      highlightId: this.highlightId,
+      showTitleContext: this.showTitleContext,
+      showParentContext: this.showParentContext,
+      embed: this.embed,
+    });
+
     console.log(`init-hash: ${decodeURI(document.location.hash.substr(1))}`);
     try {
-      const hashObj: HashObj = JSON.parse(decodeURI(document.location.hash.substr(1)));
-      if (hashObj.searchBy) {
-        this.searchBy = hashObj.searchBy;
-        this.searchFor = hashObj.searchFor;
-      }
-      if (hashObj.browseBy) {
-        this.browseBy = hashObj.browseBy;
-        this.browseUpper = hashObj.browseUpper;
-        this.browseLower = hashObj.browseLower;
-      }
-      this.embed = hashObj.embed === undefined ? false : hashObj.embed;
-      this.context = hashObj.context === undefined ? 'all' : hashObj.context;
-      this.showPageContext = hashObj.showPageContext === undefined ?
-          true :
-          hashObj.showPageContext;
-      this.highlightId = hashObj.highlightId;
-      this.isHistorical = hashObj.isHistorical;
-      console.log(`parsed-hash: ${JSON.stringify(hashObj, null, 2)}`);
+      const hashObj: FormObj = JSON.parse(decodeURI(document.location.hash.substr(1)));
+      this.updateFormValues(hashObj);
+      this.submitBrowse();
     } catch (e) {
       console.log(`can't parse, starting with empty search.`);
       if (document.location.hash !== '' && document.location.hash !== '#') {
         this.errorMessage = e.message;
       }
     }
-
-    this.browseForm = formBuilder.group({
-      browseBy: new FormControl(this.browseBy, Validators.required),
-      browseUpper: new FormControl(this.browseUpper, Validators.required),
-      browseLower: new FormControl(this.browseLower, Validators.required),
-      searchBy: new FormControl(this.searchBy, Validators.required),
-      searchFor: new FormControl(this.searchFor, ),
-      isHistorical: new FormControl(this.isHistorical, Validators.required)
-    });
-    this.searchScopeChanged();
-    if (this.searchBy && this.browseUpper && this.browseLower && this.browseBy &&
-       this.embed && (this.searchFor || this.searchBy === 'All'))  {
-      this.submitBrowse();
-    }
-    if (this.searchBy === 'Comment ID' && this.searchFor){
-      this.browseByComment(this.searchFor);
-    }
   }
 
   ngOnInit(): void {}
 
-  updateLocationHash(searchBy : string | null, searchFor: string | null, browseBy: string | null, browseUpper: number | null, browseLower: number | null , isHistorical: boolean | null) {
-    console.log('updateLocationHash');
-    const objToEncode: HashObj = {
-      searchBy: searchBy,
-      searchFor: searchFor,
-      browseBy: browseBy,
-      browseUpper: browseUpper,
-      browseLower: browseLower,
-      embed: this.embed,
-      showPageContext: this.showPageContext,
-      isHistorical: isHistorical,
-    };
-    if (this.highlightId) {
-      objToEncode.highlightId = this.highlightId;
+  updateFormValues(obj: FormObj) {
+    if (obj.searchBy) {
+      this.searchBy.setValue(obj.searchBy);
+      this.searchFor.setValue(obj.searchFor);
     }
-    document.location.hash = JSON.stringify(objToEncode);
+    this.sortOrder.setValue(obj.order);
+    if (obj.sortByAttr) {
+      this.sortByAttr.setValue(obj.sortByAttr);
+      this.maxScore.setValue(obj.maxScore);
+      this.minScore.setValue(obj.minScore);
+    }
+    this.isHistorical.setValue(obj.isHistorical);
+    this.highlightId.setValue(obj.highlightId);
+    this.showTitleContext.setValue(obj.showTitleContext);
+    this.showParentContext.setValue(obj.showParentContext);
+    this.embed.setValue(obj.embed);
+    console.log(`parsed-hash: ${JSON.stringify(obj, null, 2)}`);
   }
 
-  searchScopeChanged() {
-    const searchValue = this.browseForm.get('searchFor');
-    this.browseForm.get('searchBy').valueChanges.subscribe(
-      (scope: string) => {
-        if (scope === 'All') {
-          searchValue.clearValidators();
-        } else {
-          searchValue.setValidators([Validators.required]);
-        }
-        searchValue.updateValueAndValidity();
-      });
+  updateLocationHash() {
+    console.log('updateLocationHash');
+    const objToEncode: FormObj = {
+      searchBy: this.searchBy.value,
+      searchFor: this.searchFor.value,
+      sortByAttr: this.sortByAttr.value,
+      maxScore: this.maxScore.value,
+      minScore: this.minScore.value,
+      embed: this.embed.value,
+      order: this.sortOrder.value,
+      showTitleContext: this.showTitleContext.value,
+      showParentContext: this.showParentContext.value,
+      isHistorical: this.isHistorical.value,
+    };
+    if (this.highlightId) {
+      objToEncode.highlightId = this.highlightId.value;
+    }
+    document.location.hash = JSON.stringify(objToEncode);
   }
 
   submitCommentSearch(comment : wpconvlib.Comment) {
@@ -192,7 +185,7 @@ export class AppComponent implements OnInit {
               '/api/comment-id/' + comment.id))
             .subscribe(
                 (actions: wpconvlib.Comment[]) => {
-                    this.searchResult = JSON.stringify(actions, null, 2);
+                    this.rawResultJson = JSON.stringify(actions, null, 2);
                     delete this.inFlightRequest;
                     console.log('got conversation!');
                     const conversation: wpconvlib.Conversation = highlightComments(actions, comment.id);
@@ -217,44 +210,40 @@ export class AppComponent implements OnInit {
 
   submitBrowse() {
     console.log('model-based browse form submitted');
-    console.log(this.browseForm.value);
-    this.updateLocationHash(this.browseForm.value.searchBy, this.browseForm.value.searchFor, this.browseForm.value.browseBy, this.browseForm.value.browseUppder, this.browseForm.value.browseLower, this.browseForm.value.isHistorical);
-    this.browseByScore(this.browseForm.value.browseBy, this.browseForm.value.browseUpper, this.browseForm.value.browseLower, this.browseForm.value.searchBy, this.browseForm.value.searchFor, 'DESC', this.browseForm.value.isHistorical);
+    console.log(this.searchForm.value);
+    this.updateLocationHash();
+    this.browseByScore();
   }
 
-  browseByScore(browseBy : string, browseUpper: number, browseLower: number, searchBy: string, searchFor: string, order: string, isHistorical: boolean) {
+  browseByScore() {
     this.errorMessage = null;
-    console.log(browseUpper, browseLower, searchBy);
-    const apiRequest: APIRequest = {upper_score: browseUpper, lower_score: browseLower, order: order, isAlive: !isHistorical};
-    apiRequest[URL_PART_FOR_SEARCHBY[searchBy]] = searchFor;
+    const apiRequest: APIRequest = {
+      upper_score: this.maxScore.value,
+      lower_score: this.minScore.value,
+      order: this.sortOrder.value,
+      isAlive: !this.isHistorical.value
+    };
+
+    apiRequest[URL_PART_FOR_SEARCHBY[this.searchBy.value]] = this.searchFor.value;
 
     this.inFlightBrowseRequest =
         this.http
             .get(encodeURI(
-              '/api/' + URL_PART_FOR_BROWSEBY[browseBy] + '/' + JSON.stringify(apiRequest, null, 2)))
+              '/api/' + URL_PART_FOR_SORT_BY_ATTR[this.searchBy.value] + '/' + JSON.stringify(apiRequest, null, 2)))
             .subscribe(
                 (comments: wpconvlib.Comment[]) => {
                   console.log('got comments!');
-                  this.browseResult = JSON.stringify(comments, null, 2);
+                  this.rawResultJson = JSON.stringify(comments, null, 2);
                   delete this.inFlightBrowseRequest;
-                  this.scoreLower = browseUpper;
-                  this.scoreUpper = browseLower;
                   console.log(comments);
                   for (const comment of comments) {
                     comment.isCollapsed = false;
                     let commentScore : number | null = null;
-                    if (this.browseForm.value.browseBy === MOST_TOXIC_TEXT) {
-                      comment.displayScore = MOST_TOXIC_TEXT + ' Score: ' + comment.RockV6_1_TOXICITY;
+                    if (this.searchForm.value.browseBy === ATTRIBUTE_TOXICITY) {
+                      comment.displayScore = ATTRIBUTE_TOXICITY + ' Score: ' + comment.RockV6_1_TOXICITY;
                       commentScore = comment.RockV6_1_TOXICITY;
                     }
-                    this.scoreLower = (commentScore !== null && commentScore < this.scoreLower) ? commentScore : this.scoreLower;
-                    this.scoreUpper = (commentScore !== null && commentScore > this.scoreUpper) ? commentScore : this.scoreUpper;
                   }
-                  this.updateLocationHash(searchBy, searchFor, browseBy, this.scoreUpper, this.scoreLower, isHistorical);
-                  if (order === 'ASC') {comments = comments.reverse();}
-                  this.scoreCategory = browseBy;
-                  this.searchBy = searchBy;
-                  this.searchFor = searchFor;
                   this.answerComments = comments;
                 },
                 (e) => {
@@ -266,7 +255,6 @@ export class AppComponent implements OnInit {
                   }
                   delete this.inFlightBrowseRequest;
                 });
-
   }
 
   // Fetch the so-far conversation given a comment ID.
@@ -280,12 +268,10 @@ export class AppComponent implements OnInit {
             .subscribe(
                 (comments: wpconvlib.Comment[]) => {
                   console.log('got comments!');
-                  this.browseResult = JSON.stringify(comments, null, 2);
+                  this.rawResultJson = JSON.stringify(comments, null, 2);
                   delete this.inFlightBrowseRequest;
                   console.log(comments);
                   this.answerComments = comments.filter(i => i.id === searchFor);
-                  /*this.answerComments[0].isCollapsed=true;*/
-                  /*this.submitCommentSearch(this.answerComments[0]);*/
                 },
                 (e) => {
                   console.log(e);
