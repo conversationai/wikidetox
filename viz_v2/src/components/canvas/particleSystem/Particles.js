@@ -1,3 +1,16 @@
+/*
+Copyright 2019 Google Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 import * as THREE from 'three'
 import { fibonacciSphere } from './sphereFunctions'
 
@@ -95,39 +108,8 @@ export class Particles {
     this.particleGeometry.matrixAutoUpdate = true
   }
 
-  resize () {
-    const numPoints = this._datas.length
-    const sizeWeight = this.getSizeWeight(numPoints)
-    const radius = this.getRadius(numPoints)
-    this._datas.forEach((d, i) => {
-      const newPos = fibonacciSphere(numPoints, radius, i)
-      this.particleGeometry.attributes.position.array[ 3 * i ] = newPos.x
-      this.particleGeometry.attributes.position.array[3 * i + 1] = newPos.y
-      this.particleGeometry.attributes.position.array[3 * i + 2] = newPos.z
-      if (d.type === 'DELETION') {
-        this.particleGeometry.attributes.scale.array[i] = sizeWeight
-        this.particleGeometry.attributes.finalSizes.array[i] = sizeWeight
-      } else {
-        this.particleGeometry.attributes.scale.array[i] = (Number(d.RockV6_1_TOXICITY) - 0.75) * sizeWeight * 20
-        this.particleGeometry.attributes.finalSizes.array[i] = (Number(d.RockV6_1_TOXICITY) - 0.75) * sizeWeight * 20
-      }
-    })
-    this.particleGeometry.attributes.position.needsUpdate = true
-    this.particleGeometry.attributes.scale.needsUpdate = true
-  }
-
-  getRadius (num) {
-    let h = window.innerHeight
-    const w = window.innerWidth
-    h = h > 1100 ? h = 1000 : h
-    let scale
-    if (w > h) {
-      scale = h / 50
-    } else {
-      scale = w / 30
-    }
-    let r = num > 280 ? scale : scale * (num / 280)
-    this.radius = r < scale / 1.6 ? scale / 1.6 : r
+  getRadius (num) { // responsive particle system size
+    this.radius = num > 280 ? this._scale : this._scale * ((num / 280) / 2 + 0.5)
     return this.radius
   }
 
@@ -191,6 +173,8 @@ export class Particles {
     // Immediately after first render
     _this.particles.onAfterRender = () => {
       if (!_this.exit) return
+      _this.finishedLoading = false
+
       const scale = this.particleGeometry.attributes.scale
       scale.needsUpdate = true
 
