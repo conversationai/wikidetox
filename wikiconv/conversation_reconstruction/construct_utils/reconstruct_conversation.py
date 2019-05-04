@@ -12,6 +12,9 @@ from construct_utils.conversation_constructor import Conversation_Constructor
 
 class ReconstructConversation(beam.DoFn):
 
+  def start_bundle(self):
+       self._storage_client = storage.Client()
+
   def merge(self, ps1, ps2):
     # Merge two page states, ps1 is the later one
     deleted_ids_ps2 = {d[1]: d for d in ps2['deleted_comments']}
@@ -114,11 +117,10 @@ class ReconstructConversation(beam.DoFn):
         if tmp_input.startswith('gs://'):
           # Read from cloud storage
           bucket_name_end = tmp_input.find('/', 5)
-          bucket = storage.Client().get_bucket(tmp_input[5:bucket_name_end])
-          revision = json.loads(
-              bucket.get_blob(
-                  os.path.join(tmp_input[bucket_name_end + 1:], page_id,
-                               rev_id_str)).download_as_string())
+          bucket = self._storage_client.get_bucket(tmp_input[5:bucket_name_end])
+          revision = json.loads(bucket.get_blob(os.path.join(
+              tmp_input[bucket_name_end+1:], page_id,
+              rev_id_str)).download_as_string())
         else:
           # Read directly.
           with open(os.path.join(tmp_input, page_id, rev_id_str), 'r') as f:
