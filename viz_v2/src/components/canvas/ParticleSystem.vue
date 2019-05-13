@@ -51,7 +51,8 @@ export default {
       filterby: state => state.filterby,
       datas: state => state.datas,
       commentClicked: state => state.commentClicked, // boolean
-      selectedDate: state => state.selectedDate
+      selectedDate: state => state.selectedDate,
+      detoxedIndex: state => state.detoxedIndex
     }),
     ...mapGetters({
       talkPage: 'getTalkpage',
@@ -104,6 +105,10 @@ export default {
         this.zoomAnimation(this.lastCommentIndex, false, false) // zoom out
         this.controls.enabled = true
       }
+    },
+    detoxedIndex (newVal, oldVal) {
+      console.log(newVal)
+      this.detoxParticleColor(newVal)
     }
   },
   mounted () {
@@ -177,7 +182,8 @@ export default {
       if (w < 759) {
         // mobile
         this.menuWidth = 0
-        this.fov = 2 * Math.tan((this.radiusScale / 0.74) / this.zDist) * (180 / Math.PI)
+        this.height = this.$refs.container.clientHeight - 64
+        this.fov = 2 * Math.tan((this.radiusScale / 0.6) / this.zDist) * (180 / Math.PI)
       } else {
         // desktop
         this.menuWidth = 262
@@ -276,7 +282,7 @@ export default {
     },
     onMouseMove (event) {
       event.preventDefault()
-      const offsetX = 262
+      let offsetX = window.innerWidth <= 768 ? 0 : 262
       this.mouse.x = ((event.clientX - offsetX) / this.view.clientWidth) * 2 - 1
       this.mouse.y = -((event.clientY) / this.view.clientHeight) * 2 + 1
     },
@@ -378,6 +384,25 @@ export default {
         .easing(TWEEN.Easing.Linear.None)
         .onUpdate((obj) => {
           this.attributes.vertexColor.array[ commentIndex * 4 ] = obj.red
+          this.attributes.vertexColor.needsUpdate = true
+        })
+        .start()
+    },
+    detoxParticleColor (commentIndex) { // todo: move to particle class
+      // console.log(`animating particle color ${commentIndex}`)
+      const colorArray = this.attributes.vertexColor.array
+      new TWEEN.Tween(
+        {
+          r: colorArray[commentIndex * 4],
+          g: colorArray[commentIndex * 4 + 1],
+          b: colorArray[commentIndex * 4 + 2]
+        })
+        .to({ r: 0.988, g: 0.91, b: 0.92 }, 100)
+        .easing(TWEEN.Easing.Linear.None)
+        .onUpdate((obj) => {
+          colorArray[ commentIndex * 4 ] = obj.r
+          colorArray[ commentIndex * 4 + 1 ] = obj.g
+          colorArray[ commentIndex * 4 + 2 ] = obj.b
           this.attributes.vertexColor.needsUpdate = true
         })
         .start()
