@@ -44,7 +44,6 @@ export class getCategories {
         return fetch(`${this.categoryUrl}${encodeURIComponent(title)}`)
             .then(res => res.json())
             .then(body => { 
-                //console.log(body);
                 const results = body.query.pages;
                 const firstKey = Object.keys(results)[0];
                 const categories = results[firstKey].categories;

@@ -24,11 +24,13 @@
             Detoxed
           </h4>
           <span v-if="showFullScreen" class="btn-wrapper">
-            <div class="btn" v-if="feedbackSent === ''" @click="sendFeedbacks()" v-ripple>Not toxic</div>
-            <div class="feedbacks" v-if="feedbackSent === 'success'">Thanks for your feedback :)</div>
-            <div class="feedbacks" v-if="feedbackSent === 'failed'">Oops! Something went wrong :(</div>
-            <div class="btn action " v-if="!detoxed" v-ripple>Detox comment</div>
+            <div class="btn" v-if="!feedbackSent" @click="sendFeedbacks()" v-ripple>Not toxic</div>
+            <div class="btn action " v-if="!commentDetoxed && !detoxed" @click="detoxComment()" v-ripple>Detox comment</div>
           </span>
+        </div>
+
+        <div class="tooltip" v-if="tooltipFeedbacks !== ''">
+          {{tooltipFeedbacks}}
         </div>
       </div>
   </transition>
@@ -53,7 +55,9 @@ export default {
       size: 0,
       showFullScreen: false,
       transparent: false,
-      feedbackSent: ''
+      feedbackSent: false,
+      commentDetoxed: false,
+      tooltipFeedbacks: ''
     }
   },
   computed: {
@@ -81,8 +85,10 @@ export default {
         // this.size = newVal.size * 3.6
         this.size = 266
 
-        this.circleTop = newVal.pos.y - this.size / 2
-        this.circleLeft = newVal.pos.x - this.size / 2 + 262 // 262 = left panel size
+        let leftPanelT = window.innerWidth <= 768 ? 64 : 0
+        let leftPanelW = window.innerWidth <= 768 ? 0 : 262
+        this.circleTop = newVal.pos.y - this.size / 2 + leftPanelT
+        this.circleLeft = newVal.pos.x - this.size / 2 + leftPanelW
       }
     },
     commentClicked (clicked, oldVal) {
@@ -94,7 +100,9 @@ export default {
       } else {
         this.showFullScreen = false
         this.transparent = false
-        this.feedbackSent = ''
+        this.feedbackSent = false
+        this.commentDetoxed = false
+        this.tooltipFeedbacks = ''
       }
     }
   },
@@ -126,16 +134,57 @@ export default {
         body: JSON.stringify(params)
       }).then(res => {
         if (res.ok) {
-          this.feedbackSent = 'success'
+          return res.json()
         } else {
-          this.feedbackSent = 'failed'
           throw Error(`Request rejected with status ${res.status}`)
         }
+      }).then(res => {
+        this.tooltipFeedbacks = 'Thanks for your feedbacks!'
+        this.feedbackSent = true
+        setTimeout(() => { this.tooltipFeedbacks = '' }, 3000)
+      }).catch(error => {
+        console.error(error)
+        this.tooltipFeedbacks = 'Something went wrong, please try again later!'
+        setTimeout(() => { this.tooltipFeedbacks = '' }, 3000)
       })
-        .catch(error => console.error(error))
+    },
+    detoxComment () {
+      const params = {
+        page: this.commentData.comment.page_title,
+        comment: this.commentData.comment.cleaned_content
+      }
+      console.log(params)
+      return fetch('wiki_edit', {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
+      })
+        .then(res => {
+          if (res.ok) {
+            return res.json()
+          } else {
+            throw Error(`Request rejected with status ${res.status}`)
+          }
+        }).then(res => {
+          this.tooltipFeedbacks = 'Comment detoxed!'
+          this.commentDetoxed = true
+          this.detoxed = true
+          this.$store.commit('DETOX_COMMENT', this.commentData.comment.id)
+          setTimeout(() => { this.tooltipFeedbacks = '' }, 3000)
+        }).catch(error => {
+          this.tooltipFeedbacks = 'Detox failed :/ Please try again later!'
+          setTimeout(() => { this.tooltipFeedbacks = '' }, 3000)
+          console.error(error)
+        })
     }
   }
 }
+
 </script>
 
 <style scoped lang="scss">
@@ -148,7 +197,7 @@ export default {
     color: #fff;
     background: rgb(255,60,91);
     background: radial-gradient(rgb(255,60,91), transparent);
-    transition: height .3s ease, width .3s ease, opacity 0.1s ease;
+    transition: height .3s ease, width .3s ease, opacity 0.1s ease, background .3s ease;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -156,13 +205,17 @@ export default {
     overflow: hidden;
     cursor: pointer;
 
-    @include tablet {
-      border-radius: 0;
+    &.transparent {
+      background: #FE022E;
     }
 
     &.detoxed {
       color: $red;
       background: radial-gradient($light-red, transparent);
+
+      &.transparent {
+        background: $light-red;
+      }
 
       &.fullScreen {
         .score-wrapper {
@@ -179,10 +232,6 @@ export default {
           }
         }
       }
-    }
-
-    &.transparent {
-      background: none !important;
     }
 
     .title {
@@ -250,6 +299,7 @@ export default {
       @include tablet {
         width: 100vw !important;
         height: 100vh !important;
+        border-radius: 0;
       }
 
       .title {
@@ -362,5 +412,15 @@ export default {
   /* .fade-leave-active below version 2.1.8 */
   {
     opacity: 0;
+  }
+
+  .tooltip {
+    background-color: $dark-text;
+    color: $white;
+    padding: 12px 18px;
+    position: absolute;
+    z-index: 2000;
+    top: 8em;
+    left: auto;
   }
 </style>

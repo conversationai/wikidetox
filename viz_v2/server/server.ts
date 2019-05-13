@@ -1,8 +1,9 @@
-import express = require("express");
-import * as bodyParser from "body-parser";
-import * as path from "path";
+import express = require('express');
+import * as bodyParser from 'body-parser';
+import * as path from 'path';
 
-import { BigQueryData } from "./bigQuery";
+import { BigQueryData } from './bigQuery';
+import { WikiBot } from './wikiBot';
 
 const googleapis = require('googleapis');
 
@@ -14,36 +15,46 @@ interface IConfig {
         datasetID: string;
         dataTable: string;
     },
+    wikiBot: {
+        protocol: string;
+        server: string;
+        path: string;
+        debug: boolean;
+        username: string;
+        userAgent: string;
+        password: string;
+    },
     port: number
 }
 
 const COMMENT_ANALYZER_DISCOVERY_URL =
-    "https://commentanalyzer.googleapis.com/$discovery/rest?version=v1alpha1";
+    'https://commentanalyzer.googleapis.com/$discovery/rest?version=v1alpha1';
 
 export class Server {
     public app: express.Express;
     public bigQuery: any;
+    public wikiBot: any
     public analyzeApiClient: any;
     
     constructor (public config: IConfig) {
-
         this.bigQuery = new BigQueryData(config);
+        this.wikiBot = new WikiBot(config.wikiBot);
         this.config = config;
 
-        this.app = express();
+        this.app = express();              
         this.app.use(bodyParser.json());
         this.app.use(bodyParser.urlencoded({
             extended: true,
         }));
 
-        const publicDir = path.join(__dirname, "static");
+        const publicDir = path.join(__dirname, 'static');
         this.app.use(express.static(publicDir));
 
-        this.app.get("/", (req, res) => {
-            res.sendFile(path.resolve("static/index.html"), { root: __dirname });
+        this.app.get('/', (req, res) => {
+            res.sendFile(path.resolve('static/index.html'), { root: __dirname });
         });
 
-        this.app.post("/monthsdata", async (req, res) => {
+        this.app.post('/monthsdata', async (req, res) => {
             const startDate = req.body.st || '2018-06-01';
             const endDate = req.body.end || '2018-07-01';
             try {
@@ -57,7 +68,7 @@ export class Server {
             }
         });
 
-        this.app.post("/dailytrends", async (req, res) => {
+        this.app.post('/dailytrends', async (req, res) => {
             const startDate = req.body.st || '2018-06-01';
             const endDate = req.body.end || '2018-07-01';
             try {
@@ -71,13 +82,26 @@ export class Server {
             }
         });
 
-        this.app.post("/monthlytrends", async (req, res) => {
+        this.app.post('/monthlytrends', async (req, res) => {
             const startDate = req.body.st || '2017-01-01';
             try {
                 const query = this.bigQuery.getMonthTimeline(startDate);
                 const rows = await this.bigQuery.queryTable(query);
                 console.log(`sending ${rows.length} rows for monthly trends`);
                 res.send(rows);
+            } catch (err) {
+                console.error(err);
+                res.status(403).send(err);
+            }
+        });
+
+        this.app.post('/wiki_edit', async (req, res) => {
+            const page = req.body.page;
+            const comment = req.body.comment;
+            try {
+                const editResult = await this.wikiBot.editArticle(page, comment);
+                console.log(editResult);
+                res.status(200).json({status:"ok"});
             } catch (err) {
                 console.error(err);
                 res.status(403).send(err);
