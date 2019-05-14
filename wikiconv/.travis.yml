@@ -1,8 +1,7 @@
 language: python
 
 python:
-  - "3.5"
-  - "3.6"
+  - "2.7"
 
 dist: trusty
 
@@ -25,4 +24,3 @@ install:
 
 script:
   - bazel test --test_output=streamed ...
-
