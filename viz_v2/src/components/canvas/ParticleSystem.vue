@@ -114,6 +114,7 @@ export default {
   mounted () {
     window.addEventListener('resize', this.resize)
     window.addEventListener('mousemove', this.onMouseMove, false)
+    window.addEventListener('touchstart', this.onTouchStart)
     this.init()
 
     // When "previous" / "next" is clicked on fullscreen comment
@@ -135,6 +136,7 @@ export default {
   beforeDestroy () {
     window.removeEventListener('resize', this.resize)
     window.removeEventListener('mousemove', this.onMouseMove)
+    window.removeEventListener('touchstart', this.onTouchStart)
   },
   methods: {
     init () {
@@ -286,6 +288,12 @@ export default {
       let offsetX = window.innerWidth <= 768 ? 0 : 262
       this.mouse.x = ((event.clientX - offsetX) / this.view.clientWidth) * 2 - 1
       this.mouse.y = -((event.clientY) / this.view.clientHeight) * 2 + 1
+    },
+    onTouchStart (event) {
+      event.preventDefault()
+      let offsetX = window.innerWidth <= 768 ? 0 : 262
+      this.mouse.x = ((event.touches[0].clientX - offsetX) / this.view.clientWidth) * 2 - 1
+      this.mouse.y = -((event.touches[0].clientY) / this.view.clientHeight) * 2 + 1
     },
     growOut (i) { // todo: move to particle class
       new TWEEN.Tween({ scale: this.attributes.scale.array[ i ] })

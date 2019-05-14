@@ -4,7 +4,7 @@
     <div>
       <img src="../../assets/logo.svg" />
       <p>
-        Help our <span>community</span> improve the conversations behind Wikipedia. Find and edit comment <span>toxicity</span> on <span>talk pages</span>.
+        Help our <a href="https://meta.wikimedia.org/wiki/Research:Detox" target="_blank"><span>community</span></a> improve the conversations behind Wikipedia. Find and edit comment <a href="https://perspectiveapi.com" target="_blank"><span>toxicity</span></a> on Wikipedia discussions.
       </p>
     </div>
 
@@ -83,9 +83,9 @@
       </ul>
     </div>
 
-    <a href="https://jigsaw.google.com" target="_blank">
+    <!-- <a href="https://jigsaw.google.com" target="_blank">
       <img src="../../assets/jigsaw-logo.svg" />
-    </a>
+    </a> -->
   </div>
 </template>
 
@@ -158,6 +158,7 @@ export default {
 <style scoped lang="scss">
   .panel-wrapper{
     width: $panel-width;
+    min-width: $panel-width;
     height: 100vh;
     z-index: 2000;
     margin-left: 0;
@@ -171,6 +172,7 @@ export default {
       -webkit-box-shadow: 0px 0px 42px 4px rgba(0,0,0,0.2);
       -moz-box-shadow: 0px 0px 42px 4px rgba(0,0,0,0.2);
       box-shadow: 0px 0px 42px 4px rgba(0,0,0,0.2);
+      position: fixed;
     }
 
     &.hidden {
@@ -190,8 +192,9 @@ export default {
         font-family: $merriweather;
         border-bottom: 1px solid $light-border;
 
-        span {
+        a {
           color: #000;
+          text-decoration: none;
         }
 
         img {
