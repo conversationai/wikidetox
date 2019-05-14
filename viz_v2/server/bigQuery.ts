@@ -36,17 +36,18 @@ export class BigQueryData {
 
     public monthDataQuery (monthStart, monthEnd) {
         return `SELECT 
-            RockV6_1_TOXICITY, RockV6_1_FLIRTATION, RockV6_1_TOXICITY_THREAT, RockV6_1_TOXICITY_IDENTITY_HATE, RockV6_1_TOXICITY_INSULT, RockV6_1_SEXUALLY_EXPLICIT, RockV6_1_TOXICITY_OBSCENE, RockV6_1_SEVERE_TOXICITY,
+            RockV6_2_TOXICITY, RockV6_2_FLIRTATION, RockV6_2_THREAT, RockV6_2_IDENTITY_ATTACK, 
+            RockV6_2_INSULT, RockV6_2_SEXUALLY_EXPLICIT, RockV6_2_PROFANITY, RockV6_2_SEVERE_TOXICITY, 
             category1, sub_category1,
             category2, sub_category2,
             category3, sub_category3,
             page_id, page_title, id, 
             user_text, timestamp, 
-            cleaned_content, type 
+            content, cleaned_content, type
         FROM \`${this.table}\` 
         WHERE 
             timestamp BETWEEN TIMESTAMP('${monthStart}') AND TIMESTAMP('${monthEnd}')
-            AND RockV6_1_TOXICITY > .8
+            AND RockV6_2_TOXICITY > .8
         `;
     }
 
@@ -58,7 +59,7 @@ export class BigQueryData {
                     FROM \`${this.table}\` 
                     WHERE 
                     timestamp BETWEEN TIMESTAMP('${monthStart}') AND TIMESTAMP('${monthEnd}')
-                    AND RockV6_1_TOXICITY > .8
+                    AND RockV6_2_TOXICITY > .8
                     GROUP BY day )
                 `;
     }
@@ -79,7 +80,7 @@ export class BigQueryData {
                     count(distinct id) as tox_cd 
                     FROM  \`${this.table}\`
                     WHERE timestamp > TIMESTAMP('${datastart}')
-                    AND RockV6_1_TOXICITY > .8
+                    AND RockV6_2_TOXICITY > .8
                     AND type != 'DELETION'
                     GROUP BY toxmonth 
                 )

@@ -77,9 +77,9 @@ export default {
 
         this.pageType = d.page_title.startsWith('User') ? 'User page' : 'Talk page'
         this.pageTitle = d.page_title.split(':')[1]
-        this.comment = d.cleaned_content
+        this.comment = d.content
         this.detoxed = d.type === 'DELETION'
-        this.score = parseFloat(d['RockV6_1_TOXICITY']).toFixed(2) * 100
+        this.score = parseFloat(d['RockV6_2_TOXICITY']).toFixed(2) * 100
         this.date = (new Date(d.unix)).toLocaleString()
 
         // this.size = newVal.size * 3.6
@@ -421,7 +421,11 @@ export default {
     padding: 12px 18px;
     position: absolute;
     z-index: 2000;
-    top: 8em;
+    top: 12em;
     left: auto;
+
+    @include tablet {
+      top: 2em;
+    }
   }
 </style>

@@ -92,7 +92,7 @@ export class Particles {
         finalSizes[i] = sizeWeight
         color = [0.988, 0.91, 0.92]
       } else {
-        finalSizes[i] = (Number(d.RockV6_1_TOXICITY) - 0.75) * sizeWeight * 20
+        finalSizes[i] = (Number(d.RockV6_2_TOXICITY) - 0.75) * sizeWeight * 20
         color = [0.937, 0, 0.184]
       }
       colors[ 4 * i ] = color[0]
@@ -116,8 +116,8 @@ export class Particles {
   getSizeWeight (num) {
     const h = window.innerHeight
     const w = window.innerWidth
-    let scale = (w > h ? h : w) / 300
-    scale = scale < 1.45 ? 1.45 : scale
+    let scale = (w > h ? h : w) / 400
+    scale = scale < 1 ? 1 : scale
     const weight = num < 90 ? scale * 1.2 : scale
     return weight
   }

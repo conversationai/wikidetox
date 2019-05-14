@@ -52,7 +52,7 @@ export default {
       datas: state => state.datas,
       commentClicked: state => state.commentClicked, // boolean
       selectedDate: state => state.selectedDate,
-      detoxedIndex: state => state.detoxedIndex
+      detoxedID: state => state.detoxedID
     }),
     ...mapGetters({
       talkPage: 'getTalkpage',
@@ -106,9 +106,11 @@ export default {
         this.controls.enabled = true
       }
     },
-    detoxedIndex (newVal, oldVal) {
-      console.log(newVal)
-      this.detoxParticleColor(newVal)
+    detoxedID (newVal, oldVal) {
+      const detoxedInd = this.filteredData.findIndex(d => {
+        return d.id === newVal
+      })
+      this.detoxParticleColor(detoxedInd)
     }
   },
   mounted () {
@@ -128,7 +130,6 @@ export default {
       } else {
         this.INTERSECTED = this.INTERSECTED + d
       }
-      // console.log(this.INTERSECTED)
       this.hoverAnimation(this.INTERSECTED, true) // hover leave
       this.zoomAnimation(this.INTERSECTED, true, false)
     })
@@ -247,7 +248,6 @@ export default {
     },
     addParticles (datas) {
       this.controls.reset()
-      console.log(datas)
       this.filteredData = datas
       if (this.particles !== null) {
         this.scene.remove(this.particles)
@@ -259,7 +259,6 @@ export default {
 
       this.particles = this.particleSystem.particles
       this.attributes = this.particles.geometry.attributes
-      console.log(this.particles)
       this.scene.add(this.particles)
     },
     addFilteredParticles () {
@@ -380,13 +379,11 @@ export default {
         })
         .onComplete(() => {
           // particle expanded -> show text
-          // console.log(`commiting hovered comment ${commentIndex}`)
           this.commitHoveredComment(isMouseIn, commentIndex, finalSize)
         })
         .start()
     },
     animateParticleColor (commentIndex) { // todo: move to particle class
-      // console.log(`animating particle color ${commentIndex}`)
       const baseRColor = this.attributes.vertexColor.array[ commentIndex * 4 ]
       new TWEEN.Tween({ red: baseRColor })
         .to({ red: 1 }, 100)
@@ -398,7 +395,6 @@ export default {
         .start()
     },
     detoxParticleColor (commentIndex) { // todo: move to particle class
-      // console.log(`animating particle color ${commentIndex}`)
       const colorArray = this.attributes.vertexColor.array
       new TWEEN.Tween(
         {
@@ -434,7 +430,6 @@ export default {
         .start()
     },
     animateCameraPos (toPos) {
-      // console.log(toPos)
       const fromPos = this.camera.position.clone()
       new TWEEN.Tween(fromPos)
         .to(toPos, 600)
