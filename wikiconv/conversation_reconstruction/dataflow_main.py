@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-A dataflow pipeline to reconstruct conversations on Wikipedia talk pages from
-ingested json files.
+"""A dataflow pipeline to reconstruct conversations on Wikipedia talk pages from ingested json files.
 
 Run on local test data with:
 
@@ -82,23 +80,32 @@ RETRY_LIMIT = 10
 # see our printed summary statistics.
 LOG_LEVEL_OUTPUT_INFO = 25
 
+
 def page_indexed_metadata_of_revstring(rev_string):
   record_size = len(rev_string)
   record = json.loads(rev_string)
-  return (record['page_id'], {'page_id': record['page_id'], 'rev_id': record['rev_id'],
-                              'timestamp': record['timestamp'], 'record_size': record_size})
+  return (record['page_id'], {
+      'page_id': record['page_id'],
+      'rev_id': record['rev_id'],
+      'timestamp': record['timestamp'],
+      'record_size': record_size
+  })
 
 
 def index_by_page_id(s):
   """Given a json string of a dict with a page_id key, pair the page_id with
-  the object."""
-  return (json.loads(s)["page_id"], json.loads(s))
+
+  the object.
+  """
+  return (json.loads(s)['page_id'], json.loads(s))
 
 
 def index_by_rev_id(s):
   """Given a json string of a dict with a rev_id key, pair the rev_id with
-  the string"""
-  return (json.loads(s)["rev_id"], s)
+
+  the string
+  """
+  return (json.loads(s)['rev_id'], s)
 
 
 def get_counter_metric(result, counter_name):
@@ -109,6 +116,7 @@ def get_counter_metric(result, counter_name):
   else:
     return None
 
+
 def get_distributions_metric(result, counter_name):
   metrics_filter = MetricsFilter().with_name(counter_name)
   query_result = result.metrics().query(metrics_filter)
@@ -117,30 +125,44 @@ def get_distributions_metric(result, counter_name):
   else:
     return None
 
+
 # TODO(ldixon): pull these into a class, and output to JSON as a job summary for better
 # debugging.
 def print_metrics(result):
   """Print metrics we might be interested in.
+
   Args:
     result: dataflow result.
   """
-  logging.log(LOG_LEVEL_OUTPUT_INFO, '------------------------------------------------')
+  logging.log(LOG_LEVEL_OUTPUT_INFO,
+              '------------------------------------------------')
   logging.log(LOG_LEVEL_OUTPUT_INFO, ' KEY METRICS: ')
-  logging.log(LOG_LEVEL_OUTPUT_INFO, '------------------------------------------------')
-  logging.log(LOG_LEVEL_OUTPUT_INFO, '* pages_count: %d', get_counter_metric(result, 'pages_count'))
-  logging.log(LOG_LEVEL_OUTPUT_INFO, '* revisions_count: %d', get_counter_metric(result, 'revisions_count'))
-  logging.log(LOG_LEVEL_OUTPUT_INFO, '* very_long_page_histories_count: %d', get_counter_metric(result, 'very_long_page_histories_count'))
-  revisions_per_page_distr = get_distributions_metric(result, 'revisions_per_page_distr')
-  logging.log(LOG_LEVEL_OUTPUT_INFO, '* revisions_per_page_distr.mean: %d', revisions_per_page_distr.mean)
-  logging.log(LOG_LEVEL_OUTPUT_INFO, '* revisions_per_page_distr.sum: %d', revisions_per_page_distr.sum)
-  cumulative_page_rev_size_distr = get_distributions_metric(result, 'cumulative_page_rev_size_distr')
-  logging.log(LOG_LEVEL_OUTPUT_INFO, '* cumulative_page_rev_size_distr.mean: %d', cumulative_page_rev_size_distr.mean)
-  logging.log(LOG_LEVEL_OUTPUT_INFO, '* cumulative_page_rev_size_distr.sum: %d', cumulative_page_rev_size_distr.sum)
-
+  logging.log(LOG_LEVEL_OUTPUT_INFO,
+              '------------------------------------------------')
+  logging.log(LOG_LEVEL_OUTPUT_INFO, '* pages_count: %d',
+              get_counter_metric(result, 'pages_count'))
+  logging.log(LOG_LEVEL_OUTPUT_INFO, '* revisions_count: %d',
+              get_counter_metric(result, 'revisions_count'))
+  logging.log(LOG_LEVEL_OUTPUT_INFO, '* very_long_page_histories_count: %d',
+              get_counter_metric(result, 'very_long_page_histories_count'))
+  revisions_per_page_distr = get_distributions_metric(
+      result, 'revisions_per_page_distr')
+  logging.log(LOG_LEVEL_OUTPUT_INFO, '* revisions_per_page_distr.mean: %d',
+              revisions_per_page_distr.mean)
+  logging.log(LOG_LEVEL_OUTPUT_INFO, '* revisions_per_page_distr.sum: %d',
+              revisions_per_page_distr.sum)
+  cumulative_page_rev_size_distr = get_distributions_metric(
+      result, 'cumulative_page_rev_size_distr')
+  logging.log(LOG_LEVEL_OUTPUT_INFO,
+              '* cumulative_page_rev_size_distr.mean: %d',
+              cumulative_page_rev_size_distr.mean)
+  logging.log(LOG_LEVEL_OUTPUT_INFO, '* cumulative_page_rev_size_distr.sum: %d',
+              cumulative_page_rev_size_distr.sum)
 
 
 def run(locations, pipeline_args):
   """Main entry point; runs the reconstruction pipeline.
+
   Args:
     locations: Locations instance with the various input/output locations.
     pipeline_args: flags for PipelineOptions, detailing how to run the job.
@@ -148,10 +170,10 @@ def run(locations, pipeline_args):
   """
 
   pipeline_args.extend([
-    '--staging_location={dataflow_staging}'.format(
-      dataflow_staging=locations.dataflow_staging),
-    '--temp_location={dataflow_temp}'.format(
-      dataflow_temp=locations.dataflow_temp),
+      '--staging_location={dataflow_staging}'.format(
+          dataflow_staging=locations.dataflow_staging),
+      '--temp_location={dataflow_temp}'.format(
+          dataflow_temp=locations.dataflow_temp),
   ])
   pipeline_options = PipelineOptions(pipeline_args)
   # TODO(ldixon): investigate why/where we use global objects, and remove them
@@ -164,48 +186,73 @@ def run(locations, pipeline_args):
     # process them on disk instead of in memory.
     # TODO(ldixon): probably better to simply extend the meta-data with a mark
     # for its part of a big page.
-    rev_marks = (p
-      | 'input_revisions-for-metadata' >> beam.io.ReadFromText(locations.input_revisions)
-      | 'metadata_of_revstring' >> beam.Map(page_indexed_metadata_of_revstring)
-      | beam.GroupByKey()
-      | beam.ParDo(MarkRevisionsOfBigPages()))
-    raw_revision_ids = (p
-      | 'input_revisions' >> beam.io.ReadFromText(locations.input_revisions)
-      | 'input_revisions-by-rev_id' >> beam.Map(index_by_rev_id))
-    revs_with_marks_by_id = ({'metadata': rev_marks, 'raw': raw_revision_ids}
-      | 'GroupbyRevID' >> beam.CoGroupByKey()
-      | 'output_revs_with_marks' >> beam.ParDo(WriteToStorage(), locations.output_revs_with_marks))
-    last_revisions = (p
-      | 'input_last_revisions' >> beam.io.ReadFromText(locations.input_last_revisions)
-      | 'input_last_revisions-by-page_id' >> beam.Map(index_by_page_id))
-    page_state = (p
-      | 'input_page_states' >> beam.io.ReadFromText(locations.input_page_states)
-      | 'input_page_states-by-page_id' >> beam.Map(index_by_page_id))
-    error_log = (p
-      | 'input_error_logs' >> beam.io.ReadFromText(locations.input_error_logs)
-      | 'input_error_logs-by-page_id' >> beam.Map(index_by_page_id))
+    rev_marks = (
+        p
+        | 'input_revisions-for-metadata' >> beam.io.ReadFromText(
+            locations.input_revisions)
+        |
+        'metadata_of_revstring' >> beam.Map(page_indexed_metadata_of_revstring)
+        | beam.GroupByKey()
+        | beam.ParDo(MarkRevisionsOfBigPages()))
+    raw_revision_ids = (
+        p
+        | 'input_revisions' >> beam.io.ReadFromText(locations.input_revisions)
+        | 'input_revisions-by-rev_id' >> beam.Map(index_by_rev_id))
+    revs_with_marks_by_id = (
+        {
+            'metadata': rev_marks,
+            'raw': raw_revision_ids
+        }
+        | 'GroupbyRevID' >> beam.CoGroupByKey()
+        | 'output_revs_with_marks' >> beam.ParDo(
+            WriteToStorage(), locations.output_revs_with_marks))
+    last_revisions = (
+        p
+        | 'input_last_revisions' >> beam.io.ReadFromText(
+            locations.input_last_revisions)
+        | 'input_last_revisions-by-page_id' >> beam.Map(index_by_page_id))
+    page_state = (
+        p
+        |
+        'input_page_states' >> beam.io.ReadFromText(locations.input_page_states)
+        | 'input_page_states-by-page_id' >> beam.Map(index_by_page_id))
+    error_log = (
+        p
+        | 'input_error_logs' >> beam.io.ReadFromText(locations.input_error_logs)
+        | 'input_error_logs-by-page_id' >> beam.Map(index_by_page_id))
 
     # Main Pipeline
     reconstruction_results, page_states, last_rev_output, error_log = (
-      {'to_be_processed': revs_with_marks_by_id, 'last_revision': last_revisions,
-       'page_state': page_state, 'error_log': error_log}
-      # Join information based on page_id.
-      | 'GroupBy_page_id' >> beam.CoGroupByKey()
-      | beam.ParDo(ReconstructConversation(), locations.output_revs_with_marks).with_outputs(
-        'page_states', 'last_revision', 'error_log',  main = 'reconstruction_results'))
+        {
+            'to_be_processed': revs_with_marks_by_id,
+            'last_revision': last_revisions,
+            'page_state': page_state,
+            'error_log': error_log
+        }
+        # Join information based on page_id.
+        | 'GroupBy_page_id' >> beam.CoGroupByKey()
+        | beam.ParDo(ReconstructConversation(),
+                     locations.output_revs_with_marks).with_outputs(
+                         'page_states',
+                         'last_revision',
+                         'error_log',
+                         main='reconstruction_results'))
     # Main Result
-    reconstruction_results | "output_conversations" >> beam.io.WriteToText(
-      locations.output_conversations)
+    reconstruction_results | 'output_conversations' >> beam.io.WriteToText(
+        locations.output_conversations)
 
     # Saving intermediate results to separate locations.
-    page_states | "output_page_states" >> beam.io.WriteToText(locations.output_page_states)
-    last_rev_output | "output_last_revisions" >> beam.io.WriteToText(locations.output_last_revisions)
-    error_log | "output_error_logs" >> beam.io.WriteToText(locations.output_error_logs)
+    page_states | 'output_page_states' >> beam.io.WriteToText(
+        locations.output_page_states)
+    last_rev_output | 'output_last_revisions' >> beam.io.WriteToText(
+        locations.output_last_revisions)
+    error_log | 'output_error_logs' >> beam.io.WriteToText(
+        locations.output_error_logs)
 
     result = p.run()
     result.wait_until_finish()
-    if (not hasattr(result, 'has_job')    # direct runner
-        or result.has_job):               # not just a template creation
+    if (not hasattr(result, 'has_job')  # direct runner
+        or result.has_job):  # not just a template creation
       print_metrics(result)
 
 
@@ -214,12 +261,16 @@ def run(locations, pipeline_args):
 # are too big by simply streaming revisions for each page, counting as we go,
 # and then re-joining to the page-ids to then re-tag the stream of revisions.
 class MarkRevisionsOfBigPages(beam.DoFn):
+
   def __init__(self):
-    self.very_long_page_histories_count = Metrics.counter(self.__class__, 'very_long_page_histories_count')
+    self.very_long_page_histories_count = Metrics.counter(
+        self.__class__, 'very_long_page_histories_count')
     self.pages_count = Metrics.counter(self.__class__, 'pages_count')
     self.revisions_count = Metrics.counter(self.__class__, 'revisions_count')
-    self.revisions_per_page_distr = Metrics.distribution(self.__class__, 'revisions_per_page_distr')
-    self.cumulative_page_rev_size_distr = Metrics.distribution(self.__class__, 'cumulative_page_rev_size_distr')
+    self.revisions_per_page_distr = Metrics.distribution(
+        self.__class__, 'revisions_per_page_distr')
+    self.cumulative_page_rev_size_distr = Metrics.distribution(
+        self.__class__, 'cumulative_page_rev_size_distr')
 
   def process(self, (page_id, metadata)):
     flag = SAVE_TO_MEMORY
@@ -237,23 +288,25 @@ class MarkRevisionsOfBigPages(beam.DoFn):
       revision_size_sum += s['record_size']
     self.cumulative_page_rev_size_distr.update(revision_size_sum)
     if revision_size_sum > CUMULATIVE_REVISION_SIZE_THERESHOLD:
-        flag = SAVE_TO_STORAGE
-        self.very_long_page_histories_count.inc()
+      flag = SAVE_TO_STORAGE
+      self.very_long_page_histories_count.inc()
     for rev in metadata:
       yield (rev['rev_id'], flag)
 
 
 class WriteToStorage(beam.DoFn):
+
   def __init__(self):
-      self.revisions_to_storage = Metrics.counter(self.__class__, 'revisions_to_storage')
-      self.write_retries = Metrics.counter(self.__class__, 'write_retries')
+    self.revisions_to_storage = Metrics.counter(self.__class__,
+                                                'revisions_to_storage')
+    self.write_retries = Metrics.counter(self.__class__, 'write_retries')
 
   def process(self, element, outputdir):
     (rev_id, data) = element
     metadata = data['metadata'][0]
     raw = data['raw'][0]
     if metadata == SAVE_TO_MEMORY:
-      logging.info("USERLOG: Write to memory.")
+      logging.info('USERLOG: Write to memory.')
       ret = json.loads(raw)
       page_id = ret['page_id']
       ret['rev_id'] = int(ret['rev_id'])
@@ -265,18 +318,18 @@ class WriteToStorage(beam.DoFn):
       # Creates writing path given the week, year pair
       write_path = path.join(outputdir, page_id, rev_id)
       # Writes to storage
-      logging.info('USERLOG: Write to path %s.' % write_path)
+      logging.info('USERLOG: Write to path %s.', write_path)
       wait_time = 1
       for i in range(RETRY_LIMIT):
-          try:
-             with filesystems.FileSystems.create(write_path) as outputfile:
-                json.dump(element, outputfile)
-          except RuntimeError:
-            self.write_retries.inc()
-            time.sleep(wait_time)
-            wait_time *= 2
-          else:
-            break
+        try:
+          with filesystems.FileSystems.create(write_path) as outputfile:
+            json.dump(element, outputfile)
+        except RuntimeError:
+          self.write_retries.inc()
+          time.sleep(wait_time)
+          wait_time *= 2
+        else:
+          break
       ret = {'timestamp': element['timestamp'], 'rev_id': int(rev_id)}
     yield (page_id, ret)
 
@@ -288,52 +341,52 @@ class Locations:
   cloud storage bucket paths, or other locations readable by Google Cloud
   DataFlow.
   """
+
   def __init__(self, known_args):
     self.input_revisions = known_args.input_revisions
     self.input_last_revisions = (
-      known_args.input_state + "/last_revisions/last_rev*")
+        known_args.input_state + '/last_revisions/last_rev*')
     self.input_page_states = (
-      known_args.input_state + "/page_states/page_states*")
+        known_args.input_state + '/page_states/page_states*')
     # TODO(ldixon): why do we take in errors? remove?
-    self.input_error_logs = (
-      known_args.input_state + "/error_logs/error_log*")
+    self.input_error_logs = (known_args.input_state + '/error_logs/error_log*')
 
-    self.dataflow_staging = (
-      known_args.output_state + "/dataflow_tmp/staging/")
-    self.dataflow_temp = (
-      known_args.output_state + "/dataflow_tmp/temp/")
+    self.dataflow_staging = (known_args.output_state + '/dataflow_tmp/staging/')
+    self.dataflow_temp = (known_args.output_state + '/dataflow_tmp/temp/')
 
-    self.output_revs_with_marks = (
-      known_args.output_state + "/revs_with_marks")
+    self.output_revs_with_marks = (known_args.output_state + '/revs_with_marks')
     self.output_page_states = (
-      known_args.output_state + "/page_states/page_states")
+        known_args.output_state + '/page_states/page_states')
     self.output_last_revisions = (
-      known_args.output_state + "/last_revisions/last_rev")
-    self.output_error_logs = (
-      known_args.output_state + "/error_logs/error_log")
+        known_args.output_state + '/last_revisions/last_rev')
+    self.output_error_logs = (known_args.output_state + '/error_logs/error_log')
 
     self.output_conversations = (
-      known_args.output_conversations + "/conversations")
+        known_args.output_conversations + '/conversations')
+
 
 if __name__ == '__main__':
   # logging.basicConfig(filename="debug.log", level=logging.INFO)
   # logging.getLogger().setLevel(logging.INFO)
   logging.getLogger().setLevel(LOG_LEVEL_OUTPUT_INFO)
   parser = argparse.ArgumentParser()
-  parser.add_argument('--input_state',
-                      dest='input_state',
-                      help='Location of input page state to start from.')
-  parser.add_argument('--input_revisions',
-                      dest='input_revisions',
-                      help='Location of the input revisions to process.')
-  parser.add_argument('--output_state',
-                      dest='output_state',
-                      help='Location for intermediate outputs.')
-  parser.add_argument('--output_conversations',
-                      dest='output_conversations',
-                      help='Location to output conversations.')
+  parser.add_argument(
+      '--input_state',
+      dest='input_state',
+      help='Location of input page state to start from.')
+  parser.add_argument(
+      '--input_revisions',
+      dest='input_revisions',
+      help='Location of the input revisions to process.')
+  parser.add_argument(
+      '--output_state',
+      dest='output_state',
+      help='Location for intermediate outputs.')
+  parser.add_argument(
+      '--output_conversations',
+      dest='output_conversations',
+      help='Location to output conversations.')
 
   # All unknown flags are considered to be pipeline arguments.
   known_args, pipeline_args = parser.parse_known_args()
   run(Locations(known_args), pipeline_args)
-

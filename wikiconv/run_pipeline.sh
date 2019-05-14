@@ -102,7 +102,7 @@ if (( PHASE3 )); then
     --output_conversations "gs://${cloudBucket}/conversations-${language}${dumpdate}" \
     --runner DataflowRunner \
     --project "${cloudProject}" \
-    --num_workers 80
+    --max_num_workers 80
   deactivate
   cd ..
 fi
