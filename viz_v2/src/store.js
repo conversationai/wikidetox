@@ -20,8 +20,8 @@ const toxModels = models.default
 
 export default new Vuex.Store({
   state: {
-    SELECTED_YEAR: 2018,
-    SELECTED_MONTH: 6,
+    SELECTED_YEAR: 2019,
+    SELECTED_MONTH: 3,
     filterby: null,
     sortby: 'all',
     datas: [],
@@ -30,7 +30,8 @@ export default new Vuex.Store({
     selectedComment: null, // hovered object
     commentClicked: false,
     nextComment: null,
-    selectedDate: null
+    selectedDate: null,
+    detoxedID: ''
   },
   getters: {
     dataLength: state => {
@@ -136,6 +137,13 @@ export default new Vuex.Store({
     SET_DATA (state, data) {
       state.datas = data
     },
+    DETOX_COMMENT (state, id) {
+      state.detoxedID = id
+      const detoxedInd = state.datas.findIndex(d => {
+        return d.id === id
+      })
+      state.datas[detoxedInd].type = 'DELETION'
+    },
     CHANGE_FILTERBY (state, data) {
       state.filterby = data
     },
@@ -147,9 +155,6 @@ export default new Vuex.Store({
     },
     SELECT_DATE (state, date) {
       state.selectedDate = date
-    },
-    NEXT_COMMENT (state, data) {
-      state.nextComment = data
     }
   }
 })

@@ -11,29 +11,48 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import express = require("express");
-import * as bodyParser from "body-parser";
-import * as path from "path";
+import express = require('express');
+import * as bodyParser from 'body-parser';
+import * as path from 'path';
 
-import { BigQueryData } from "./bigQuery";
+import { BigQueryData } from './bigQuery';
+import { WikiBot } from './wikiBot';
+
+const googleapis = require('googleapis');
 
 interface IConfig {
-    gcloudKey: string;
+    gcloudAPIKey: string;
+    gcloudKeyFilePath: string;
     bigQuery: {
         projectId: string;
         datasetID: string;
         dataTable: string;
     },
+    wikiBot: {
+        protocol: string;
+        server: string;
+        path: string;
+        debug: boolean;
+        username: string;
+        userAgent: string;
+        password: string;
+    },
     port: number
 }
+
+const COMMENT_ANALYZER_DISCOVERY_URL =
+    'https://commentanalyzer.googleapis.com/$discovery/rest?version=v1alpha1';
 
 export class Server {
     public app: express.Express;
     public bigQuery: any;
-    
-    constructor (public config: IConfig) {
+    public wikiBot: any
+    public analyzeApiClient: any;
 
+    constructor (public config: IConfig) {
         this.bigQuery = new BigQueryData(config);
+        this.wikiBot = new WikiBot(config.wikiBot);
+        this.config = config;
 
         this.app = express();
         this.app.use(bodyParser.json());
@@ -41,14 +60,14 @@ export class Server {
             extended: true,
         }));
 
-        const publicDir = path.join(__dirname, "static");
+        const publicDir = path.join(__dirname, 'static');
         this.app.use(express.static(publicDir));
 
-        this.app.get("/", (req, res) => {
-            res.sendFile(path.resolve("static/index.html"), { root: __dirname });
+        this.app.get('/', (req, res) => {
+            res.sendFile(path.resolve('static/index.html'), { root: __dirname });
         });
 
-        this.app.post("/monthsdata", async (req, res) => {
+        this.app.post('/monthsdata', async (req, res) => {
             const startDate = req.body.st || '2018-06-01';
             const endDate = req.body.end || '2018-07-01';
             try {
@@ -62,7 +81,7 @@ export class Server {
             }
         });
 
-        this.app.post("/dailytrends", async (req, res) => {
+        this.app.post('/dailytrends', async (req, res) => {
             const startDate = req.body.st || '2018-06-01';
             const endDate = req.body.end || '2018-07-01';
             try {
@@ -76,7 +95,7 @@ export class Server {
             }
         });
 
-        this.app.post("/monthlytrends", async (req, res) => {
+        this.app.post('/monthlytrends', async (req, res) => {
             const startDate = req.body.st || '2017-01-01';
             try {
                 const query = this.bigQuery.getMonthTimeline(startDate);
@@ -87,6 +106,47 @@ export class Server {
                 console.error(err);
                 res.status(403).send(err);
             }
+        });
+
+        this.app.post('/wiki_edit', async (req, res) => {
+            const page = req.body.page;
+            const comment = req.body.comment;
+            try {
+                const editResult = await this.wikiBot.editArticle(page, comment);
+                console.log(editResult);
+                res.status(200).json({status:"ok"});
+            } catch (err) {
+                console.error(err);
+                res.status(403).send(err);
+            }
+        });
+
+        this.app.post('/suggest_score', (req, res) => {
+            if(!req.body) {
+              // TODO: don't thow error, return an appropriate response code.
+              throw Error('No feedback request body.');
+            }
+            const requestData = req.body;
+            let attributeScores = {};
+            attributeScores['TOXICITY'] = {
+              summaryScore: { value: 0 }
+            };
+
+            let request = {
+              comment: {text: requestData.comment},
+              attribute_scores: attributeScores,
+              client_token: 'WikiDetox_vis'
+            };
+
+            this.sendSuggestCommentScoreRequest(request)
+              .then((response) => {
+                console.log(response);
+                res.send(response);
+              })
+              .catch((e) => {
+                console.log(e)
+                res.status(e.code).send(e);
+              });
         });
     }
 
@@ -103,4 +163,41 @@ export class Server {
             });
         });
     }
+
+    private sendSuggestCommentScoreRequest(request): Promise<Object> {
+        return new Promise((resolve, reject) => {
+            this.analyzeApiClient.comments.suggestscore({
+                key: this.config.gcloudAPIKey,
+                resource: request
+            },
+            (error: Error, response) => {
+                if (error) {
+                    reject(error);
+                    return;
+                }
+                resolve(response);
+            });
+        });
+    }
+
+    public startClient(): Promise<void> {
+        return new Promise<void>((resolve: () => void,
+                                  reject: () => void) => {
+            googleapis.discoverAPI(COMMENT_ANALYZER_DISCOVERY_URL, (discoverErr, client) => {
+                if (discoverErr) {
+                    console.error('ERROR: discoverAPI failed.');
+                    reject();
+                    return;
+                }
+                if (!(client.comments.suggestscore)) {
+                    console.error(
+                        'ERROR: !(client.comments.suggestscore) in analyze API');
+                    reject();
+                    return;
+                }
+                this.analyzeApiClient = client;
+                resolve();
+            });
+        });
+    };
 }

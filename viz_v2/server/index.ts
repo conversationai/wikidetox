@@ -25,3 +25,12 @@ server.start()
         console.error(e);
         process.exit(1);
     });
+
+server.startClient() // start convai client for comment feedbacks
+    .then(() => {
+        console.log('Convai client started');
+    })
+    .catch((e: Error) => {
+        console.error(`Client failed to start: ${e.message}`);
+        process.exit(1);
+    });

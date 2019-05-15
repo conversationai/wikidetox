@@ -51,7 +51,8 @@ export default {
       filterby: state => state.filterby,
       datas: state => state.datas,
       commentClicked: state => state.commentClicked, // boolean
-      selectedDate: state => state.selectedDate
+      selectedDate: state => state.selectedDate,
+      detoxedID: state => state.detoxedID
     }),
     ...mapGetters({
       talkPage: 'getTalkpage',
@@ -104,11 +105,18 @@ export default {
         this.zoomAnimation(this.lastCommentIndex, false, false) // zoom out
         this.controls.enabled = true
       }
+    },
+    detoxedID (newVal, oldVal) {
+      const detoxedInd = this.filteredData.findIndex(d => {
+        return d.id === newVal
+      })
+      this.detoxParticleColor(detoxedInd)
     }
   },
   mounted () {
     window.addEventListener('resize', this.resize)
     window.addEventListener('mousemove', this.onMouseMove, false)
+    window.addEventListener('touchstart', this.onTouchStart)
     this.init()
 
     // When "previous" / "next" is clicked on fullscreen comment
@@ -122,7 +130,6 @@ export default {
       } else {
         this.INTERSECTED = this.INTERSECTED + d
       }
-      // console.log(this.INTERSECTED)
       this.hoverAnimation(this.INTERSECTED, true) // hover leave
       this.zoomAnimation(this.INTERSECTED, true, false)
     })
@@ -130,6 +137,7 @@ export default {
   beforeDestroy () {
     window.removeEventListener('resize', this.resize)
     window.removeEventListener('mousemove', this.onMouseMove)
+    window.removeEventListener('touchstart', this.onTouchStart)
   },
   methods: {
     init () {
@@ -174,16 +182,18 @@ export default {
     },
     getResizedValue () {
       const w = window.innerWidth
-      if (w < 759) {
-        // mobile
+      const breakPoint = 768
+      if (w <= breakPoint) {
+        // mobile / tablet
         this.menuWidth = 0
-        this.fov = 2 * Math.tan((this.radiusScale / 0.74) / this.zDist) * (180 / Math.PI)
+        this.height = this.$refs.container.clientHeight - 64
+        this.fov = 2 * Math.tan((this.radiusScale / 0.66) / this.zDist) * (180 / Math.PI)
       } else {
         // desktop
         this.menuWidth = 262
+        this.height = this.$refs.container.clientHeight
         this.fov = 2 * Math.atan((this.radiusScale / 0.74) / this.zDist) * (180 / Math.PI)
       }
-      this.height = this.$refs.container.clientHeight
 
       if (this.commentClicked) {
         this.width = w
@@ -238,7 +248,6 @@ export default {
     },
     addParticles (datas) {
       this.controls.reset()
-      console.log(datas)
       this.filteredData = datas
       if (this.particles !== null) {
         this.scene.remove(this.particles)
@@ -250,7 +259,6 @@ export default {
 
       this.particles = this.particleSystem.particles
       this.attributes = this.particles.geometry.attributes
-      console.log(this.particles)
       this.scene.add(this.particles)
     },
     addFilteredParticles () {
@@ -276,9 +284,15 @@ export default {
     },
     onMouseMove (event) {
       event.preventDefault()
-      const offsetX = 262
+      let offsetX = window.innerWidth <= 768 ? 0 : 262
       this.mouse.x = ((event.clientX - offsetX) / this.view.clientWidth) * 2 - 1
       this.mouse.y = -((event.clientY) / this.view.clientHeight) * 2 + 1
+    },
+    onTouchStart (event) {
+      event.preventDefault()
+      let offsetX = window.innerWidth <= 768 ? 0 : 262
+      this.mouse.x = ((event.touches[0].clientX - offsetX) / this.view.clientWidth) * 2 - 1
+      this.mouse.y = -((event.touches[0].clientY) / this.view.clientHeight) * 2 + 1
     },
     growOut (i) { // todo: move to particle class
       new TWEEN.Tween({ scale: this.attributes.scale.array[ i ] })
@@ -365,19 +379,35 @@ export default {
         })
         .onComplete(() => {
           // particle expanded -> show text
-          // console.log(`commiting hovered comment ${commentIndex}`)
           this.commitHoveredComment(isMouseIn, commentIndex, finalSize)
         })
         .start()
     },
     animateParticleColor (commentIndex) { // todo: move to particle class
-      // console.log(`animating particle color ${commentIndex}`)
       const baseRColor = this.attributes.vertexColor.array[ commentIndex * 4 ]
       new TWEEN.Tween({ red: baseRColor })
         .to({ red: 1 }, 100)
         .easing(TWEEN.Easing.Linear.None)
         .onUpdate((obj) => {
           this.attributes.vertexColor.array[ commentIndex * 4 ] = obj.red
+          this.attributes.vertexColor.needsUpdate = true
+        })
+        .start()
+    },
+    detoxParticleColor (commentIndex) { // todo: move to particle class
+      const colorArray = this.attributes.vertexColor.array
+      new TWEEN.Tween(
+        {
+          r: colorArray[commentIndex * 4],
+          g: colorArray[commentIndex * 4 + 1],
+          b: colorArray[commentIndex * 4 + 2]
+        })
+        .to({ r: 0.988, g: 0.91, b: 0.92 }, 100)
+        .easing(TWEEN.Easing.Linear.None)
+        .onUpdate((obj) => {
+          colorArray[ commentIndex * 4 ] = obj.r
+          colorArray[ commentIndex * 4 + 1 ] = obj.g
+          colorArray[ commentIndex * 4 + 2 ] = obj.b
           this.attributes.vertexColor.needsUpdate = true
         })
         .start()
@@ -400,7 +430,6 @@ export default {
         .start()
     },
     animateCameraPos (toPos) {
-      // console.log(toPos)
       const fromPos = this.camera.position.clone()
       new TWEEN.Tween(fromPos)
         .to(toPos, 600)
@@ -470,5 +499,9 @@ export default {
     width:  100%;
     height: 100vh;
     z-index: 1;
+
+    @include tablet {
+      top: 64px;
+    }
   }
 </style>

@@ -51,6 +51,7 @@ export default {
       width: 0,
       height: 20,
       circleLeft: -20,
+      minlineH: 40,
       bars: [],
       hoverIndex: null,
       hide: false
@@ -115,7 +116,7 @@ export default {
   methods: {
     onResize () {
       this.width = this.$refs.timelineWrapper.clientWidth
-      this.height = window.innerHeight * 0.04 > 20 ? window.innerHeight * 0.04 : 60
+      this.height = window.innerHeight * 0.04 > this.minlineH ? window.innerHeight * 0.04 : this.minlineH
       this.drawBars()
       if (!this.commentClicked) {
         setTimeout(() => {

@@ -57,11 +57,9 @@
     // "emitDecoratorMetadata": true,         /* Enables experimental support for emitting type metadata for decorators. */
   },
   "include": [
-    "server/*"
+    "src/*"
   ],
   "exclude": [
-      "node_modules",
-      "src/**/*",
-      "wiki_categorize/**/*"
+      "node_modules"
   ]
 }
