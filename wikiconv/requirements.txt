@@ -1,10 +1,9 @@
-apache-beam==2.7.0
+apache-beam==2.12.0
 beautifulsoup4==4.6.0
 bs4==0.0.1
 deltas==0.4.6
 future==0.16.0
 gax-google-logging-v2==0.8.3
-gax-google-pubsub-v1==0.8.3
 gcloud==0.18.3
 google==2.0.1
 google-api-core==1.6.0
@@ -18,7 +17,6 @@ google-reauth==0.1.0
 google-resumable-media==0.3.1
 googleapis-common-protos==1.5.3
 grpc-google-logging-v2==0.8.1
-grpc-google-pubsub-v1==0.8.1
 lxml==4.2.1
 mock==2.0.0
 mwparserfromhell==0.5.1

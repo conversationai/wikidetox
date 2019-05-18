@@ -29,6 +29,7 @@ import setuptools
 setuptools.setup(
     name='runfiles',
     version='0.0.1',
+    description='A package to reconstruct Wikipedia conversations.',
     install_requires=[],
-    packages=setuptools.find_packages('bazel-bin/ingest_revisions/dataflow_main.runfiles/__main__'),
+    packages=setuptools.find_packages('bazel-bin/conversation_reconstruction/dataflow_main.runfiles/__main__'),
 )
