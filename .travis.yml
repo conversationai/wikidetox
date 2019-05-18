@@ -17,10 +17,10 @@ before_install:
   - wget https://github.com/bazelbuild/bazel/releases/download/0.18.1/bazel_0.18.1-linux-x86_64.deb
   - sha256sum -c travis_blase_test_support/bazel_0.18.1-linux-x86_64.deb.sha256
   - sudo dpkg -i bazel_0.18.1-linux-x86_64.deb
-  - cd wikiconv/conversation_reconstruction
 
 install:
   - pip install -r requirements.txt
 
 script:
-  - bazel test --test_output=streamed ...
+  - (cd wikiconv/ingest_revisions; bazel test --test_output=streamed ...)
+  - (cd wikiconv/conversation_reconstruction; bazel test --test_output=streamed ...)

@@ -6,3 +6,4 @@ config/
 tmp/
 
 conversation-reconstruction/bazel-*
+ingest-revisions/bazel-*
