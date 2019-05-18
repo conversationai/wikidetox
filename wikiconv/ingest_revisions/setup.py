@@ -29,6 +29,8 @@ import setuptools
 setuptools.setup(
     name='runfiles',
     version='0.0.1',
-    install_requires=[],
+    install_requires=[
+        'google-cloud-storage==1.15.0',
+    ],
     packages=setuptools.find_packages('bazel-bin/ingest_revisions/dataflow_main.runfiles/__main__'),
 )

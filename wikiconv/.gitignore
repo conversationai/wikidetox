@@ -5,4 +5,4 @@ config/
 .vscode
 tmp/
 
-/bazel-*
+conversation-reconstruction/bazel-*

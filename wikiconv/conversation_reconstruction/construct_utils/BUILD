@@ -4,10 +4,10 @@ py_library(
     name = "conversation_constructor",
     srcs = ["conversation_constructor.py"],
     deps = [
-        "//conversation_reconstruction/construct_utils/utils:actions",
-        "//conversation_reconstruction/construct_utils/utils:insert_utils",
-        "//conversation_reconstruction/construct_utils/utils/third_party:rev_clean",
-        "//conversation_reconstruction/construct_utils/utils/third_party/diff_match_patch",
+        "//construct_utils/utils:actions",
+        "//construct_utils/utils:insert_utils",
+        "//construct_utils/utils/third_party:rev_clean",
+        "//construct_utils/utils/third_party/diff_match_patch",
     ],
 )
 

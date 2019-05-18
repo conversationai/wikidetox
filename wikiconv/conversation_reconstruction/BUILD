@@ -3,13 +3,13 @@ package(default_visibility = ["//visibility:public"])
 py_binary(
     name = "dataflow_main",
     srcs = ["dataflow_main.py"],
-    deps = ["//conversation_reconstruction/construct_utils:reconstruct_conversation"],
+    deps = ["//construct_utils:reconstruct_conversation"],
 )
 
 py_binary(
     name = "dataflow_content_clean",
     srcs = ["dataflow_content_clean.py"],
-    deps = ["//conversation_reconstruction/construct_utils/utils/third_party:clean"],
+    deps = ["//construct_utils/utils/third_party:clean"],
 )
 
 py_test(

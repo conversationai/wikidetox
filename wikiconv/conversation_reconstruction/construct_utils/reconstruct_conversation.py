@@ -7,7 +7,7 @@ import resource
 import os
 from google.cloud import storage
 
-from conversation_reconstruction.construct_utils import conversation_constructor
+from construct_utils import conversation_constructor
 
 
 class ReconstructConversation(beam.DoFn):
