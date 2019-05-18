@@ -21,7 +21,7 @@ import os
 import sys
 import time
 import unittest
-from conversation_reconstruction.construct_utils.utils.third_party.diff_match_patch import diff_match_patch as dmp_module
+from construct_utils.utils.third_party.diff_match_patch import diff_match_patch as dmp_module
 
 print(dir(dmp_module))
 sys.exit(0)

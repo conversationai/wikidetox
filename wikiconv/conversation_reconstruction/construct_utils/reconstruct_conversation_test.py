@@ -12,7 +12,7 @@ import unittest
 import apache_beam as beam
 from apache_beam.testing import test_pipeline
 from apache_beam.testing import util
-from conversation_reconstruction.construct_utils import reconstruct_conversation
+from construct_utils import reconstruct_conversation
 
 class FakeStorageClient(object):
   pass
