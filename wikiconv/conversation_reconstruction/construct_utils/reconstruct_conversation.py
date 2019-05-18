@@ -7,13 +7,17 @@ import resource
 import os
 from google.cloud import storage
 
-from construct_utils.conversation_constructor import Conversation_Constructor
+from conversation_reconstruction.construct_utils import conversation_constructor
 
 
 class ReconstructConversation(beam.DoFn):
 
+  def __init__(self, storage_client=None):
+    self._storage_client = storage_client
+
   def start_bundle(self):
-       self._storage_client = storage.Client()
+    if not self._storage_client:
+      self._storage_client = storage.Client()
 
   def merge(self, ps1, ps2):
     # Merge two page states, ps1 is the later one
@@ -94,7 +98,7 @@ class ReconstructConversation(beam.DoFn):
                    (page_id))
       return
 
-    processor = Conversation_Constructor()
+    processor = conversation_constructor.Conversation_Constructor()
     if page_state:
       logging.info('Page %s existed: loading page state.', (page_id))
       # Load previous page state.
@@ -154,7 +158,7 @@ class ReconstructConversation(beam.DoFn):
       if (cnt % LOG_INTERVAL == 0 and cnt) and page_state:
         # Reload after every LOG_INTERVAL revisions to keep the low memory
         # usage.
-        processor = Conversation_Constructor()
+        processor = conversation_constructor.Conversation_Constructor()
         page_state_bak = copy.deepcopy(page_state)
         last_loading = cnt
         processor.load(page_state['deleted_comments'])

@@ -51,30 +51,27 @@ while getopts "1234" opt; do
 done
 
 . config/wikiconv.config
+. "${pathToVirtualEnv}/bin/activate"
 
 # Download the Dump
 
 if (( PHASE1 )); then
-  cd ingest_revisions
-  . "${pathToVirtualEnv}/bin/activate"
-  python dataflow_main.py --setup_file ./setup.py --download \
+  bazel run ingest_revisions:dataflow_main -- \
+    --setup_file "${PWD}/ingest_revisions/setup.py" \
+    --download \
     --ingestFrom=wikipedia --language="${language}" --dumpdate="${dumpdate}" \
     --project "${cloudProject}" --bucket "${cloudBucket}"
-  deactivate
-  cd ..
 fi
 
 # Ingest dump into JSON
 
 if (( PHASE2 )); then
-  cd ingest_revisions
-  . "${pathToVirtualEnv}/bin/activate"
-  python dataflow_main.py --setup_file ./setup.py --ingestFrom=cloud \
+  bazel run ingest_revisions:dataflow_main -- \
+    --setup_file "${PWD}/ingest_revisions/setup.py" \
+    --ingestFrom=cloud \
     --language="${language}" --dumpdate="${dumpdate}" \
     --output="gs://${cloudBucket}/ingested" --project "${cloudProject}" \
     --bucket "${cloudBucket}"
-  deactivate
-  cd ..
 fi
 
 if (( PHASE3 )); then
@@ -92,10 +89,8 @@ if (( PHASE3 )); then
     "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/error_logs/error_log"
 
   # Start Reconstruction
-  cd conversation_reconstruction
-  . ${pathToVirtualEnv}/bin/activate
-  python dataflow_main.py \
-    --setup_file ./setup.py \
+  bazel run conversation_resconstruction:dataflow_main -- \
+    --setup_file "${PWD}/conversation_reconstruction/setup.py" \
     --input_state "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current" \
     --input_revisions "gs://${cloudBucket}/ingested/${dumpdate}-${language}/*/revisions*.json" \
     --output_state "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/next_stage" \
@@ -103,8 +98,6 @@ if (( PHASE3 )); then
     --runner DataflowRunner \
     --project "${cloudProject}" \
     --max_num_workers 80
-  deactivate
-  cd ..
 fi
 
 if (( PHASE4 )); then
@@ -118,14 +111,13 @@ if (( PHASE4 )); then
   gsutil -m rm -r "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}"
 
   # Clean Result Format
-  cd conversation_reconstruction
-  . "${pathToVirtualEnv}/bin/activate"
-  python dataflow_content_clean.py --input \
+  bazel run conversation_reconstruction:dataflow_content_clean -- \
+    --setup_file "${PWD}/conversation_reconstruction/setup.py" \
+    --input \
     "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/conversations/conversations*" \
-    --setup_file ./setup.py --output \
+    --output \
     "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/cleaned_results/wikiconv-${language}-${dumpdate}-" \
     --error_log="gs://${cloudBucket}/format-clean/error_log_${language}_${dumpdate}-" \
     --jobname="${language}${dumpdate}" --project "${cloudProject}" --bucket "${cloudBucket}"
   deactivate
-  cd ..
 fi

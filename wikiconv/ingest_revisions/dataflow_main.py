@@ -71,7 +71,7 @@ import urllib
 import urllib2
 
 import apache_beam as beam
-from ingest_utils.wikipedia_revisions_ingester import parse_stream
+from ingest_revisions.ingest_utils import wikipedia_revisions_ingester
 from google.cloud import storage
 
 LOCAL_STORAGE = 'file'
@@ -176,7 +176,8 @@ class WriteDecompressedFile(beam.DoFn):
     page_size = 0
     cur_page_revision_cnt = 0
     i = 0
-    for i, content in enumerate(parse_stream(bz2.BZ2File(chunk_name))):
+    for i, content in enumerate(wikipedia_revisions_ingester.parse_stream(
+        bz2.BZ2File(chunk_name))):
       self.processed_revisions.inc()
       # Add the year field for sharding
       dt = datetime.datetime.strptime(content['timestamp'],
