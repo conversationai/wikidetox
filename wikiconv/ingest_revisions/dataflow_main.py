@@ -71,7 +71,7 @@ import urllib
 import urllib2
 
 import apache_beam as beam
-from ingest_revisions.ingest_utils import wikipedia_revisions_ingester
+from ingest_utils import wikipedia_revisions_ingester
 from google.cloud import storage
 
 LOCAL_STORAGE = 'file'
