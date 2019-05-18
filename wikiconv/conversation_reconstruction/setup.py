@@ -26,10 +26,20 @@ when running the workflow for remote execution.
 
 import setuptools
 
+# Configure the required packages and scripts to install.
+# Note that the Python Dataflow containers come with numpy already installed
+# so this dependency will not trigger anything to be installed unless a version
+# restriction is specified.
+REQUIRED_PACKAGES = [
+    'google-cloud-storage == 1.15.0',
+    'google-apitools == 0.5.23', 'NoAho==0.9.6.1', 'mwparserfromhell==0.5.1',
+    'yamlconf==0.2.3', 'mwtypes==0.3.0', 'beautifulsoup4==4.5.1'
+]
+
 setuptools.setup(
-    name='runfiles',
+    name='construct_utils',
     version='0.0.1',
     description='A package to reconstruct Wikipedia conversations.',
-    install_requires=[],
-    packages=setuptools.find_packages('bazel-bin/conversation_reconstruction/dataflow_content_clean.runfiles/__main__'),
+    install_requires=REQUIRED_PACKAGES,
+    packages=setuptools.find_packages(),
 )
