@@ -23,8 +23,6 @@ import time
 import unittest
 from construct_utils.utils.third_party.diff_match_patch import diff_match_patch as dmp_module
 
-print(dir(dmp_module))
-sys.exit(0)
 
 class DiffMatchPatchTest(unittest.TestCase):
 
