@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""A dataflow pipeline to reconstruct conversations on Wikipedia talk pages from ingested json files.
+r"""A dataflow pipeline to reconstruct conversations on Wikipedia talk pages from ingested json files.
 
 Run on local test data with:
 
@@ -45,15 +45,9 @@ TODO(ldixon): make the input parser smarter so that it can handle this.
 """
 from __future__ import absolute_import
 import argparse
-import logging
-import traceback
-import subprocess
 import json
-import os
+import logging
 from os import path
-import urllib2
-import ast
-import sys
 import time
 
 import apache_beam as beam
@@ -93,17 +87,26 @@ def page_indexed_metadata_of_revstring(rev_string):
 
 
 def index_by_page_id(s):
-  """Given a json string of a dict with a page_id key, pair the page_id with
+  """Pair a dict with a page_id key, pair the page_id with the dict.
 
-  the object.
+  Args:
+    s: a dict as a JSON document.
+
+  Returns:
+    a tuple of page_id, and parsed Python dict.
   """
-  return (json.loads(s)['page_id'], json.loads(s))
+  d = json.loads(s)
+  return (d['page_id'], d)
 
 
 def index_by_rev_id(s):
-  """Given a json string of a dict with a rev_id key, pair the rev_id with
+  """Pair a rev_id with a JSON string.
 
-  the string
+  Args:
+    s: a JSON dict.
+
+  Returns:
+    A tuple of rev_id and the unparsed JSON string.
   """
   return (json.loads(s)['rev_id'], s)
 
@@ -126,8 +129,8 @@ def get_distributions_metric(result, counter_name):
     return None
 
 
-# TODO(ldixon): pull these into a class, and output to JSON as a job summary for better
-# debugging.
+# TODO(ldixon): pull these into a class, and output to JSON as a job
+# summary for better debugging.
 def print_metrics(result):
   """Print metrics we might be interested in.
 
@@ -160,22 +163,21 @@ def print_metrics(result):
               cumulative_page_rev_size_distr.sum)
 
 
-def run(locations, pipeline_args):
+def run(locations, run_pipeline_args):
   """Main entry point; runs the reconstruction pipeline.
 
   Args:
     locations: Locations instance with the various input/output locations.
-    pipeline_args: flags for PipelineOptions, detailing how to run the job.
-      See: https://cloud.google.com/dataflow/pipelines/specifying-exec-params
+    run_pipeline_args: flags for PipelineOptions, detailing how to run the job.
+      See https://cloud.google.com/dataflow/pipelines/specifying-exec-params
   """
-
-  pipeline_args.extend([
+  run_pipeline_args.extend([
       '--staging_location={dataflow_staging}'.format(
           dataflow_staging=locations.dataflow_staging),
       '--temp_location={dataflow_temp}'.format(
           dataflow_temp=locations.dataflow_temp),
   ])
-  pipeline_options = PipelineOptions(pipeline_args)
+  pipeline_options = PipelineOptions(run_pipeline_args)
   # TODO(ldixon): investigate why/where we use global objects, and remove them
   # by adding them as command line arguments/config.
   # See: https://cloud.google.com/dataflow/faq#how-do-i-handle-nameerrors
@@ -238,6 +240,7 @@ def run(locations, pipeline_args):
                          'error_log',
                          main='reconstruction_results'))
     # Main Result
+    # pylint:disable=expression-not-assigned
     reconstruction_results | 'output_conversations' >> beam.io.WriteToText(
         locations.output_conversations)
 
@@ -261,6 +264,7 @@ def run(locations, pipeline_args):
 # are too big by simply streaming revisions for each page, counting as we go,
 # and then re-joining to the page-ids to then re-tag the stream of revisions.
 class MarkRevisionsOfBigPages(beam.DoFn):
+  """A DoFn that paritions pages with large sized revisions into buckets."""
 
   def __init__(self):
     self.very_long_page_histories_count = Metrics.counter(
@@ -295,6 +299,7 @@ class MarkRevisionsOfBigPages(beam.DoFn):
 
 
 class WriteToStorage(beam.DoFn):
+  """Beam DoFn for writing dictionaries to memory or files."""
 
   def __init__(self):
     self.revisions_to_storage = Metrics.counter(self.__class__,
@@ -320,7 +325,7 @@ class WriteToStorage(beam.DoFn):
       # Writes to storage
       logging.info('USERLOG: Write to path %s.', write_path)
       wait_time = 1
-      for i in range(RETRY_LIMIT):
+      for _ in range(RETRY_LIMIT):
         try:
           with filesystems.FileSystems.create(write_path) as outputfile:
             json.dump(element, outputfile)
@@ -334,7 +339,7 @@ class WriteToStorage(beam.DoFn):
     yield (page_id, ret)
 
 
-class Locations:
+class Locations(object):
   """A simple class to construct the various locations.
 
   Constructs locations, which can be file paths, google
@@ -342,27 +347,31 @@ class Locations:
   DataFlow.
   """
 
-  def __init__(self, known_args):
-    self.input_revisions = known_args.input_revisions
+  def __init__(self, loc_known_args):
+    self.input_revisions = loc_known_args.input_revisions
     self.input_last_revisions = (
-        known_args.input_state + '/last_revisions/last_rev*')
+        loc_known_args.input_state + '/last_revisions/last_rev*')
     self.input_page_states = (
-        known_args.input_state + '/page_states/page_states*')
+        loc_known_args.input_state + '/page_states/page_states*')
     # TODO(ldixon): why do we take in errors? remove?
-    self.input_error_logs = (known_args.input_state + '/error_logs/error_log*')
+    self.input_error_logs = (
+        loc_known_args.input_state + '/error_logs/error_log*')
 
-    self.dataflow_staging = (known_args.output_state + '/dataflow_tmp/staging/')
-    self.dataflow_temp = (known_args.output_state + '/dataflow_tmp/temp/')
+    self.dataflow_staging = (
+        loc_known_args.output_state + '/dataflow_tmp/staging/')
+    self.dataflow_temp = (loc_known_args.output_state + '/dataflow_tmp/temp/')
 
-    self.output_revs_with_marks = (known_args.output_state + '/revs_with_marks')
+    self.output_revs_with_marks = (
+        loc_known_args.output_state + '/revs_with_marks')
     self.output_page_states = (
-        known_args.output_state + '/page_states/page_states')
+        loc_known_args.output_state + '/page_states/page_states')
     self.output_last_revisions = (
-        known_args.output_state + '/last_revisions/last_rev')
-    self.output_error_logs = (known_args.output_state + '/error_logs/error_log')
+        loc_known_args.output_state + '/last_revisions/last_rev')
+    self.output_error_logs = (
+        loc_known_args.output_state + '/error_logs/error_log')
 
     self.output_conversations = (
-        known_args.output_conversations + '/conversations')
+        loc_known_args.output_conversations + '/conversations')
 
 
 if __name__ == '__main__':
