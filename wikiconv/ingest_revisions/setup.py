@@ -26,11 +26,20 @@ when running the workflow for remote execution.
 
 import setuptools
 
+# Configure the required packages and scripts to install.
+# Note that the Python Dataflow containers come with numpy already installed
+# so this dependency will not trigger anything to be installed unless a version
+# restriction is specified.
+REQUIRED_PACKAGES = [
+    'google-cloud-storage == 1.15.0',
+    'google-apitools == 0.5.23',
+    'lxml == 4.2.1',
+]
+
 setuptools.setup(
-    name='runfiles',
+    name='ingest_utils',
     version='0.0.1',
-    install_requires=[
-        'google-cloud-storage==1.15.0',
-    ],
-    packages=setuptools.find_packages('bazel-bin/ingest_revisions/dataflow_main.runfiles/__main__'),
+    description='A package to ingest Wikipedia comments.',
+    install_requires=REQUIRED_PACKAGES,
+    packages=setuptools.find_packages(),
 )

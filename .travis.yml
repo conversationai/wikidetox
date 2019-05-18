@@ -19,7 +19,7 @@ before_install:
   - sudo dpkg -i bazel_0.18.1-linux-x86_64.deb
 
 install:
-  - pip install -r requirements.txt
+  - pip install -r wikiconv/requirements.txt
 
 script:
   - (cd wikiconv/ingest_revisions; bazel test --test_output=streamed ...)

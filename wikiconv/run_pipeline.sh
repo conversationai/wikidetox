@@ -51,17 +51,16 @@ while getopts "1234" opt; do
 done
 
 . config/wikiconv.config
-. "${pathToVirtualEnv}/bin/activate"
 
 # Download the Dump
 
 if (( PHASE1 )); then
   cd ingest_revisions
-  bazel run :dataflow_main -- \
-    --setup_file "${PWD}/setup.py" \
-    --download \
+  . "${pathToVirtualEnv}/bin/activate"
+  python dataflow_main.py --setup_file ./setup.py --download \
     --ingestFrom=wikipedia --language="${language}" --dumpdate="${dumpdate}" \
     --project "${cloudProject}" --bucket "${cloudBucket}"
+  deactivate
   cd ..
 fi
 
@@ -69,12 +68,12 @@ fi
 
 if (( PHASE2 )); then
   cd ingest_revisions
-  bazel run :dataflow_main -- \
-    --setup_file "${PWD}/setup.py" \
-    --ingestFrom=cloud \
+  . "${pathToVirtualEnv}/bin/activate"
+  python dataflow_main.py --setup_file ./setup.py --ingestFrom=cloud \
     --language="${language}" --dumpdate="${dumpdate}" \
     --output="gs://${cloudBucket}/ingested" --project "${cloudProject}" \
     --bucket "${cloudBucket}"
+  deactivate
   cd ..
 fi
 
@@ -94,8 +93,9 @@ if (( PHASE3 )); then
 
   # Start Reconstruction
   cd conversation_reconstruction
-  bazel run :dataflow_main -- \
-    --setup_file "${PWD}/setup_dataflow_main.py" \
+  . ${pathToVirtualEnv}/bin/activate
+  python dataflow_main.py \
+    --setup_file ./setup.py \
     --input_state "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current" \
     --input_revisions "gs://${cloudBucket}/ingested/${dumpdate}-${language}/*/revisions*.json" \
     --output_state "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/next_stage" \
@@ -103,6 +103,7 @@ if (( PHASE3 )); then
     --runner DataflowRunner \
     --project "${cloudProject}" \
     --max_num_workers 80
+  deactivate
   cd ..
 fi
 
@@ -118,15 +119,13 @@ if (( PHASE4 )); then
 
   # Clean Result Format
   cd conversation_reconstruction
-  bazel run :dataflow_content_clean -- \
-    --setup_file "${PWD}/setup_content_clean.py" \
-    --input \
+  . "${pathToVirtualEnv}/bin/activate"
+  python dataflow_content_clean.py --input \
     "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/conversations/conversations*" \
-    --output \
+    --setup_file ./setup.py --output \
     "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/cleaned_results/wikiconv-${language}-${dumpdate}-" \
     --error_log="gs://${cloudBucket}/format-clean/error_log_${language}_${dumpdate}-" \
     --jobname="${language}${dumpdate}" --project "${cloudProject}" --bucket "${cloudBucket}"
+  deactivate
   cd ..
 fi
-
-deactivate
