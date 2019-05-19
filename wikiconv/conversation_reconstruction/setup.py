@@ -31,8 +31,8 @@ import setuptools
 # so this dependency will not trigger anything to be installed unless a version
 # restriction is specified.
 REQUIRED_PACKAGES = [
-    'google-cloud == 0.32.0', 'google-cloud-storage == 1.6.0',
-    'google-apitools == 0.5.22', 'NoAho==0.9.6.1', 'mwparserfromhell==0.5.1',
+    'google-cloud-storage == 1.13.0',
+    'google-apitools == 0.5.26', 'NoAho==0.9.6.1', 'mwparserfromhell==0.5.1',
     'yamlconf==0.2.3', 'mwtypes==0.3.0', 'beautifulsoup4==4.5.1'
 ]
 

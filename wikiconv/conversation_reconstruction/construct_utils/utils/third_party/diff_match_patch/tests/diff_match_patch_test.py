@@ -21,13 +21,8 @@ import os
 import sys
 import time
 import unittest
-parentPath = os.path.abspath("..")
-if parentPath not in sys.path:
-    sys.path.insert(0, parentPath)
-import diff_match_patch as dmp_module
-# Force a module reload.  Allows one to edit the DMP module and rerun the tests
-# without leaving the Python interpreter.
-reload(dmp_module)
+from construct_utils.utils.third_party.diff_match_patch import diff_match_patch as dmp_module
+
 
 class DiffMatchPatchTest(unittest.TestCase):
 

@@ -62,7 +62,7 @@ from apache_beam.metrics.metric import Metrics
 from apache_beam.metrics.metric import MetricsFilter
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
-from construct_utils.reconstruct_conversation import ReconstructConversation
+from construct_utils import reconstruct_conversation
 
 # The max cumulative size of a page's revisions to be considered to try and
 # keep in memory when processing.
@@ -231,7 +231,7 @@ def run(locations, pipeline_args):
         }
         # Join information based on page_id.
         | 'GroupBy_page_id' >> beam.CoGroupByKey()
-        | beam.ParDo(ReconstructConversation(),
+        | beam.ParDo(reconstruct_conversation.ReconstructConversation(),
                      locations.output_revs_with_marks).with_outputs(
                          'page_states',
                          'last_revision',
