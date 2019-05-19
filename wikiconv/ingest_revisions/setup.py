@@ -31,8 +31,8 @@ import setuptools
 # so this dependency will not trigger anything to be installed unless a version
 # restriction is specified.
 REQUIRED_PACKAGES = [
-    'google-cloud-storage == 1.15.0',
-    'google-apitools == 0.5.23',
+    'google-cloud-storage == 1.13.0',
+    'google-apitools == 0.5.26',
     'lxml == 4.2.1',
 ]
 
