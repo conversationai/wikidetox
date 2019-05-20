@@ -6,6 +6,7 @@
 
 # python virtual env folders
 .pyenv
+venv/
 
 # Editors
 .vscode

@@ -13,3 +13,6 @@ dist
 
 # Temporary data
 tmp
+
+# Bazel output
+/bazel-*
