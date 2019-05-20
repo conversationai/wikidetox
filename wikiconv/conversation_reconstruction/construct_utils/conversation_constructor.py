@@ -29,7 +29,7 @@ import atexit
 import os
 import logging
 import resource
-from .utils.third_party import diff_match_patch as dmp_module
+import diff_match_patch as dmp_module
 from .utils.third_party.rev_clean import clean, clean_html
 from .utils.insert_utils import *
 from .utils.actions import *
