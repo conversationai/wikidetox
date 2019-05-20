@@ -1,9 +1,0 @@
-config/
-.venv
-
-.mypy_cache
-.vscode
-tmp/
-
-conversation-reconstruction/bazel-*
-ingest-revisions/bazel-*

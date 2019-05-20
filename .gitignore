@@ -6,6 +6,7 @@
 
 # python virtual env folders
 .pyenv
+venv/
 
 # Editors
 .vscode
@@ -128,3 +129,10 @@ conversation_reconstruction_dataflow/analysis/data/*
 conversation_reconstruction/dataflow/ingest_revisions/ingest_utils/testdata/gigantic_xml.xml
 viz_v2/wikidetox-viz-86869622048f.json
 viz_v2/yarn.lock
+
+# Bazel stuff
+wikiconv/conversation_reconstruction/bazel-*
+wikiconv/ingest_revisions/bazel-*
+
+# Config folder for wikiconv
+wikiconv/config/
