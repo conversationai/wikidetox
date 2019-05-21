@@ -15,7 +15,6 @@ py_test(
     srcs = ["conversation_constructor_test.py"],
     deps = [
         ":conversation_constructor",
-        "//construct_utils/utils/third_party/diff_match_patch",
     ],
 )
 

@@ -27,7 +27,6 @@ class ConversationContructorTest(unittest.TestCase):
     }
     (new_page_state, actions,
      new_rev) = processor.process(page_state, latest_content, rev)
-    print(new_page_state)
     self.maxDiff = 30000
     self.assertEqual(
         new_page_state, {
