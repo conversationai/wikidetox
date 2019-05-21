@@ -7,7 +7,6 @@ py_library(
         "//construct_utils/utils:actions",
         "//construct_utils/utils:insert_utils",
         "//construct_utils/utils/third_party:rev_clean",
-        "//construct_utils/utils/third_party/diff_match_patch",
     ],
 )
 
