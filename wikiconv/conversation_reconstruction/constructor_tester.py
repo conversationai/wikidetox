@@ -108,7 +108,6 @@ class TestReconstruction(unittest.TestCase):
                   processor.load(page_state['deleted_comments'])  # pylint: disable=E1136
                   del page_state['deleted_comments']  # pylint: disable=E1136,E1138
                   page_state['deleted_comments'] = []  # pylint: disable=E1136,E1138,E1137
-                  print(year, week)
                   memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
                   logging.info("MENMORY AFTER RELOADING : %d KB" % memory_usage)
 

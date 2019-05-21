@@ -10,6 +10,14 @@ py_library(
     ],
 )
 
+py_test(
+    name = "conversation_constructor_test",
+    srcs = ["conversation_constructor_test.py"],
+    deps = [
+        ":conversation_constructor",
+    ],
+)
+
 py_library(
     name = "reconstruct_conversation",
     srcs = ["reconstruct_conversation.py"],
