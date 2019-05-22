@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Copyright 2017 Google Inc. Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
+"""Copyright 2017 Google Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License.
 
 You may obtain a copy of the License at
     http://www.apache.org/licenses/LICENSE-2.0
@@ -13,23 +16,25 @@ limitations under the License.
 -------------------------------------------------------------------------------
 """
 
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
-import re
-from collections import defaultdict
-from .insert_utils import *
+from construct_utils.utils import insert_utils
 
 
 def comment_adding(insert_op, rev, page_actions):
+  """Add comment."""
   action = {}
-  action['indentation'] = get_indentation(insert_op['tokens'])
+  action['indentation'] = insert_utils.get_indentation(insert_op['tokens'])
   action['rev_id'] = rev['rev_id']
   action['id'] = str(rev['rev_id']) + '.' + str(insert_op['b1']) + '.' + str(
       insert_op['a1'])
   action['content'] = ''.join(insert_op['tokens'])
   indentation = action['indentation']
   if '[OUTDENT: ' in action['content']:
-    indentation += locate_last_indentation(page_actions, insert_op['b1']) + 1
+    indentation += insert_utils.locate_last_indentation(page_actions,
+                                                        insert_op['b1']) + 1
 
   action['user_id'] = rev['user_id']
   action['user_text'] = rev['user_text']
@@ -39,12 +44,13 @@ def comment_adding(insert_op, rev, page_actions):
     action['type'] = 'CREATION'
   else:
     action['type'] = 'ADDITION'
-  action['replyTo_id'] = locate_replyTo_id(page_actions, insert_op['b1'],
-                                           indentation)
+  action['replyTo_id'] = insert_utils.locate_reply_to_id(
+      page_actions, insert_op['b1'], indentation)
   return action, insert_op['b1'], action['id'], action['indentation']
 
 
 def comment_removal(removal_info, rev):
+  """Remove comment."""
   removed_action, op = removal_info
 
   action = {}
@@ -62,10 +68,11 @@ def comment_removal(removal_info, rev):
   return action
 
 
-def comment_modification(prev_id, tokens, new_action_start, new_action_end, rev,
+def comment_modification(prev_id, tokens, new_action_start, _, rev,
                          page_actions, old_action_start):
+  """Modfiy comment."""
   action = {}
-  action['indentation'] = get_indentation(tokens)
+  action['indentation'] = insert_utils.get_indentation(tokens)
   indentation = action['indentation']
 
   action['id'] = str(
@@ -74,21 +81,23 @@ def comment_modification(prev_id, tokens, new_action_start, new_action_end, rev,
   action['parent_id'] = prev_id
   action['content'] = ''.join(tokens)
   if '[OUTDENT: ' in action['content']:
-    indentation += locate_last_indentation(page_actions, new_action_start) + 1
+    indentation += insert_utils.locate_last_indentation(page_actions,
+                                                        new_action_start) + 1
 
   action['user_id'] = rev['user_id']
   action['user_text'] = rev['user_text']
   action['timestamp'] = rev['timestamp']
   action['type'] = 'MODIFICATION'
-  action['replyTo_id'] = locate_replyTo_id(page_actions, new_action_start,
-                                           indentation)
+  action['replyTo_id'] = insert_utils.locate_reply_to_id(
+      page_actions, new_action_start, indentation)
   return action, new_action_start, action['id'], action['indentation']
 
 
 def comment_rearrangement(prev_id, tokens, new_action_start, rev,
                           old_action_start):
+  """Rearrange comment."""
   action = {}
-  action['indentation'] = get_indentation(tokens)
+  action['indentation'] = insert_utils.get_indentation(tokens)
 
   action['id'] = str(
       rev['rev_id']) + '.' + str(new_action_start) + '.' + str(old_action_start)
@@ -107,8 +116,9 @@ def comment_rearrangement(prev_id, tokens, new_action_start, rev,
 
 def comment_restoration(prev_id, tokens, new_action_start, rev,
                         old_action_start):
+  """Restore comment."""
   action = {}
-  action['indentation'] = get_indentation(tokens)
+  action['indentation'] = insert_utils.get_indentation(tokens)
   action['id'] = str(
       rev['rev_id']) + '.' + str(new_action_start) + '.' + str(old_action_start)
   action['rev_id'] = rev['rev_id']

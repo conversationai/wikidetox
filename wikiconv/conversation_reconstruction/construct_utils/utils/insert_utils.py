@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Copyright 2017 Google Inc. Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
+"""Copyright 2017 Google Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License.
 
 You may obtain a copy of the License at
     http://www.apache.org/licenses/LICENSE-2.0
@@ -13,13 +16,16 @@ limitations under the License.
 -------------------------------------------------------------------------------
 """
 
-from __future__ import absolute_import, division, print_function
-import re
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import copy
-from collections import defaultdict
+import re
 
 
 def get_section_tokens(tokens, line):
+  """Get section tokens."""
   sofar = ''
   for tok in tokens:
     if line in sofar:
@@ -30,6 +36,7 @@ def get_section_tokens(tokens, line):
 
 
 def isheading(line):
+  """Tests if a heading."""
   front_cnt = re.search('^=+', line)
   back_cnt = re.search('^=+', line[::-1])
   if front_cnt and back_cnt and len(front_cnt.group(0)) == len(
@@ -38,10 +45,10 @@ def isheading(line):
 
 
 def divide_into_section_headings_and_contents(op, content):
+  """Divides into section headings and contents."""
   content += '==LASTLINESYMBOL==\n'
   lines = content.splitlines()
   comments = []
-  last_pos = 0
   last_tok = 0
   for line in lines:
     if isheading(line):
@@ -53,7 +60,7 @@ def divide_into_section_headings_and_contents(op, content):
       comments.append([line, last_tok, cur_tok])
       content = content[cur_pos + len(line) + 1:]
       last_tok = cur_tok
-  for tokens, b1, b2 in comments[:-1]:
+  for _, b1, b2 in comments[:-1]:
     if b2 > b1:
       comment_op = copy.deepcopy(op)
       comment_op['tokens'] = op['tokens'][b1:b2]
@@ -63,11 +70,12 @@ def divide_into_section_headings_and_contents(op, content):
 
 
 def find_pos(pos, lst):
+  """Binary search to find insertion point for pos in lst."""
   h = 0
   t = len(lst) - 1
   mid = int((h + t) / 2)
   ans = -1
-  while not (h > t):
+  while not h > t:
     if pos >= lst[mid]:
       ans = mid
       h = mid + 1
@@ -78,23 +86,27 @@ def find_pos(pos, lst):
 
 
 def get_action_start(action_lst, token_position):
+  """Get actions start."""
   ans = find_pos(token_position, action_lst)
-  if (action_lst[ans] == token_position and not (token_position == 0)):
+  if (action_lst[ans] == token_position and token_position != 0):
     return action_lst[ans - 1]
   else:
     return action_lst[ans]
 
 
 def get_action_end(action_lst, token_position):
+  """Get actions end."""
   ans = find_pos(token_position, action_lst)
   return action_lst[ans + 1]
 
 
 def is_in_boundary(x, start, end):
-  return (x >= start and x <= end)
+  """Tests if x is in [start, end]."""
+  return x >= start and x <= end
 
 
-def locate_replyTo_id(actions, action_pos, action_indentation):
+def locate_reply_to_id(actions, action_pos, action_indentation):
+  """Searches for replyTo id."""
   action_lst = sorted(list(actions.keys()))
   ind = find_pos(action_pos, action_lst)
   ret = None
@@ -106,25 +118,27 @@ def locate_replyTo_id(actions, action_pos, action_indentation):
 
 
 def locate_last_indentation(actions, action_pos):
+  """Find indentation depth."""
   action_lst = sorted(list(actions.keys()))
   ind = find_pos(action_pos, action_lst)
-  ret = None
   while ind >= 0:
     return actions[action_lst[ind]][1]
   return 0
 
 
 def get_firstline(tokens):
+  """Find first line."""
   lines = ''.join(tokens).splitlines()
   firstline = ''
   for l in lines:
-    if not (l == ''):
+    if l:
       firstline = l
       break
   return firstline
 
 
 def get_indentation(tokens):
+  """Find indentation."""
   cnt = 0
   # If this is a creation of a section.
   firstline = get_firstline(tokens)
@@ -140,14 +154,15 @@ def get_indentation(tokens):
 
 
 def locate_new_token_pos(old_pos, ops, errorchoice='raise_error'):
+  """Locates new token pos."""
   new_pos = 0
-  ops = sorted(ops, key=lambda k: (not (k['name'] == 'equal'), k['a1']))
+  ops = sorted(ops, key=lambda k: (k['name'] != 'equal', k['a1']))
   for op in ops:
     if op['name'] == 'equal':
       if is_in_boundary(old_pos, op['a1'], op['a2']):
         if errorchoice == 'left_bound':
           new_pos = op['b1'] + old_pos - op['a1']
-        elif not (new_pos):
+        elif not new_pos:
           new_pos = op['b1'] + old_pos - op['a1']
     else:
       if op['name'] == 'delete':
