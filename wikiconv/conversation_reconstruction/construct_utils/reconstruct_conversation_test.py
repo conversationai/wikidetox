@@ -26,36 +26,37 @@ class ReconstructConversationTest(unittest.TestCase):
     tempdir = tempfile.mkdtemp()
 
     pipeline = test_pipeline.TestPipeline()
-    pc = beam.Create([(None, {}),
-                      ('page1', {
-                          'last_revision': [],
-                          'page_state': [],
-                          'error_log': [],
-                          'to_be_processed': []
-                      }),
-                      ('page2', {
-                          'last_revision': ['xxx'],
-                          'page_state': [{
-                              'page_state': {
-                                  'actions': {}
-                              },
-                              'authors': {}
-                          }],
-                          'error_log': [],
-                          'to_be_processed': []
-                      }),
-                      ('page3', {
-                          'last_revision': ['yyy'],
-                          'page_state': [{
-                              'page_state': {
-                                  'actions': {}
-                              },
-                              'authors': {}
-                          }],
-                          'error_log': [],
-                          'to_be_processed': []
-                      }),
-                      ])
+    pc = beam.Create([
+        (None, {}),
+        ('page1', {
+            'last_revision': [],
+            'page_state': [],
+            'error_log': [],
+            'to_be_processed': []
+        }),
+        ('page2', {
+            'last_revision': ['xxx'],
+            'page_state': [{
+                'page_state': {
+                    'actions': {}
+                },
+                'authors': {}
+            }],
+            'error_log': [],
+            'to_be_processed': []
+        }),
+        ('page3', {
+            'last_revision': ['yyy'],
+            'page_state': [{
+                'page_state': {
+                    'actions': {}
+                },
+                'authors': {}
+            }],
+            'error_log': [],
+            'to_be_processed': []
+        }),
+    ])
     res = pipeline | pc | beam.ParDo(
         reconstruct_conversation.ReconstructConversation(storage_mock),
         tempdir).with_outputs(
@@ -68,10 +69,12 @@ class ReconstructConversationTest(unittest.TestCase):
         util.equal_to([
             '{"page_state": {"actions": {}}, "authors": {}}',
             '{"page_state": {"actions": {}}, "authors": {}}'
-                       ]),
+        ]),
         label='page_states')
     util.assert_that(
-        res['last_revision'], util.equal_to(['"xxx"', '"yyy"']), label='last_revision')
+        res['last_revision'],
+        util.equal_to(['"xxx"', '"yyy"']),
+        label='last_revision')
     util.assert_that(res['error_log'], util.equal_to([]), label='error_log')
     util.assert_that(
         res['reconstruction_results'],

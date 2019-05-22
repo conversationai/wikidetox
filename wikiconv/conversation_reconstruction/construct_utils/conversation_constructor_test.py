@@ -12,7 +12,7 @@ from construct_utils import conversation_constructor
 class ConversationContructorTest(unittest.TestCase):
 
   def test_conversation_constructor(self):
-    processor = conversation_constructor.Conversation_Constructor()
+    processor = conversation_constructor.ConversationConstructor()
     page_state = []
     latest_content = []
     rev = {
@@ -27,7 +27,7 @@ class ConversationContructorTest(unittest.TestCase):
     }
     (new_page_state, actions,
      new_rev) = processor.process(page_state, latest_content, rev)
-    self.maxDiff = 30000
+    self.maxDiff = 30000  # pylint: disable=invalid-name
     self.assertEqual(
         new_page_state, {
             u"deleted_comments": [],
@@ -52,10 +52,8 @@ class ConversationContructorTest(unittest.TestCase):
             },
             u"rev_id": 332251982
         })
-    self.assertEqual(
-        new_rev,
-        u"YIKES!  I came here from the [[Prostitution]] page\n"
-    )
+    self.assertEqual(new_rev,
+                     u"YIKES!  I came here from the [[Prostitution]] page\n")
     self.assertEqual(actions, [{
         "user_id":
             8083618,
