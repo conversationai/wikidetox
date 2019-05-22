@@ -48,6 +48,7 @@ import argparse
 import json
 import logging
 from os import path
+import sys
 import time
 
 import apache_beam as beam
@@ -163,13 +164,14 @@ def print_metrics(result):
               cumulative_page_rev_size_distr.sum)
 
 
-def run(locations, run_pipeline_args):
+def run(locations, run_pipeline_args, storage_client):
   """Main entry point; runs the reconstruction pipeline.
 
   Args:
     locations: Locations instance with the various input/output locations.
     run_pipeline_args: flags for PipelineOptions, detailing how to run the job.
       See https://cloud.google.com/dataflow/pipelines/specifying-exec-params
+    storage_client: if not None contains the cloud storage client.
   """
   run_pipeline_args.extend([
       '--staging_location={dataflow_staging}'.format(
@@ -233,12 +235,13 @@ def run(locations, run_pipeline_args):
         }
         # Join information based on page_id.
         | 'GroupBy_page_id' >> beam.CoGroupByKey()
-        | beam.ParDo(reconstruct_conversation.ReconstructConversation(),
-                     locations.output_revs_with_marks).with_outputs(
-                         'page_states',
-                         'last_revision',
-                         'error_log',
-                         main='reconstruction_results'))
+        | beam.ParDo(
+            reconstruct_conversation.ReconstructConversation(storage_client),
+            locations.output_revs_with_marks).with_outputs(
+                'page_states',
+                'last_revision',
+                'error_log',
+                main='reconstruction_results'))
     # Main Result
     # pylint:disable=expression-not-assigned
     reconstruction_results | 'output_conversations' >> beam.io.WriteToText(
@@ -374,9 +377,7 @@ class Locations(object):
         loc_known_args.output_conversations + '/conversations')
 
 
-if __name__ == '__main__':
-  # logging.basicConfig(filename="debug.log", level=logging.INFO)
-  # logging.getLogger().setLevel(logging.INFO)
+def main(argv):
   logging.getLogger().setLevel(LOG_LEVEL_OUTPUT_INFO)
   parser = argparse.ArgumentParser()
   parser.add_argument(
@@ -397,5 +398,9 @@ if __name__ == '__main__':
       help='Location to output conversations.')
 
   # All unknown flags are considered to be pipeline arguments.
-  known_args, pipeline_args = parser.parse_known_args()
-  run(Locations(known_args), pipeline_args)
+  known_args, pipeline_args = parser.parse_known_args(argv)
+  run(Locations(known_args), pipeline_args, None)
+
+
+if __name__ == '__main__':
+  main(sys.argv[1:])
