@@ -38,7 +38,7 @@ import unittest
 import resource
 import argparse
 import copy
-from construct_utils.conversation_constructor import Conversation_Constructor
+from construct_utils.conversation_constructor import ConversationConstructor
 from construct_utils.utils.third_party.rev_clean import clean_html
 
 default_page_ids = [14677358] #23031, 23715982, 26647, 10555, 21533114, 23715934, 476334, 14496]
@@ -79,7 +79,7 @@ class TestReconstruction(unittest.TestCase):
   def test_reconstruction(self):
      for p in PAGES:
         logging.info("TEST LOG: testing starts on page %s" % str(p))
-        processor = Conversation_Constructor()
+        processor = ConversationConstructor()
         cnt = 0
         page_state = None
         second_last_page_state = None
@@ -103,7 +103,7 @@ class TestReconstruction(unittest.TestCase):
                  # usage.
                   memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
                   logging.info("MENMORY BEFORE RELOADING : %d KB" % memory_usage)
-                  processor = Conversation_Constructor()
+                  processor = ConversationConstructor()
                   #second_last_page_state = copy.deepcopy(page_state)
                   processor.load(page_state['deleted_comments'])  # pylint: disable=E1136
                   del page_state['deleted_comments']  # pylint: disable=E1136,E1138
@@ -116,7 +116,7 @@ class TestReconstruction(unittest.TestCase):
                      page_state_test = merge(page_state, second_last_page_state)
                   else:
                      page_state_test = copy.deepcopy(page_state)
-                  processor_test = Conversation_Constructor()
+                  processor_test = ConversationConstructor()
                   processor_test.load(page_state_test['deleted_comments'])
                   _, actions_test, _ = \
                      processor.process(page_state_test, latest_content, revision)
