@@ -19,6 +19,7 @@ limitations under the License.
 import copy
 import json
 import logging
+import os
 import resource
 
 import apache_beam as beam
@@ -149,11 +150,12 @@ class ReconstructConversation(beam.DoFn):
           bucket = self._storage_client.get_bucket(tmp_input[5:bucket_name_end])
           revision = json.loads(
               bucket.get_blob(
-                  os.path.join(tmp_input[bucket_name_end + 1:], page_id,
+                  os.path.join(tmp_input[bucket_name_end + 1:], page_id + '_' +
                                rev_id_str)).download_as_string())
         else:
           # Read directly.
-          with open(os.path.join(tmp_input, page_id, rev_id_str), 'r') as f:
+          with open(os.path.join(tmp_input, page_id + '_' + rev_id_str),
+                    'r') as f:
             revision = json.load(f)
       else:
         revision = key

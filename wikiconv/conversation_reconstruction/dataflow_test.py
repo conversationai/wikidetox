@@ -36,12 +36,13 @@ class DataflowTest(unittest.TestCase):
     self.assertTupleEqual(("deadbeef", data), actual)
 
   def test_mark_revisions_of_big_pages(self):
+    cumulative_revision_size_threshold = 300
     pipeline = test_pipeline.TestPipeline()
     pc = beam.Create([("page_1", [{
         "record_size": 100,
         "rev_id": "rev1-a"
     }, {
-        "record_size": dataflow_main.CUMULATIVE_REVISION_SIZE_THERESHOLD,
+        "record_size": cumulative_revision_size_threshold,
         "rev_id": "rev1-b"
     }]),
                       ("page_2", [{
@@ -51,7 +52,9 @@ class DataflowTest(unittest.TestCase):
                           "record_size": 100,
                           "rev_id": "rev2-b"
                       }])])
-    res = pipeline | pc | beam.ParDo(dataflow_main.MarkRevisionsOfBigPages())
+    res = pipeline | pc | beam.ParDo(
+        dataflow_main.MarkRevisionsOfBigPages(
+            cumulative_revision_size_threshold))
     util.assert_that(
         res,
         util.equal_to([("rev1-a", 1), ("rev1-b", 1), ("rev2-a", 0),
@@ -88,7 +91,7 @@ class DataflowTest(unittest.TestCase):
             "rev_id": 26
         })]))
     pipeline.run()
-    with open(os.path.join(tempdir, "yyy", "26")) as f:
+    with open(os.path.join(tempdir, "yyy_26")) as f:
       self.assertEqual(
           f.read(),
           '{"timestamp": 1558015201100, "page_id": "yyy", "rev_id": "26"}')
@@ -97,6 +100,7 @@ class DataflowTest(unittest.TestCase):
   def test_end_to_end(self):
     storage_mock = FakeStorageClient()
     tempdir = tempfile.mkdtemp()
+    os.mkdir(os.path.join(tempdir, "revs_with_marks"))
     runfiles = os.environ["RUNFILES_DIR"]
     pipeline_args = [
         "--setup_file",
@@ -112,7 +116,7 @@ class DataflowTest(unittest.TestCase):
     known_args.output_conversations = tempdir
     known_args.output_state = tempdir
     dataflow_main.run(
-        dataflow_main.Locations(known_args), pipeline_args, storage_mock)
+        dataflow_main.Locations(known_args), pipeline_args, storage_mock, 3000)
 
     with open(os.path.join(tempdir,
                            "page_states/page_states-00000-of-00001")) as actual:
@@ -152,6 +156,8 @@ class DataflowTest(unittest.TestCase):
             "__main__/testdata/golden/error_log-00000-of-00001")) as expected:
       expected_lines = expected.readlines()
     self.assertItemsEqual(actual_lines, expected_lines)
+
+    shutil.rmtree(tempdir)
 
 
 if __name__ == "__main__":

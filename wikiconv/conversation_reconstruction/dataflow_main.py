@@ -59,9 +59,6 @@ from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from construct_utils import reconstruct_conversation
 
-# The max cumulative size of a page's revisions to be considered to try and
-# keep in memory when processing.
-# Measured by python string length. approx 250 MB
 CUMULATIVE_REVISION_SIZE_THERESHOLD = 250 * 1024 * 1024
 
 # Constants used
@@ -164,7 +161,8 @@ def print_metrics(result):
               cumulative_page_rev_size_distr.sum)
 
 
-def run(locations, run_pipeline_args, storage_client):
+def run(locations, run_pipeline_args, storage_client,
+        cumulative_revision_size_threshold):
   """Main entry point; runs the reconstruction pipeline.
 
   Args:
@@ -172,6 +170,8 @@ def run(locations, run_pipeline_args, storage_client):
     run_pipeline_args: flags for PipelineOptions, detailing how to run the job.
       See https://cloud.google.com/dataflow/pipelines/specifying-exec-params
     storage_client: if not None contains the cloud storage client.
+    cumulative_revision_size_threshold: the size at which cloud storage is used
+      instead of memory.
   """
   run_pipeline_args.extend([
       '--staging_location={dataflow_staging}'.format(
@@ -197,7 +197,8 @@ def run(locations, run_pipeline_args, storage_client):
         |
         'metadata_of_revstring' >> beam.Map(page_indexed_metadata_of_revstring)
         | beam.GroupByKey()
-        | beam.ParDo(MarkRevisionsOfBigPages()))
+        | beam.ParDo(
+            MarkRevisionsOfBigPages(cumulative_revision_size_threshold)))
     raw_revision_ids = (
         p
         | 'input_revisions' >> beam.io.ReadFromText(locations.input_revisions)
@@ -269,7 +270,14 @@ def run(locations, run_pipeline_args, storage_client):
 class MarkRevisionsOfBigPages(beam.DoFn):
   """A DoFn that paritions pages with large sized revisions into buckets."""
 
-  def __init__(self):
+  def __init__(self, cumulative_revision_size_threshold):
+    """Constructor.
+
+    Args:
+      cumulative_revision_size_threshold: The max cumulative size of a page's
+        revisions to be considered to try and  keep in memory when processing.
+        Measured by python string length. approx 250 MB
+    """
     self.very_long_page_histories_count = Metrics.counter(
         self.__class__, 'very_long_page_histories_count')
     self.pages_count = Metrics.counter(self.__class__, 'pages_count')
@@ -278,6 +286,7 @@ class MarkRevisionsOfBigPages(beam.DoFn):
         self.__class__, 'revisions_per_page_distr')
     self.cumulative_page_rev_size_distr = Metrics.distribution(
         self.__class__, 'cumulative_page_rev_size_distr')
+    self.cumulative_revision_size_threshold = cumulative_revision_size_threshold
 
   def process(self, (page_id, metadata)):
     flag = SAVE_TO_MEMORY
@@ -294,7 +303,7 @@ class MarkRevisionsOfBigPages(beam.DoFn):
     for s in metadata:
       revision_size_sum += s['record_size']
     self.cumulative_page_rev_size_distr.update(revision_size_sum)
-    if revision_size_sum > CUMULATIVE_REVISION_SIZE_THERESHOLD:
+    if revision_size_sum > self.cumulative_revision_size_threshold:
       flag = SAVE_TO_STORAGE
       self.very_long_page_histories_count.inc()
     for rev in metadata:
@@ -324,7 +333,7 @@ class WriteToStorage(beam.DoFn):
       rev_id = element['rev_id']
       self.revisions_to_storage.inc()
       # Creates writing path given the week, year pair
-      write_path = path.join(outputdir, page_id, rev_id)
+      write_path = path.join(outputdir, page_id + '_' + rev_id)
       # Writes to storage
       logging.info('USERLOG: Write to path %s.', write_path)
       wait_time = 1
@@ -399,7 +408,7 @@ def main(argv):
 
   # All unknown flags are considered to be pipeline arguments.
   known_args, pipeline_args = parser.parse_known_args(argv)
-  run(Locations(known_args), pipeline_args, None)
+  run(Locations(known_args), pipeline_args, None, 250 * 1024 * 1204)
 
 
 if __name__ == '__main__':
