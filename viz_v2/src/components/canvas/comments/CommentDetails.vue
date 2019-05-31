@@ -9,7 +9,7 @@
       <div class="title">
         <p>{{pageType}}</p>
         <h4>
-          {{pageTitle}}
+          <a :href="pageLink" target="_blank">{{pageTitle}}</a>
         </h4>
         <p v-if="showFullScreen">{{date}}</p>
       </div>
@@ -37,8 +37,9 @@
 </template>
 
 <script>
-
 import { mapState } from 'vuex'
+
+const BASE_URL = 'https://en.wikipedia.org/wiki/'
 
 export default {
   name: 'CommentDetails',
@@ -49,6 +50,7 @@ export default {
       comment: '',
       score: '',
       date: '',
+      pageLink: '',
       detoxed: false,
       circleTop: 0,
       circleLeft: 0,
@@ -74,9 +76,9 @@ export default {
     commentData (newVal, oldVal) {
       if (newVal !== null) {
         const d = newVal.comment
-
         this.pageType = d.page_title.startsWith('User') ? 'User page' : 'Talk page'
         this.pageTitle = d.page_title.split(':')[1]
+        this.pageLink = `${BASE_URL}${d.page_title.split(' ').join('_')}`
         this.comment = d.content
         this.detoxed = d.type === 'DELETION'
         this.score = parseFloat(d['RockV6_2_TOXICITY']).toFixed(2) * 100
@@ -149,12 +151,8 @@ export default {
       })
     },
     detoxComment () {
-      const params = {
-        page: this.commentData.comment.page_title,
-        comment: this.commentData.comment.cleaned_content
-      }
-      console.log(params)
-      return fetch('wiki_edit', {
+      const params = { pageid: this.commentData.comment.page_id }
+      fetch('wiki_revid', {
         method: 'POST',
         mode: 'cors',
         cache: 'no-cache',
@@ -170,17 +168,14 @@ export default {
           } else {
             throw Error(`Request rejected with status ${res.status}`)
           }
-        }).then(res => {
-          this.tooltipFeedbacks = 'Comment detoxed!'
-          this.commentDetoxed = true
-          this.detoxed = true
-          this.$store.commit('DETOX_COMMENT', this.commentData.comment.id)
-          setTimeout(() => { this.tooltipFeedbacks = '' }, 3000)
-        }).catch(error => {
-          this.tooltipFeedbacks = 'Detox failed :/ Please try again later!'
-          setTimeout(() => { this.tooltipFeedbacks = '' }, 3000)
-          console.error(error)
         })
+        .then(res => {
+          const title = this.commentData.comment.page_title.split(' ').join('_')
+          const URL = `https://en.wikipedia.org/w/index.php?` +
+          `title=${title}&action=edit&undoafter=${res}&undo=${this.commentData.comment.rev_id}`
+          window.open(URL, '_blank')
+        })
+        .catch(error => console.error(error))
     }
   }
 }
@@ -238,10 +233,18 @@ export default {
       text-align: center;
       max-width: 180px;
       margin: 0 auto;
+
+      a {
+        text-decoration: none;
+        color: inherit;
+        cursor: pointer;
+      }
+
       p {
         padding: 0;
         margin: 0;
       }
+
       h4 {
         font-size: 14px;
         margin: 0;
