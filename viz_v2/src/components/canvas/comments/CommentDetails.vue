@@ -37,8 +37,9 @@
 </template>
 
 <script>
-
 import { mapState } from 'vuex'
+
+const BASE_URL = 'https://en.wikipedia.org/wiki/'
 
 export default {
   name: 'CommentDetails',
@@ -49,6 +50,7 @@ export default {
       comment: '',
       score: '',
       date: '',
+      pageLink: '',
       detoxed: false,
       circleTop: 0,
       circleLeft: 0,
@@ -76,7 +78,7 @@ export default {
         const d = newVal.comment
         this.pageType = d.page_title.startsWith('User') ? 'User page' : 'Talk page'
         this.pageTitle = d.page_title.split(':')[1]
-        this.pageLink = `https://en.wikipedia.org/wiki/${d.page_title.split(' ').join('_')}`
+        this.pageLink = `${BASE_URL}${d.page_title.split(' ').join('_')}`
         this.comment = d.content
         this.detoxed = d.type === 'DELETION'
         this.score = parseFloat(d['RockV6_2_TOXICITY']).toFixed(2) * 100
