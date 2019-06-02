@@ -20,7 +20,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from construct_utils.utils import insert_utils
+from wikiconv.conversation_reconstruction.construct_utils.utils import insert_utils
 
 
 def comment_adding(insert_op, rev, page_actions):

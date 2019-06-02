@@ -22,7 +22,7 @@ import logging
 import resource
 
 import apache_beam as beam
-from construct_utils import conversation_constructor
+from wikiconv.conversation_reconstruction.construct_utils import conversation_constructor
 
 from google.cloud import storage
 

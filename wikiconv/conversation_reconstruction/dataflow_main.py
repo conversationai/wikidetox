@@ -57,7 +57,7 @@ from apache_beam.metrics.metric import Metrics
 from apache_beam.metrics.metric import MetricsFilter
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
-from construct_utils import reconstruct_conversation
+from wikiconv.conversation_reconstruction.construct_utils import reconstruct_conversation
 
 # The max cumulative size of a page's revisions to be considered to try and
 # keep in memory when processing.
