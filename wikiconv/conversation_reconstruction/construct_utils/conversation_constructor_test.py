@@ -6,7 +6,7 @@ from __future__ import print_function
 
 import unittest
 
-from construct_utils import conversation_constructor
+from wikiconv.conversation_reconstruction.construct_utils import conversation_constructor
 
 
 class ConversationContructorTest(unittest.TestCase):

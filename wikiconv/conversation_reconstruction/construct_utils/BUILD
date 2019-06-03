@@ -4,9 +4,9 @@ py_library(
     name = "conversation_constructor",
     srcs = ["conversation_constructor.py"],
     deps = [
-        "//construct_utils/utils:actions",
-        "//construct_utils/utils:insert_utils",
-        "//construct_utils/utils/third_party:rev_clean",
+        "//wikiconv/conversation_reconstruction/construct_utils/utils:actions",
+        "//wikiconv/conversation_reconstruction/construct_utils/utils:insert_utils",
+        "//wikiconv/conversation_reconstruction/construct_utils/utils/third_party:rev_clean",
     ],
 )
 

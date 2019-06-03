@@ -27,9 +27,9 @@ import json
 import logging
 import resource
 
-from construct_utils.utils import actions
-from construct_utils.utils import insert_utils
-from construct_utils.utils.third_party import rev_clean
+from wikiconv.conversation_reconstruction.construct_utils.utils import actions
+from wikiconv.conversation_reconstruction.construct_utils.utils import insert_utils
+from wikiconv.conversation_reconstruction.construct_utils.utils.third_party import rev_clean
 import diff_match_patch as dmp_module
 import noaho
 

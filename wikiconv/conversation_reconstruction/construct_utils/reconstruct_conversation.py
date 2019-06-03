@@ -23,7 +23,7 @@ import os
 import resource
 
 import apache_beam as beam
-from construct_utils import conversation_constructor
+from wikiconv.conversation_reconstruction.construct_utils import conversation_constructor
 import six
 
 from google.cloud import storage

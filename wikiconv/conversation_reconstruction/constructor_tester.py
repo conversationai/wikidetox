@@ -38,8 +38,8 @@ import unittest
 import resource
 import argparse
 import copy
-from construct_utils.conversation_constructor import ConversationConstructor
-from construct_utils.utils.third_party.rev_clean import clean_html
+from wikiconv.conversation_reconstruction.construct_utils.conversation_constructor import ConversationConstructor
+from wikiconv.conversation_reconstruction.construct_utils.utils.third_party.rev_clean import clean_html
 
 default_page_ids = [14677358] #23031, 23715982, 26647, 10555, 21533114, 23715934, 476334, 14496]
 # Suggestion on test pages:
