@@ -33,7 +33,7 @@ import urllib2
 import traceback
 import sys
 import multiprocessing
-from construct_utils.utils.third_party.clean import content_clean
+from wikiconv.conversation_reconstruction.construct_utils.utils.third_party.clean import content_clean
 
 import apache_beam as beam
 from apache_beam.metrics.metric import Metrics
