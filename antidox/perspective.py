@@ -22,7 +22,6 @@ def perspective_request(perspective, comment):
     'requestedAttributes': {'TOXICITY': {}, 'THREAT': {}, 'INSULT': {}}
   }
   response = perspective.comments().analyze(body=analyze_request).execute()
-  #print (json.dumps(response, indent=2))
   return response
 
 def dlp_request(dlp, apikey_data, comment):
@@ -58,14 +57,11 @@ def dlp_request(dlp, apikey_data, comment):
   "includeQuote":True
   }
   }
-  #if dlp_request["inspectConfig"]["minLikelihood"] == "POSSIBLE" :
-  #  print ("this is personal info")
   dlp_response = dlp.projects().content().inspect(body = dlp_request, parent = 'projects/' + apikey_data['project_number']).execute()
   return dlp_response
-  #print (json.dumps(dlp_response, indent=2))
-  #print (dlp_request.keys())
 
 
+#Checking and returning only for comments that are likely or very likely to contain PII
 def contains_pii(dlp_response):
   has_pii = False
   if 'findings' not in dlp_response['result']:
@@ -76,26 +72,31 @@ def contains_pii(dlp_response):
       has_pii = True
   return has_pii
 
-# def contains_toxicity(perspective_response):
-#   if perspective_response['attributeScores']['TOXICITY']['summaryScore']['value'] >= .05
+#Checking and returning only for comments with a toxicity value of over 50 percent.
+def contains_toxicity(perspective_response):
+  is_toxic = False
+  if perspective_response['attributeScores']['TOXICITY']['summaryScore']['value'] >= .5:
+    print (perspective_response['attributeScores']['TOXICITY']['summaryScore']['value'])
+    is_toxic = True
+  return is_toxic
+
 
 def main(argv):
   dataframe = pd.read_csv("example.csv")
   apikey_data, perspective, dlp = get_client()
 
   for comment in dataframe.comment_text:
-    #print (comment)
     dlp_response = dlp_request(dlp, apikey_data, comment)
-    print('dlp result:', json.dumps(dlp_response, indent=2))
+    perspective_response = perspective_request(perspective, comment)
     print('contains pii?', contains_pii(dlp_response))
-  # print (perspective_response['attributeScores']['TOXICITY']['summaryScore']['value'])
+    print ("contains TOXICITY?:", contains_toxicity(perspective_response))
+    print (perspective_response['attributeScores']['TOXICITY']['summaryScore']['value'])
+    print ("====================================================================")
+    print (dlp_response.keys())
 
-    #perspective_response = perspective_request(perspective, comment)
-    # if contains_toxicity(perspective_response):
+    #print('dlp result:', json.dumps(dlp_response, indent=2))
     #print ("contains_toxicity:", json.dumps(perspective_response, indent=2))
-  #print (dlp_response['result'])
+    #print (dlp_response['result'])
 
 if __name__ == '__main__':
   main(sys.argv[1:])
-
-  #results - findings: list of dict - findings - likelihood  
