@@ -19,10 +19,12 @@ limitations under the License.
 import copy
 import json
 import logging
+import os
 import resource
 
 import apache_beam as beam
 from wikiconv.conversation_reconstruction.construct_utils import conversation_constructor
+import six
 
 from google.cloud import storage
 
@@ -94,10 +96,10 @@ class ReconstructConversation(beam.DoFn):
       page_state = page_state[0]
       page_state['page_state']['actions'] = {
           int(pos): tuple(val)
-          for pos, val in page_state['page_state']['actions'].iteritems()
+          for pos, val in six.iteritems(page_state['page_state']['actions'])
       }
       page_state['authors'] = {}
-      for action_id, authors in page_state['authors'].iteritems():
+      for action_id, authors in six.iteritems(page_state['authors']):
         page_state['authors'][action_id] = [tuple(author) for author in authors]
     else:
       page_state = None

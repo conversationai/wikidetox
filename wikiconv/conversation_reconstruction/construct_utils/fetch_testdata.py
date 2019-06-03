@@ -30,26 +30,22 @@ Or:
 
 """
 from __future__ import absolute_import
+
 import argparse
-import logging
-import subprocess
 import json
-from os import path
-import urllib2
-import traceback
-import ast
-import copy
-import sys
+import logging
 import time
+
 import requests
-import argparse
+import six
 
 default_page_ids = [
     34948919, 15854766, 32094486, 43758735, 22811813, 9373474, 28031
 ]
 
 
-def rename(record, page_id):
+def rename(record, rename_page_id):
+  """Rename page_id."""
   record['rev_id'] = record['revid']
   del record['revid']
   record['user_text'] = record['user']
@@ -58,7 +54,7 @@ def rename(record, page_id):
   del record['userid']
   record['text'] = record['*']
   del record['*']
-  record['page_id'] = page_id
+  record['page_id'] = rename_page_id
 
   # These fields are not used in testcases also not included in the Wikipedia
   # API but might be useful in downstream applications. Thus here we use a
@@ -69,7 +65,7 @@ def rename(record, page_id):
   return record
 
 
-def get_revision(page_id):
+def get_revision(get_page_id):
   """Queries Wikipedia API for revision data given the page id."""
   baseurl = 'http://en.wikipedia.org/w/api.php'
   props = ['ids', 'timestamp', 'user', 'userid', 'sha1', 'comment', 'content']
@@ -79,7 +75,7 @@ def get_revision(page_id):
       'rvprop': '|'.join(props),
       'rvlimit': 'max',
       'format': 'json',
-      'pageids': page_id
+      'pageids': get_page_id
   }
   while True:
     response = requests.get(baseurl, params=atts)
@@ -88,18 +84,18 @@ def get_revision(page_id):
     time.sleep(10)
   data = response.json()
   cnt = 0
-  for page, val in data['query']['pages'].iteritems():
+  for _, val in six.iteritems(data['query']['pages']):
     for rev in val['revisions']:
       try:
         # In the case that some revisions are hidden in the API, the
         # collection process skips the revision.
-        yield rename(rev, page_id)
+        yield rename(rev, get_page_id)
         cnt += 1
       except KeyError:
         pass
   while ('continue' in data and 'rvcontinue' in data['continue']):
     logging.info('PROGRESS LOG: fetching page %d: %d revisions fetched.',
-                 page_id, cnt)
+                 get_page_id, cnt)
     atts['rvcontinue'] = data['continue']['rvcontinue']
     while True:
       response = requests.get(baseurl, params=atts)
@@ -107,10 +103,10 @@ def get_revision(page_id):
         break
       time.sleep(10)
     data = response.json()
-    for page, val in data['query']['pages'].items():
+    for _, val in data['query']['pages'].items():
       for rev in val['revisions']:
         try:
-          yield rename(rev, page_id)
+          yield rename(rev, get_page_id)
           cnt += 1
         except KeyError:
           pass
@@ -119,8 +115,13 @@ def get_revision(page_id):
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
   parser = argparse.ArgumentParser()
-  parser.add_argument('-p', '--page_ids', dest='page_ids',\
-                      nargs='+', default=default_page_ids, type=int)
+  parser.add_argument(
+      '-p',
+      '--page_ids',
+      dest='page_ids',
+      nargs='+',
+      default=default_page_ids,
+      type=int)
   page_ids = parser.parse_args().page_ids
   for page_id in page_ids:
     with open('testdata/page_%d.json' % page_id, 'w') as f:
