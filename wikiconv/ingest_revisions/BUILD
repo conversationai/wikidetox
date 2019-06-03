@@ -4,7 +4,7 @@ py_binary(
     deps = ["//wikiconv/ingest_revisions/ingest_utils:wikipedia_revisions_ingester"],
 )
 
-# Requires cloud project auth,
+# Requires cloud project auth, TODO(sorensenjs): make into proper test.
 # bazel run :dataflow_tester
 py_binary(
     name = "dataflow_tester",
