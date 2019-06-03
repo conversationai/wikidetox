@@ -25,23 +25,20 @@ python dataflow_main.py --setup_file ./setup.py
 
 Args:
 ingestFrom: choose from the three options : {wikipedia, local, cloud}:
-  - wikipedia: performs the downloading job from Wikipedia, run with: [
-    python dataflow_main.py --setup_file ./setup.py --ingestFrom=wikipedia \
-        --download --language=YourLanguage --dumpdate=YourDumpdate \
-        --blobPrefix=YourCloudBucket --project=YourGoogleCloudProject \
-        --bucket=TemporaryFileBucket
-  ]
-  - local: Tests the pipeline locally, run the code with [
-    python dataflow_main.py --setup_file ./setup.py --ingestFrom=local \
+  - wikipedia: performs the downloading job from Wikipedia, run with: [ python
+    dataflow_main.py --setup_file ./setup.py --ingestFrom=wikipedia \ --download
+    --language=YourLanguage --dumpdate=YourDumpdate \
+    --blobPrefix=YourCloudBucket --project=YourGoogleCloudProject \
+    --bucket=TemporaryFileBucket ]
+  - local: Tests the pipeline locally, run the code with [ python
+    dataflow_main.py --setup_file ./setup.py --ingestFrom=local \
     --localStorage=YourLocalStorage --testmode --output=YourOutputStorage \
-    --project=YourGoogleCloudProject --bucket=TemporaryFileBucket
-  ]
+    --project=YourGoogleCloudProject --bucket=TemporaryFileBucket ]
   - cloud: Reads from downloaded bz2 files on cloud, performs the ingestion job,
-    run the code with [
-    python dataflow_main.py --setup_file ./setup.py --ingestFrom=cloud \
+    run the code with [ python dataflow_main.py --setup_file ./setup.py
+    --ingestFrom=cloud \
         --output=gs://bucket/YourOutputStorage --blobPrefix=YourCloudBucket \
-        --project=YourGoogleCloudProject --bucket=TemporaryFileBucket
-  ]
+          --project=YourGoogleCloudProject --bucket=TemporaryFileBucket ]
 output: the data storage where you want to store the ingested results
 language: the language of the wikipedia data you want to extract, e.g. en, fr,
   zh
@@ -71,7 +68,7 @@ import urllib
 import urllib2
 
 import apache_beam as beam
-from ingest_utils import wikipedia_revisions_ingester
+from wikiconv.ingest_revisions.ingest_utils import wikipedia_revisions_ingester
 from google.cloud import storage
 
 LOCAL_STORAGE = 'file'
@@ -152,7 +149,7 @@ class WriteDecompressedFile(beam.DoFn):
   """Decompress wikipedia file and creates json records."""
 
   def start_bundle(self):
-    self._storage_client = storage.Client()
+    self._storage_client = None
 
   def __init__(self):
     self.processed_revisions = beam.metrics.Metrics.counter(
@@ -166,6 +163,8 @@ class WriteDecompressedFile(beam.DoFn):
     chunk_name = element
     logging.info('USERLOG: Running ingestion process on %s', chunk_name)
     if ingest_from != 'local':
+      if not self._storage_client:
+        self._storage_client = storage.Client()
       self._storage_client.get_bucket(bucket).blob(
           os.path.join(blob_prefix,
                        chunk_name)).download_to_filename(chunk_name)
@@ -176,8 +175,8 @@ class WriteDecompressedFile(beam.DoFn):
     page_size = 0
     cur_page_revision_cnt = 0
     i = 0
-    for i, content in enumerate(wikipedia_revisions_ingester.parse_stream(
-        bz2.BZ2File(chunk_name))):
+    for i, content in enumerate(
+        wikipedia_revisions_ingester.parse_stream(bz2.BZ2File(chunk_name))):
       self.processed_revisions.inc()
       # Add the year field for sharding
       dt = datetime.datetime.strptime(content['timestamp'],
@@ -185,9 +184,9 @@ class WriteDecompressedFile(beam.DoFn):
       content['year'] = dt.isocalendar()[0]
       last_revision = content['rev_id']
       yield content
-      logging.info(
-          'CHUNK %s: revision %s ingested, time elapsed: %g.',
-          chunk_name, last_revision, time.time() - last_completed)
+      logging.info('CHUNK %s: revision %s ingested, time elapsed: %g.',
+                   chunk_name, last_revision,
+                   time.time() - last_completed)
       last_completed = time.time()
       if content['page_id'] == cur_page_id:
         page_size += len(json.dumps(content))

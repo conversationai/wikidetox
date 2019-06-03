@@ -29,6 +29,8 @@ from __future__ import division
 from __future__ import print_function
 
 import logging
+import os
+import sys
 import tempfile
 import unittest
 
@@ -36,7 +38,8 @@ import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.testing.test_pipeline import TestPipeline
-import dataflow_main
+from bazel_tools.tools.python.runfiles import runfiles
+from wikiconv.ingest_revisions import dataflow_main
 
 
 class TestParDo(unittest.TestCase):
@@ -75,6 +78,8 @@ class TestParDo(unittest.TestCase):
                      'chwiki-latest-pages-meta-history.xml.bz2')
 
   def test_ingest(self):
+    r = runfiles.Create()
+    data = r.Rlocation('__main__/wikiconv/ingest_revisions/testdata/test_wiki_dump.xml.bz2')
     pipeline_args, _ = self.init()
     temp_path = self.create_temp_file()
     pipeline_options = PipelineOptions(pipeline_args)
@@ -82,7 +87,7 @@ class TestParDo(unittest.TestCase):
     # Test Ingestion
     with TestPipeline(options=pipeline_options) as p:
       p = (
-          p | beam.Create(['ingest_utils/testdata/test_wiki_dump.xml.bz2'])
+          p | beam.Create([data])
           | beam.ParDo(dataflow_main.WriteDecompressedFile(), None,
                        'wikidetox-viz-dataflow', 'local')
           | beam.io.WriteToText('%s' % temp_path, num_shards=1))
