@@ -430,7 +430,7 @@ class ConversationConstructor(object):
       The resulting dictionary.
     """
     keylist = the_dict.keys()
-    ret = the_dict
+    ret = the_dict.copy()
     alive_actions = set([action[0] for action in page['actions'].values()])
     for action in keylist:
       if not (action in alive_actions or action in self.deleted_records):

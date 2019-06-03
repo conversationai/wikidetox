@@ -58,6 +58,7 @@ from apache_beam.metrics.metric import MetricsFilter
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from construct_utils import reconstruct_conversation
+import six
 
 # The max cumulative size of a page's revisions to be considered to try and
 # keep in memory when processing.
@@ -279,7 +280,8 @@ class MarkRevisionsOfBigPages(beam.DoFn):
     self.cumulative_page_rev_size_distr = Metrics.distribution(
         self.__class__, 'cumulative_page_rev_size_distr')
 
-  def process(self, (page_id, metadata)):
+  def process(self, element):
+    _, metadata = element
     flag = SAVE_TO_MEMORY
     metadata = list(metadata)
     # Update metrics.
@@ -331,7 +333,10 @@ class WriteToStorage(beam.DoFn):
       for _ in range(RETRY_LIMIT):
         try:
           with filesystems.FileSystems.create(write_path) as outputfile:
-            json.dump(element, outputfile)
+            if six.PY3:
+              outputfile.write(json.dumps(element).encode('utf-8'))
+            else:
+              json.dump(element, outputfile)
         except RuntimeError:
           self.write_retries.inc()
           time.sleep(wait_time)

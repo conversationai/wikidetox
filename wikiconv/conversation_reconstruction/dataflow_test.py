@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
+import json
 import os
 import shutil
 import tempfile
@@ -14,10 +15,33 @@ import apache_beam as beam
 from apache_beam.testing import test_pipeline
 from apache_beam.testing import util
 import dataflow_main
+import six
 
 
 class FakeStorageClient(object):
   pass
+
+
+def ordered(obj):
+  if isinstance(obj, dict):
+    return sorted((k, ordered(v)) for k, v in obj.items())
+  if isinstance(obj, list):
+    return sorted(ordered(str(x)) for x in obj)
+  return obj
+
+
+def assert_json_equal(test, actual, expected):
+  actual_dicts = [ordered(json.loads(item)) for item in actual]
+  expected_dicts = [ordered(json.loads(item)) for item in expected]
+  six.assertCountEqual(test, actual_dicts, expected_dicts)
+
+
+def assert_json_file_equal(test, actual_file, expected_file):
+  with open(actual_file) as actual:
+    actual_lines = actual.readlines()
+  with open(expected_file) as actual:
+    expected_lines = actual.readlines()
+  assert_json_equal(test, actual_lines, expected_lines)
 
 
 class DataflowTest(unittest.TestCase):
@@ -90,8 +114,9 @@ class DataflowTest(unittest.TestCase):
     pipeline.run()
     with open(os.path.join(tempdir, "yyy", "26")) as f:
       self.assertEqual(
-          f.read(),
-          '{"timestamp": 1558015201100, "page_id": "yyy", "rev_id": "26"}')
+          json.loads(f.read()),
+          json.loads(
+              '{"timestamp": 1558015201100, "page_id": "yyy", "rev_id": "26"}'))
     shutil.rmtree(tempdir)
 
   def test_end_to_end(self):
@@ -114,44 +139,25 @@ class DataflowTest(unittest.TestCase):
     dataflow_main.run(
         dataflow_main.Locations(known_args), pipeline_args, storage_mock)
 
-    with open(os.path.join(tempdir,
-                           "page_states/page_states-00000-of-00001")) as actual:
-      actual_lines = actual.readlines()
-    with open(
-        os.path.join(
-            runfiles,
-            "__main__/testdata/golden/page_states-00000-of-00001")) as expected:
-      expected_lines = expected.readlines()
-    self.assertItemsEqual(actual_lines, expected_lines)
-
-    with open(os.path.join(tempdir,
-                           "last_revisions/last_rev-00000-of-00001")) as actual:
-      actual_lines = actual.readlines()
-    with open(
-        os.path.join(
-            runfiles,
-            "__main__/testdata/golden/last_rev-00000-of-00001")) as expected:
-      expected_lines = expected.readlines()
-    self.assertItemsEqual(actual_lines, expected_lines)
-
-    with open(os.path.join(tempdir, "conversations-00000-of-00001")) as actual:
-      actual_lines = actual.readlines()
-    with open(
+    assert_json_file_equal(
+        self, os.path.join(tempdir, "page_states/page_states-00000-of-00001"),
         os.path.join(runfiles,
-                     "__main__/testdata/golden/conversations-00000-of-00001")
-    ) as expected:
-      expected_lines = expected.readlines()
-    self.assertItemsEqual(actual_lines, expected_lines)
+                     "__main__/testdata/golden/page_states-00000-of-00001"))
 
-    with open(os.path.join(tempdir,
-                           "error_logs/error_log-00000-of-00001")) as actual:
-      actual_lines = actual.readlines()
-    with open(
-        os.path.join(
-            runfiles,
-            "__main__/testdata/golden/error_log-00000-of-00001")) as expected:
-      expected_lines = expected.readlines()
-    self.assertItemsEqual(actual_lines, expected_lines)
+    assert_json_file_equal(
+        self, os.path.join(tempdir, "last_revisions/last_rev-00000-of-00001"),
+        os.path.join(runfiles,
+                     "__main__/testdata/golden/last_rev-00000-of-00001"))
+
+    assert_json_file_equal(
+        self, os.path.join(tempdir, "conversations-00000-of-00001"),
+        os.path.join(runfiles,
+                     "__main__/testdata/golden/conversations-00000-of-00001"))
+
+    assert_json_file_equal(
+        self, os.path.join(tempdir, "error_logs/error_log-00000-of-00001"),
+        os.path.join(runfiles,
+                     "__main__/testdata/golden/error_log-00000-of-00001"))
 
 
 if __name__ == "__main__":
