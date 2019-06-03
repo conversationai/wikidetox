@@ -14,8 +14,8 @@ import unittest
 import apache_beam as beam
 from apache_beam.testing import test_pipeline
 from apache_beam.testing import util
-from wikiconv.conversation_reconstruction import dataflow_main
 import six
+from wikiconv.conversation_reconstruction import dataflow_main
 
 
 class FakeStorageClient(object):
@@ -26,7 +26,7 @@ def ordered(obj):
   if isinstance(obj, dict):
     return sorted((k, ordered(v)) for k, v in obj.items())
   if isinstance(obj, list):
-    return sorted(ordered(str(x)) for x in obj)
+    return sorted([ordered(x) for x in obj], key=str)
   return obj
 
 
@@ -125,15 +125,21 @@ class DataflowTest(unittest.TestCase):
     runfiles = os.environ["RUNFILES_DIR"]
     pipeline_args = [
         "--setup_file",
-        os.path.join(runfiles, "__main__/wikiconv/conversation_reconstruction/setup.py"), "--runner", "DirectRunner"
+        os.path.join(runfiles,
+                     "__main__/wikiconv/conversation_reconstruction/setup.py"),
+        "--runner", "DirectRunner"
     ]
     known_args = collections.namedtuple("NamedTuple", [
         "input_revisions", "input_state", "output_conversations", "output_state"
     ])
     known_args.input_revisions = os.path.join(
-        runfiles, "__main__/wikiconv/conversation_reconstruction/testdata/edgecases_28_convs/revs*")
-    known_args.input_state = os.path.join(runfiles,
-                                          "__main__/wikiconv/conversation_reconstruction/testdata/empty_init_state")
+        runfiles,
+        "__main__/wikiconv/conversation_reconstruction/testdata/edgecases_28_convs/revs*"
+    )
+    known_args.input_state = os.path.join(
+        runfiles,
+        "__main__/wikiconv/conversation_reconstruction/testdata/empty_init_state"
+    )
     known_args.output_conversations = tempdir
     known_args.output_state = tempdir
     dataflow_main.run(
@@ -141,23 +147,31 @@ class DataflowTest(unittest.TestCase):
 
     assert_json_file_equal(
         self, os.path.join(tempdir, "page_states/page_states-00000-of-00001"),
-        os.path.join(runfiles,
-                     "__main__/testdata/golden/page_states-00000-of-00001"))
+        os.path.join(
+            runfiles,
+            "__main__/wikiconv/conversation_reconstruction/testdata/golden/page_states-00000-of-00001"
+        ))
 
     assert_json_file_equal(
         self, os.path.join(tempdir, "last_revisions/last_rev-00000-of-00001"),
-        os.path.join(runfiles,
-                     "__main__/testdata/golden/last_rev-00000-of-00001"))
+        os.path.join(
+            runfiles,
+            "__main__/wikiconv/conversation_reconstruction/testdata/golden/last_rev-00000-of-00001"
+        ))
 
     assert_json_file_equal(
         self, os.path.join(tempdir, "conversations-00000-of-00001"),
-        os.path.join(runfiles,
-                     "__main__/testdata/golden/conversations-00000-of-00001"))
+        os.path.join(
+            runfiles,
+            "__main__/wikiconv/conversation_reconstruction/testdata/golden/conversations-00000-of-00001"
+        ))
 
     assert_json_file_equal(
         self, os.path.join(tempdir, "error_logs/error_log-00000-of-00001"),
-        os.path.join(runfiles,
-                     "__main__/testdata/golden/error_log-00000-of-00001"))
+        os.path.join(
+            runfiles,
+            "__main__/wikiconv/conversation_reconstruction/testdata/golden/error_log-00000-of-00001"
+        ))
 
 
 if __name__ == "__main__":
