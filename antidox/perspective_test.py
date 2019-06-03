@@ -180,7 +180,7 @@ class TestPerspective(unittest.TestCase):
     "detectedLanguages": [
       "en"
     ]
-  }
+    }
     is_toxic = perspective.contains_toxicity(perspective_response)
     self.assertFalse(is_toxic)
 

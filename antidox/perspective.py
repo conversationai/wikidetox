@@ -12,9 +12,11 @@ def get_client():
   API_KEY = apikey_data['perspective_key']
 
   # Generates API client object dynamically based on service name and version.
-  perspective = discovery.build('commentanalyzer', 'v1alpha1', developerKey=API_KEY)
+  perspective = discovery.build('commentanalyzer', 'v1alpha1', 
+    developerKey=API_KEY)
   dlp = discovery.build('dlp', 'v2', developerKey=API_KEY)
   return (apikey_data, perspective, dlp)
+
 
 def perspective_request(perspective, comment):
   analyze_request = {
@@ -23,6 +25,7 @@ def perspective_request(perspective, comment):
   }
   response = perspective.comments().analyze(body=analyze_request).execute()
   return response
+
 
 def dlp_request(dlp, apikey_data, comment):
   dlp_request = {
@@ -47,8 +50,22 @@ def dlp_request(dlp, apikey_data, comment):
       "name":"CREDIT_CARD_NUMBER"
     },
     {
-      "name":"GENDER"
+      "name":"IP_ADDRESS"
+    },
+    {
+      "name":"LOCATION"
+    },
+    {
+      "name":"PASSPORT"
+    },
+    {
+      "name":"PERSON_NAME"
+    },
+    {
+      "name":"ALL_BASIC"
     }
+
+
   ],
   "minLikelihood":"POSSIBLE",
   "limits":{
@@ -57,11 +74,12 @@ def dlp_request(dlp, apikey_data, comment):
   "includeQuote":True
   }
   }
-  dlp_response = dlp.projects().content().inspect(body = dlp_request, parent = 'projects/' + apikey_data['project_number']).execute()
+  dlp_response = (dlp.projects().content().inspect(body = dlp_request, 
+    parent = 'projects/' + apikey_data['project_number']).execute())
   return dlp_response
 
 
-#Checking and returning only for comments that are likely or very likely to contain PII
+# Checking/returning comments that are likely or very likely to contain PII
 def contains_pii(dlp_response):
   has_pii = False
   if 'findings' not in dlp_response['result']:
@@ -72,11 +90,11 @@ def contains_pii(dlp_response):
       has_pii = True
   return has_pii
 
-#Checking and returning only for comments with a toxicity value of over 50 percent.
-def contains_toxicity(perspective_response):
+# Checking/returning comments with a toxicity value of over 50 percent.
+def contains_toxicity(perspective_response): #has_pii
   is_toxic = False
-  if perspective_response['attributeScores']['TOXICITY']['summaryScore']['value'] >= .5:
-    print (perspective_response['attributeScores']['TOXICITY']['summaryScore']['value'])
+  if (perspective_response['attributeScores']['TOXICITY']['summaryScore']
+    ['value'] >= .5):
     is_toxic = True
   return is_toxic
 
@@ -90,13 +108,12 @@ def main(argv):
     perspective_response = perspective_request(perspective, comment)
     print('contains pii?', contains_pii(dlp_response))
     print ("contains TOXICITY?:", contains_toxicity(perspective_response))
-    print (perspective_response['attributeScores']['TOXICITY']['summaryScore']['value'])
-    print ("====================================================================")
-    print (dlp_response.keys())
+    print (perspective_response['attributeScores']['TOXICITY']['summaryScore']
+      ['value'])
+    print ("=================================================================")
 
     #print('dlp result:', json.dumps(dlp_response, indent=2))
     #print ("contains_toxicity:", json.dumps(perspective_response, indent=2))
-    #print (dlp_response['result'])
 
 if __name__ == '__main__':
   main(sys.argv[1:])
