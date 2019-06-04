@@ -11,26 +11,29 @@ will be tested in wikipedia chat rooms as a staring point.
 2. [Generate API key](https://github.com/conversationai/perspectiveapi/blob/master/quickstart.md).
    Must first be authenticated with google cloud, [Establish credentials for DLP](https://cloud.google.com/dlp/docs/auth).
 
-3. In a json file store api key and project id:
+3. api_key.json is the file where api key and project id will be stored:
    ```shell
 		{
 		"perspective_key": "YOUR API_KEY HERE",
 		"project_number": "PROJECT_ID HERE"
 		}
     ```
-4. Import all required modules:
+4. To run the code that processes all comments:
    ``` shell
-	import pandas as pd
-	from googleapiclient import discovery
-	import json
-	import sys
-	global perspective
-	global DLP 
+	python3 perspective.py
    ```
 
-   Run the given model that that test the comment from the csv file for toxicity and personally identifiable information.
+   Run the given model that test the comment from the csv file for toxicity and personally identifiable information.
 
 5. Run unittest to ensure the functions contains_toxicity(), and contains_pii(), are working properly.
+   ```shell
+   python3 perspective_test.py
+   ```
+   or
+
+   ```shell
+   python3 -m unittest perspective_test.py
+   ```
 
 ## Data
 Copies of the training and test data are available in Google Storage from the
