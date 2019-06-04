@@ -19,7 +19,14 @@ will be tested in wikipedia chat rooms as a staring point.
 		}
     ```
 4. Import all required modules:
-	![GitHub Logo](/pictures/s1.png)
+   ``` shell
+	import pandas as pd
+	from googleapiclient import discovery
+	import json
+	import sys
+	global perspective
+	global DLP 
+   ```
 
    Run the given model that that test the comment from the csv file for toxicity and personally identifiable information.
 
