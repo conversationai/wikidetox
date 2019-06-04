@@ -8,7 +8,7 @@ will be tested in wikipedia chat rooms as a staring point.
    ```shell
     pip install -r requirements.txt
     ```
-2.[Generate API key](https://github.com/conversationai/perspectiveapi/blob/master/quickstart.md).
+2. [Generate API key](https://github.com/conversationai/perspectiveapi/blob/master/quickstart.md).
    Must first be authenticated with google cloud, [Establish credentials for DLP](https://cloud.google.com/dlp/docs/auth).
 
 3. In a json file store api key and project id:
