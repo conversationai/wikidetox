@@ -5,7 +5,6 @@ from googleapiclient import discovery
 global perspective
 global dlp
 
-
 def get_client():
   """ generates API client with personalized API key """
   with open("api_key.json") as json_file:
