@@ -1,0 +1,16 @@
+My phone number is (206) 555-0123.
+contains pii?Yes
+PHONE_NUMBER
+===============================================
+My birthday is June 27 2000
+contains pii?Yes
+DATE_OF_BIRTH
+===============================================
+Her email is footfungusinbellybutton@gmail.com
+contains pii?Yes
+EMAIL_ADDRESS
+===============================================
+Her email is footfungusinbellybutton@gmail.com and phone number is (206) 555-0123.
+contains pii?Yes
+EMAIL_ADDRESS
+===============================================
