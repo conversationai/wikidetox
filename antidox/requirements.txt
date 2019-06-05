@@ -2,9 +2,3 @@ google-api-python-client==1.7.9
 mock==3.0.5
 pandas==v0.23.4
 sseclient==0.0.24
-pylint==2.3.1
-
-#key_service_acct
-#export GOOGLE_APPLICATION_CREDENTIALS=/usr/local/google/home/kearstenprince/Anti-Doxxing
-#export GOOGLE_APPLICATION_CREDENTIALS="/home/user/Downloads/key_service_acct.json"
-

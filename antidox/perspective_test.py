@@ -1,4 +1,4 @@
-import perspective
+from antidox import perspective
 import unittest
 
 class TestPerspective(unittest.TestCase):

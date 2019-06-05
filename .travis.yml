@@ -23,4 +23,4 @@ install:
   - pip install -r wikiconv/requirements.txt
 
 script:
-  - bash run_tests.sh
+  - bazel test ...
