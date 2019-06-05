@@ -1,10 +1,9 @@
 import pandas as pd
 from googleapiclient import discovery
 import json
+import sys
 global perspective
 global dlp
-import sys
-
 
 def get_client():
   with open("api_key.json") as json_file:
