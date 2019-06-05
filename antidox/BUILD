@@ -4,6 +4,7 @@ py_binary(
     name = "perspective",
     srcs = ["perspective.py"],
     deps = [
+        requirement("python-dateutil"),
         requirement("google-api-python-client"),
         requirement("pandas"),
     ],
