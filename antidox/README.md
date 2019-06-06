@@ -7,7 +7,6 @@ will be tested in wikipedia chat rooms as a staring point.
 1. Install [Bazel](https://docs.bazel.build/versions/master/install.html)
    ```shell
    bazel test ...
-    pip install -r requirements.txt
     ```
 2. [Generate API key](https://github.com/conversationai/perspectiveapi/blob/master/quickstart.md).
    Must first be authenticated with google cloud, [Establish credentials for DLP](https://cloud.google.com/dlp/docs/auth).
