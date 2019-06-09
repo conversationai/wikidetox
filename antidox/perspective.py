@@ -1,13 +1,15 @@
+import argparse
 import json
+import os
 import sys
 import pandas as pd
 from googleapiclient import discovery
 global perspective
 global dlp
 
-def get_client():
+def get_client(api_key_filename):
   """ generates API client with personalized API key """
-  with open("api_key.json") as json_file:
+  with open(api_key_filename) as json_file:
     apikey_data = json.load(json_file)
   API_KEY = apikey_data['perspective_key']
   # Generates API client object dynamically based on service name and version.
@@ -93,6 +95,7 @@ def contains_pii(dlp_response):
       return (has_pii, finding['infoType']["name"])
   return False, None
 
+
 # Checking/returning comments with a toxicity value of over 50 percent.
 def contains_toxicity(perspective_response):
   """ specifically checks the perspective response for toxicity score"""
@@ -104,8 +107,13 @@ def contains_toxicity(perspective_response):
 
 
 def main(argv):
-  dataframe = pd.read_csv("example.csv")
-  apikey_data, perspective, dlp = get_client()
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--input_file', help='Location of file to process')
+  parser.add_argument('--api_key', help='Location of perspective api key')
+  args = parser.parse_args(argv)
+
+  dataframe = pd.read_csv(args.input_file)
+  apikey_data, perspective, dlp = get_client(args.api_key)
 
   pii_results = open("pii_results.txt", "w+")
   toxicity_results = open("toxicity_results.txt", "w+")
@@ -127,6 +135,7 @@ def main(argv):
   pii_results.close()
     # print('dlp result:', json.dumps(dlp_response, indent=2))
     # print ("contains_toxicity:", json.dumps(perspective_response, indent=2))
+
 
 if __name__ == '__main__':
   main(sys.argv[1:])
