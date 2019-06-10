@@ -1,5 +1,7 @@
 package(default_visibility = ["//visibility:public"])
 
+load("@wikidetox_requirements//:requirements.bzl", "requirement")
+
 py_binary(
     name = "dataflow_main",
     srcs = ["dataflow_main.py"],
@@ -36,5 +38,11 @@ py_test(
         ":testdata/golden/last_rev-00000-of-00001",
         ":testdata/golden/page_states-00000-of-00001",
     ],
-    deps = [":dataflow_main"],
+    deps = [
+        ":dataflow_main",
+        #        requirement("apache-beam"),
+        #        requirement("dill"),
+        #        requirement("future"),
+        #        requirement("typing"),
+    ],
 )
