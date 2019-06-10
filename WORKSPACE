@@ -9,15 +9,16 @@ git_repository(
 
 load("@io_bazel_rules_python//python:pip.bzl", "pip_import")
 
-# This rule translates the specified requirements.txt into
-# @wikidetox_requirements//:requirements.bzl, which itself exposes a pip_install method.
+# This rule translates the specified bazel-requirements.txt into
+# @wikidetox_requirements//:requirements.bzl, which itself exposes a
+# pip_install method.
 pip_import(
     name = "wikidetox_requirements",
-    requirements = "//:requirements.txt",
+    requirements = "//:bazel-requirements.txt",
 )
 
 # Load the pip_install symbol for my_deps, and create the dependencies'
 # repositories.
-load("@wikidetox_requirements//:requirements.bzl", "pip_install")
+load("@wikidetox_requirements//:bazel-requirements.bzl", "pip_install")
 
 pip_install()

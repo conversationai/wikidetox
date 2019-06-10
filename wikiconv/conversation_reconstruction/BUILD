@@ -1,5 +1,11 @@
 package(default_visibility = ["//visibility:public"])
 
+load(
+    "@io_bazel_rules_python//python:python.bzl",
+    "py_binary",
+    "py_library",
+    "py_test",
+)
 load("@wikidetox_requirements//:requirements.bzl", "requirement")
 
 py_binary(
@@ -8,9 +14,6 @@ py_binary(
     deps = [
         "//wikiconv/conversation_reconstruction/construct_utils:reconstruct_conversation",
         requirement("apache-beam"),
-        requirement("dill"),
-        requirement("future"),
-        requirement("typing"),
     ],
 )
 
