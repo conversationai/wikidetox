@@ -5,7 +5,13 @@ load("@wikidetox_requirements//:requirements.bzl", "requirement")
 py_binary(
     name = "dataflow_main",
     srcs = ["dataflow_main.py"],
-    deps = ["//wikiconv/conversation_reconstruction/construct_utils:reconstruct_conversation"],
+    deps = [
+        "//wikiconv/conversation_reconstruction/construct_utils:reconstruct_conversation",
+        requirement("apache-beam"),
+        requirement("dill"),
+        requirement("future"),
+        requirement("typing"),
+    ],
 )
 
 py_binary(
@@ -38,11 +44,5 @@ py_test(
         ":testdata/golden/last_rev-00000-of-00001",
         ":testdata/golden/page_states-00000-of-00001",
     ],
-    deps = [
-        ":dataflow_main",
-        #        requirement("apache-beam"),
-        #        requirement("dill"),
-        #        requirement("future"),
-        #        requirement("typing"),
-    ],
+    deps = [":dataflow_main"],
 )

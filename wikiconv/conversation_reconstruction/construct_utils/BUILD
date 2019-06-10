@@ -35,6 +35,7 @@ py_library(
         requirement("dill"),
         requirement("future"),
         requirement("nose"),
+        requirement("numpy"),
         requirement("pyarrow"),
         requirement("typing"),
     ],
