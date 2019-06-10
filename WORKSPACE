@@ -19,6 +19,6 @@ pip_import(
 
 # Load the pip_install symbol for my_deps, and create the dependencies'
 # repositories.
-load("@wikidetox_requirements//:bazel-requirements.bzl", "pip_install")
+load("@wikidetox_requirements//:requirements.bzl", "pip_install")
 
 pip_install()
