@@ -19,5 +19,8 @@ before_install:
   - sha256sum -c travis_blase_test_support/bazel_0.18.1-linux-x86_64.deb.sha256
   - sudo dpkg -i bazel_0.18.1-linux-x86_64.deb
 
+instal:
+  - echo "Requirements managed by bazel."
+
 script:
   - bazel test --test_output=streamed ...
