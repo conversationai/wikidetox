@@ -14,6 +14,7 @@ py_binary(
     deps = [
         "//wikiconv/conversation_reconstruction/construct_utils:reconstruct_conversation",
         requirement("apache-beam"),
+        requirement("dill"),
     ],
 )
 

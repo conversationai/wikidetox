@@ -14,7 +14,7 @@ load("@io_bazel_rules_python//python:pip.bzl", "pip_import")
 # pip_install method.
 pip_import(
     name = "wikidetox_requirements",
-    requirements = "//:bazel-requirements.txt",
+    requirements = "//:requirements-bazel.txt",
 )
 
 # Load the pip_install symbol for my_deps, and create the dependencies'

@@ -13,6 +13,7 @@ py_binary(
         requirement("python-dateutil"),
         requirement("google-api-python-client"),
         requirement("pandas"),
+        requirement("pytz"),
         requirement("uritemplate"),
     ],
 )

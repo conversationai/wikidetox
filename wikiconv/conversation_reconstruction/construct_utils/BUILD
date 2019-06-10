@@ -34,6 +34,7 @@ py_library(
     deps = [
         ":conversation_constructor",
         requirement("apache-beam"),
+        requirement("dill"),
         requirement("google-cloud-core"),
         requirement("google-cloud-storage"),
     ],
