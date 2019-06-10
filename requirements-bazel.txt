@@ -16,7 +16,7 @@ NoAho==0.9.6.1
 nose==1.3.7
 numpy==1.16.3
 pandas==v0.23.4
-pytz=2019.1
+pytz==2019.1
 pyarrow==0.11.1
 python-dateutil==2.8.0
 sseclient==0.0.24
