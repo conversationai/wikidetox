@@ -1,5 +1,7 @@
+""" Takes content and runs it through perspective and dlp request """
 import json
 import sys
+import argparse
 import requests
 from googleapiclient import errors as google_api_errors
 from googleapiclient import discovery
@@ -31,7 +33,7 @@ def perspective_request(perspective, comment):
 
 def dlp_request(dlp, apikey_data, comment):
   """ Generates a request to run the cloud dlp report"""
-  dlp_request = {
+  request_dlp = {
       "item":{
           "value":comment
           },
@@ -75,7 +77,7 @@ def dlp_request(dlp, apikey_data, comment):
           "includeQuote":True
           }
       }
-  dlp_response = (dlp.projects().content().inspect(body=dlp_request,
+  dlp_response = (dlp.projects().content().inspect(body=request_dlp,
                                                    parent='projects/'+
                                                    apikey_data['project_number']
                                                    ).execute())
@@ -109,21 +111,40 @@ def contains_toxicity(perspective_response):
 
 def get_wikipage(pagename):
   """ Gets all content from a wikipedia page and turns it into plain text. """
-  page = "https://en.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&format=json&formatversion=2&titles="+(pagename)
+  # pylint: disable=fixme, line-too-long
+  page = ("https://en.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&format=json&formatversion=2&titles="+(pagename))
   get_page = requests.get(page)
   response = json.loads(get_page.content)
   text_response = response['query']['pages'][0]['revisions'][0]['content']
   text = clean.content_clean(text_response)
   return text
 
-
+# pylint: disable=fixme, too-many-locals
 def main(argv):
+  """ runs dlp and perspective on content passed in """
+  parser = argparse.ArgumentParser(description='Process some integers.')
+  parser.add_argument('--input_file', help='Location of file to process')
+  parser.add_argument('--api_key', help='Location of perspective api key')
+  parser.add_argument('--sql_query',)
+  parser.add_argument('--csv_file')
+  parser.add_argument('--wiki_pagename')
+  args = parser.parse_args(argv)
+
   apikey_data, perspective, dlp = get_client()
   pii_results = open("pii_results.txt", "w+")
   toxicity_results = open("toxicity_results.txt", "w+")
-  wikitext = get_wikipage("Wikipedia_talk:WikiProject_New_York_City")
 
-  for line in wikitext.split("\n"):
+
+
+  if args.wiki_pagename:
+    wikitext = get_wikipage(args.wiki_pagename)
+    text = wikitext.split("\n")
+  elif args.csv_file:
+    text = pd.read_csv(args.csv_file)
+  # else args.sql_query:
+  #   text = use_query(args.sql_query)
+
+  for line in text:
     #print(line)
     if not line:
       continue
@@ -134,11 +155,11 @@ def main(argv):
     except google_api_errors.HttpError as err:
       print("Error:", err)
     has_pii_bool, pii_type = contains_pii(dlp_response)
-    if has_pii_bool == True:
+    if has_pii_bool:
       pii_results.write(str(line)+"\n"+'contains pii?'+"Yes"+"\n"
                         +str(pii_type)+"\n"
                         +"==============================================="+"\n")
-    if contains_toxicity(perspective_response) == True:
+    if contains_toxicity(perspective_response):
       toxicity_results.write(str(line)+"\n" +"contains TOXICITY?:"+
                              "Yes"+"\n"+
                              str(perspective_response['attributeScores']
