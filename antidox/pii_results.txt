@@ -1,16 +1,24 @@
-My phone number is (206) 555-0123.
+The commons description of Grant Square in Brooklyn describes it as being at Bedford and Rogers Avenues between Dean and Bergen Streets in Crown Heights.  However, the Washington Temple Church of God in Christ (former Loew's Theater) is on the northwest corner of Bergen Street and Bedford Avenue which is said to be in Bedford-Stuyvesant, yet it's directly across Bedford Avenue from the "Grant Gore." So wouldn't that mean Grant Square is in both Bed-Stuy ''and'' Crown Heights? I need to know this, because I took a bunch of pictures of both sites back in October 2018. -   
 contains pii?Yes
-PHONE_NUMBER
+PERSON_NAME
 ===============================================
-My birthday is June 27 2000
+JimHenderson's picture of the church. I have two of my own coming. Do you know what else I noticed? Google Maps also shows the western border of Crown Heights as being along Washington Avenue, which would place ''both'' Studebaker Buildings (Bedford Avenue and Sterling Place, as well as Dean Street) as being in Crown Heights! -   
 contains pii?Yes
-DATE_OF_BIRTH
+PERSON_NAME
 ===============================================
-Her email is footfungusinbellybutton@gmail.com
+ In his defense, those signs can't be at every street that crosses the Brooklyn-Queens line. As far as the Studebaker Buildings, since both are officially considered to be in Crown Heights, how about renaming the gallery for the landmark "Studebaker Building (Bedford Avenue, Brooklyn)," and I'll rename the other one "Studebaker Building (Dean Street, Brooklyn)?" I'll even correct Dean Street (BMT Franklin Avenue Line).-   
 contains pii?Yes
-EMAIL_ADDRESS
+PERSON_NAME
 ===============================================
-Her email is footfungusinbellybutton@gmail.com and phone number is (206) 555-0123.
+Buzz Aldrin in project scope?
 contains pii?Yes
-EMAIL_ADDRESS
+PERSON_NAME
+===============================================
+Why would Buzz Aldrin be in  scope?    
+contains pii?Yes
+PERSON_NAME
+===============================================
+Hi! I didn't know if anyone was willing to work on a park article or not - a student of mine created the article on St. James Park (Bronx). The class ends this week and I'm not entirely sure if they will be back on to edit it, but at the present it lacks information and sourcing to establish how it's notable. I'm going to try to do as much as I can for it, but I'm admittedly kind of swamped with other classes so I wanted to see if anyone would be interested in this. 
+contains pii?Yes
+PERSON_NAME
 ===============================================
