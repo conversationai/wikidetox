@@ -4,10 +4,11 @@ import os
 import sys
 import pandas as pd
 from googleapiclient import discovery
+from google.cloud import bigquery
 global perspective
 global dlp
 
-def get_client(api_key_filename):
+def get_client(api_key_filename,bq_key_filename):
   """ generates API client with personalized API key """
   with open(api_key_filename) as json_file:
     apikey_data = json.load(json_file)
@@ -16,7 +17,10 @@ def get_client(api_key_filename):
   perspective = discovery.build('commentanalyzer', 'v1alpha1',
                                 developerKey=API_KEY)
   dlp = discovery.build('dlp', 'v2', developerKey=API_KEY)
-  return (apikey_data, perspective, dlp)
+
+  bq = bigquery.Client.from_service_account_json(bq_key_filename)
+
+  return (apikey_data, perspective, dlp, bq)
 
 
 def perspective_request(perspective, comment):
@@ -112,27 +116,46 @@ def main(argv):
   parser.add_argument('--api_key', help='Location of perspective api key')
   args = parser.parse_args(argv)
 
-  dataframe = pd.read_csv(args.input_file)
-  apikey_data, perspective, dlp = get_client(args.api_key)
 
+  # dataframe = pd.read_csv(args.input_file)
+  apikey_data, perspective, dlp, bq= get_client('api_key.json','querykey.json')
+
+
+  query_job = bq.query("""
+  SELECT cleaned_content FROM `wikidetox-viz.wikiconv2_201904.en_cleaned_conv` LIMIT 10""")
+  # makees bigquery api request
+  
+  rows = query_job.result()
   pii_results = open("pii_results.txt", "w+")
   toxicity_results = open("toxicity_results.txt", "w+")
-  for comment in dataframe.comment_text:
-    dlp_response = dlp_request(dlp, apikey_data, comment)
-    perspective_response = perspective_request(perspective, comment)
-    has_pii_bool, pii_type = contains_pii(dlp_response)
-    if has_pii_bool == True:
-      pii_results.write(str(comment)+"\n"+'contains pii?'+"Yes"+"\n"
-                        +str(pii_type)+"\n"
-                        +"==============================================="+"\n")
-    if contains_toxicity(perspective_response) == True:
-      toxicity_results.write(str(comment)+"\n" +"contains TOXICITY?:"+
-                             "Yes"+"\n"+
-                             str(perspective_response['attributeScores']
-                                 ['TOXICITY']['summaryScore']['value'])+"\n"
-                             +"=========================================="+"\n")
+
+  for row in rows:
+    try:
+      assert row[0] == row.cleaned_content,row["cleaned_content"]
+      print(row[0])
+      print('==============================================\n')
+      dlp_response = dlp_request(dlp, apikey_data, row.cleaned_content)
+      perspective_response = perspective_request(perspective, row.cleaned_content)
+      has_pii_bool, pii_type = contains_pii(dlp_response)
+      if has_pii_bool == True:
+        pii_results.write(str(comment)+"\n"+'contains pii?'+"Yes"+"\n"
+                          +str(pii_type)+"\n"
+                          +"==============================================="+"\n")
+      if contains_toxicity(perspective_response) == True:
+        toxicity_results.write(str(comment)+"\n" +"contains TOXICITY?:"+
+                               "Yes"+"\n"+
+                               str(perspective_response['attributeScores']
+                                   ['TOXICITY']['summaryScore']['value'])+"\n"
+                               +"=========================================="+"\n")
+    except:
+      continue
+      print('\n', row.cleaned_content,':', 'HttpError: Attribute does not support requested language \n')
+      
   toxicity_results.close()
   pii_results.close()
+
+    
+
     # print('dlp result:', json.dumps(dlp_response, indent=2))
     # print ("contains_toxicity:", json.dumps(perspective_response, indent=2))
 
