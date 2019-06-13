@@ -5,9 +5,7 @@ Both of these tools are being used in an attempt to detect and prevent doxxing i
 will be tested in wikipedia chat rooms as a staring point.
 
 1. Install [Bazel](https://docs.bazel.build/versions/master/install.html)
-   ```shell
-   bazel test ...
-    ```
+
 2. [Generate API key](https://github.com/conversationai/perspectiveapi/blob/master/quickstart.md).
    Must first be authenticated with google cloud, [Establish credentials for DLP](https://cloud.google.com/dlp/docs/auth).
 
@@ -28,7 +26,7 @@ will be tested in wikipedia chat rooms as a staring point.
 
 5. Run unittest to ensure the functions contains_toxicity(), and contains_pii(), are working properly.
    ```shell
-   bazel test ...
+   bazel test :perspective_test --test_output=all
    ```
 
 ## Data
