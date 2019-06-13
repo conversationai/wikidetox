@@ -4,9 +4,9 @@ In this directory user can manipulate the perspective and DLP API to detect requ
 Both of these tools are being used in an attempt to detect and prevent doxxing in online conversations,
 will be tested in wikipedia chat rooms as a staring point.
 
-1. Install library dependencies:
+1. Install [Bazel](https://docs.bazel.build/versions/master/install.html)
    ```shell
-    pip install -r requirements.txt
+   bazel test ...
     ```
 2. [Generate API key](https://github.com/conversationai/perspectiveapi/blob/master/quickstart.md).
    Must first be authenticated with google cloud, [Establish credentials for DLP](https://cloud.google.com/dlp/docs/auth).
@@ -20,19 +20,15 @@ will be tested in wikipedia chat rooms as a staring point.
     ```
 4. To run the code that processes all comments:
    ``` shell
-	python3 perspective.py
+	bazel run :perspective --input_file=$PWD/example.csv
+          --api_key=$PWD/api_key.json
    ```
 
    Run the given model that test the comment from the csv file for toxicity and personally identifiable information.
 
 5. Run unittest to ensure the functions contains_toxicity(), and contains_pii(), are working properly.
    ```shell
-   python3 perspective_test.py
-   ```
-   or
-
-   ```shell
-   python3 -m unittest perspective_test.py
+   bazel test ...
    ```
 
 ## Data

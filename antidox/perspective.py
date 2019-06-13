@@ -1,5 +1,7 @@
+
 """ Takes content and runs it through perspective and dlp request """
 import json
+import os
 import sys
 import argparse
 import requests
@@ -9,9 +11,9 @@ import pandas as pd
 import clean
 
 
-def get_client():
+def get_client(api_key_filename):
   """ generates API client with personalized API key """
-  with open("api_key.json") as json_file:
+  with open(api_key_filename) as json_file:
     apikey_data = json.load(json_file)
   api_key = apikey_data['perspective_key']
   # Generates API client object dynamically based on service name and version.
@@ -129,8 +131,8 @@ def main(argv):
   parser.add_argument('--csv_file')
   parser.add_argument('--wiki_pagename')
   args = parser.parse_args(argv)
+  apikey_data, perspective, dlp = get_client(args.api_key)
 
-  apikey_data, perspective, dlp = get_client()
   pii_results = open("pii_results.txt", "w+")
   toxicity_results = open("toxicity_results.txt", "w+")
 
@@ -169,6 +171,7 @@ def main(argv):
   pii_results.close()
     # print('dlp result:', json.dumps(dlp_response, indent=2))
     # print ("contains_toxicity:", json.dumps(perspective_response, indent=2))
+
 
 if __name__ == '__main__':
   main(sys.argv[1:])
