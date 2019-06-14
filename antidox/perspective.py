@@ -1,8 +1,6 @@
 """ inputs comments to perspective and dlp apis and detects
 toxicity and personal information> has support for csv files,
 bigquery tables, and wikipedia talk pages"""
-# TODO(tamajongnc): make cleaned_content an argument
-# TODO(tamajongnc): make cleaned_content an argument
 import argparse
 import json
 import sys
@@ -10,7 +8,6 @@ import pandas as pd
 from googleapiclient import discovery
 from googleapiclient import errors as google_api_errors
 from google.cloud import bigquery
-
 
 
 def get_client(api_key_filename):
@@ -24,7 +21,7 @@ def get_client(api_key_filename):
   dlp = discovery.build('dlp', 'v2', developerKey=api_key)
 
 
-  return (apikey_data, perspective, dlp, big_q)
+  return (apikey_data, perspective, dlp)
 
 
 def perspective_request(perspective, comment):
@@ -111,14 +108,13 @@ def contains_toxicity(perspective_response):
   return is_toxic
 
 
-def use_query(args.content, sql_query):
+def use_query(content, sql_query, big_q):
   """make big query api request"""
-  big_q = bigquery.Client.from_service_account_json(querkey.json)
-  query_job = client.query(sql_query)
+  query_job = big_q.query(sql_query)
   rows = query_job.result()
   strlst = []
   for row in rows:
-    strlst.append(str(row.args.content))
+    strlst.append(str(row[content]))
   return strlst
 
 # pylint: disable=fixme, too-many-locals
@@ -127,18 +123,19 @@ def main(argv):
   parser = argparse.ArgumentParser(description='Process some integers.')
   parser.add_argument('--input_file', help='Location of file to process')
   parser.add_argument('--api_key', help='Location of perspective api key')
-  parser.add_argument('--sql_query', help= 'choose specifications for query search')
-  parser.add_argument('--csv_file', help= 'input csv file')
-  parser.add_argument('--content', help= 'specify a column in dataset to retreive data from')
+  parser.add_argument('--sql_query', help='choose specifications for query search')
+  parser.add_argument('--csv_file', help='input csv file')
+  parser.add_argument('--content', help='specify a column in dataset to retreive data from')
   args = parser.parse_args(argv)
-  apikey_data, perspective, dlp, big_q = get_client('api_key.json', 'querykey.json')
+  apikey_data, perspective, dlp = get_client('api_key.json')
   if args.csv_file:
     text = pd.read_csv(args.csv_file)
   if args.sql_query:
-    text = use_query(args.content, args.sql_query)
+    big_q = bigquery.Client.from_service_account_json('querykey.json')
+    text = use_query(args.content, args.sql_query, big_q)
   pii_results = open("pii_results.txt", "w+")
   toxicity_results = open("toxicity_results.txt", "w+")
-
+  print(big_q)
 
   for line in text:
     try:
