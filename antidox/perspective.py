@@ -116,8 +116,13 @@ def get_wikipage(pagename):
   get_page = requests.get(page)
   response = json.loads(get_page.content)
   text_response = response['query']['pages'][0]['revisions'][0]['content']
-  text = clean.content_clean(text_response)
+  return text_response
+
+def wiki_clean(get_wikipage):
+  text = clean.content_clean(get_wikipage)
+  print (text)
   return text
+
 
 # pylint: disable=fixme, too-many-locals
 def main(argv):
@@ -125,19 +130,19 @@ def main(argv):
   parser = argparse.ArgumentParser(description='Process some integers.')
   parser.add_argument('--input_file', help='Location of file to process')
   parser.add_argument('--api_key', help='Location of perspective api key')
-  parser.add_argument('--sql_query',)
-  parser.add_argument('--csv_file')
-  parser.add_argument('--wiki_pagename')
+  # pylint: disable=fixme, line-too-long
+  parser.add_argument('--sql_query', help='choose specifications for query search')
+  parser.add_argument('--csv_file', help='choose CSV file to process')
+  parser.add_argument('--wiki_pagename', help='insert the talk page name')
   args = parser.parse_args(argv)
 
   apikey_data, perspective, dlp = get_client()
   pii_results = open("pii_results.txt", "w+")
   toxicity_results = open("toxicity_results.txt", "w+")
 
-
-
   if args.wiki_pagename:
-    wikitext = get_wikipage(args.wiki_pagename)
+    wiki_response = get_wikipage(args.wiki_pagename)
+    wikitext = wiki_clean(wiki_response)
     text = wikitext.split("\n")
   elif args.csv_file:
     text = pd.read_csv(args.csv_file)
@@ -145,7 +150,6 @@ def main(argv):
   #   text = use_query(args.sql_query)
 
   for line in text:
-    #print(line)
     if not line:
       continue
     dlp_response = dlp_request(dlp, apikey_data, line)
