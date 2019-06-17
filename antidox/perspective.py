@@ -1,12 +1,16 @@
-""" Takes content and runs it through perspective and dlp request """
+""" inputs comments to perspective and dlp apis and detects
+toxicity and personal information> has support for csv files,
+bigquery tables, and wikipedia talk pages"""
+import argparse
 import json
 import sys
 import argparse
 import requests
-from googleapiclient import errors as google_api_errors
-from googleapiclient import discovery
 import pandas as pd
 import clean
+from googleapiclient import errors as google_api_errors
+from googleapiclient import discovery
+from google.cloud import bigquery
 
 
 def get_client():
@@ -29,7 +33,6 @@ def perspective_request(perspective, comment):
   }
   response = perspective.comments().analyze(body=analyze_request).execute()
   return response
-
 
 def dlp_request(dlp, apikey_data, comment):
   """ Generates a request to run the cloud dlp report"""
@@ -123,6 +126,15 @@ def wiki_clean(get_wikipage):
   print (text)
   return text
 
+def use_query(content, sql_query, big_q):
+  """make big query api request"""
+  query_job = big_q.query(sql_query)
+  rows = query_job.result()
+  strlst = []
+  for row in rows:
+    strlst.append(str(row[content]))
+  return strls
+
 
 # pylint: disable=fixme, too-many-locals
 def main(argv):
@@ -134,6 +146,7 @@ def main(argv):
   parser.add_argument('--sql_query', help='choose specifications for query search')
   parser.add_argument('--csv_file', help='choose CSV file to process')
   parser.add_argument('--wiki_pagename', help='insert the talk page name')
+  parser.add_argument('--content', help='specify a column in dataset to retreive data from')
   args = parser.parse_args(argv)
 
   apikey_data, perspective, dlp = get_client()
@@ -144,10 +157,11 @@ def main(argv):
     wiki_response = get_wikipage(args.wiki_pagename)
     wikitext = wiki_clean(wiki_response)
     text = wikitext.split("\n")
-  elif args.csv_file:
+  if args.csv_file:
     text = pd.read_csv(args.csv_file)
-  # else args.sql_query:
-  #   text = use_query(args.sql_query)
+  if args.sql_query:
+    big_q = bigquery.Client.from_service_account_json('querykey.json')
+    text = use_query(args.content, args.sql_query, big_q)
 
   for line in text:
     if not line:
@@ -169,10 +183,13 @@ def main(argv):
                              str(perspective_response['attributeScores']
                                  ['TOXICITY']['summaryScore']['value'])+"\n"
                              +"=========================================="+"\n")
+
   toxicity_results.close()
   pii_results.close()
     # print('dlp result:', json.dumps(dlp_response, indent=2))
     # print ("contains_toxicity:", json.dumps(perspective_response, indent=2))
 
+
 if __name__ == '__main__':
   main(sys.argv[1:])
+ 

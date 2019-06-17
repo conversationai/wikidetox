@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+
 import perspective
 import unittest
+from unittest import mock
 
 class TestPerspective(unittest.TestCase):
 
@@ -225,6 +227,21 @@ Just so everyone who would come here knows, there is an ongoing RfC at Wikipedia
     self.assertEqual(text.strip(), clean_text.strip())
 
 
+class Test_BigQuery(unittest.TestCase):
+
+  def test_use_query(self):
+    fake_response_comments = [
+      {'cleaned_content': 'comment1'},
+      {'cleaned_content': 'comment2'}
+    ]
+    not_big_q = mock.Mock()
+    mock_query_job = mock.Mock()
+    mock_query_job.result = mock.Mock(return_value=fake_response_comments)
+    not_big_q.query = mock.Mock(return_value=mock_query_job)
+    rows = perspective.use_query('cleaned_content', """SELECT 'cleaned_content' FROM 'fakeproject.fakedatbase.fakedataset' """, not_big_q)
+    self.assertEqual(type(rows[0]), str)
+    self.assertEqual(len(rows), len(fake_response_comments))
+  
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,16 +1,40 @@
-My phone number is (206) 555-0123.
+ Welcome to Wikipedia. Although everyone is welcome to make constructive contributions to Wikipedia, at least one of your recent edits, such as the one you made to Lahinch, did not appear to be constructive and has been '''automatically reverted''' by .  Please use the sandbox for any test edits you would like to make, and take a look at the welcome page to learn more about contributing to this encyclopedia.  '''If you believe there has been a mistake and would like to report a false positive, please  and then remove this warning from your talk page.'''  If your edit was not vandalism, please feel free to make your edit again after reporting it. The following is the log entry regarding this warning: Lahinch was changed by    making a minor change with obscenities on 2007-10-16T16:12:34+00:00 . Thank you.  
 contains pii?Yes
-PHONE_NUMBER
+DATE
 ===============================================
-My birthday is June 27 2000
+  ''''''User:Gangaram pal
+Wikipedia ରୁ
+ବିଷୟସୂଚୀ  [ଲୁଚାନ୍ତୁ]
+1	Biography[ସମ୍ପାଦନା]
+2	Early life (1996-Runing)
+2.1	Birth and childhood
+3	Education
+Biography[ସମ୍ପାଦନା][ସମ୍ପାଦନା]
+Gangaram pala was born on 16 April 1996 in Mangalpur in a Brahmin family from Biswanath pala, former Marketing Peon The Aska Sugar Factory,  Ganga was educated at the prestigious Govt. Upper Primary School in Mangalpur, and later the Govt. High School,Mangalpur. After that he attended NBC College, Berhampur University, and he qualified for Bachelor of Arts degree.
+Early life (1996-Runing)[ସମ୍ପାଦନା]
+Birth and childhood[ସମ୍ପାଦନା]
+Ganga was born Gangaram pala (shortened to Ganga ) at his ancestral home at Near Radha govinda Temple, Street in Mangalpur,Aska the capital of Bhubaneswar India, on 16 April 1996 during the masik sivaratri festival. He belonged to a traditional brahmin,Halua family. His father, Vishwanath Pala, was an Marketing Peon at the Aska Sugar Factroy. Govinda Pala, Ganga's grandfather was a Sanskrit and Persian scholar who left his family and became a monk at age twenty-five. His mother, Bishnu Devi, was a devout housewife. The progressive, rational attitude of Ganga's father and the religious temperament of his mother helped shape his thinking and personality.
+Gangaram was interested spiritually from a young age, and used to meditate before the images of deities such as Shiva, Rama, Satyasai, and Mahavir Hanuman. He was fascinated by wandering ascetics and monks. Ganga was naughty and restless as a child, and his parents often had difficulty controlling him.
+Education[ସମ୍ପାଦନା]
+In 2001, at the age of Five ,Ganga enrolled at Govt, Upper Primary School,Mangalpur,Aska, where he went to school until his family moved to Aska in 2001. In 2003, after his family's return to Mangalpur, he was the only student to receive first-division marks in the NBC College entrance examination.  He was an avid reader in a wide range of subjects, including Economics, Political Science,Social Science and art and literature. He was also interested in Hindu scriptures, including the Vedas, the Upanishads, the Bhagavad Gita, the Ramayana, the Mahabharata and the Puranas. Ganga was trained in Indian classical music, and regularly participated in physical exercise, sports and organised activities.  In 2016 he passed the Final Arts examination, and completed a Bachelor of Arts degree at NBC College,Kendupadar,Ganjam.
+ବଡ଼ ଅକ୍ଷର
+
+
+
 contains pii?Yes
-DATE_OF_BIRTH
+DATE
 ===============================================
-Her email is footfungusinbellybutton@gmail.com
+ Hello, I'm . I have automatically detected that your edit to Isaiah Pead may have broken the syntax by modifying 1 "()"s. If you have, don't worry: just [ edit the page] again to fix it. If I misunderstood what happened, or if you have any questions, you can leave a message on my operator's talk page.
+List of unpaired brackets remaining on the page:
+*[[St. Louis Rams]] {{NFL Year|2012}}–
+It's OK to remove this message. Also, to stop receiving these messages, follow . Thanks,  
 contains pii?Yes
-EMAIL_ADDRESS
+PERSON_NAME
 ===============================================
-Her email is footfungusinbellybutton@gmail.com and phone number is (206) 555-0123.
+ This media may be '''deleted'''.
+Thanks for uploading ''':Image:Mark hoppus.jpg'''. I notice the 'image' page currently doesn't specify who created the content, so the copyright status is therefore unclear. If you have not created this media yourself then you need to argue that we have the right to use the media on Wikipedia (see copyright tagging below). If you have not created the media yourself then you should also specify where you found it, i.e., in most cases link to the website where you got it, and the terms of use for content from that page.
+If the media also doesn't have a copyright tag then you must also add one. If you created/took the picture, audio, or video then you can use  to release it under the GFDL. If you believe the media qualifies as fair use, please read fair use, and then use a tag such as  or one of the other tags listed at Wikipedia:Image copyright tags#Fair_use.  See Wikipedia:Image copyright tags for the full list of copyright tags that you can use.
+If you have uploaded other media, please check that you have specified their source and copyright tagged them, too. You can find a list of 'image' pages you have edited by clicking on the "" link (it is located at the very top of any Wikipedia page when you are logged in), and then selecting "Image" from the dropdown box. Note that any unsourced and untagged images will be deleted one week after they have been uploaded, as described on criteria for speedy deletion. Thank you. 
 contains pii?Yes
-EMAIL_ADDRESS
+PERSON_NAME
 ===============================================
