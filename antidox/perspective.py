@@ -4,23 +4,24 @@ bigquery tables, and wikipedia talk pages"""
 import argparse
 import json
 import sys
+import argparse
+import requests
 import pandas as pd
-from googleapiclient import discovery
+import clean
 from googleapiclient import errors as google_api_errors
+from googleapiclient import discovery
 from google.cloud import bigquery
 
 
-def get_client(api_key_filename):
+def get_client():
   """ generates API client with personalized API key """
-  with open(api_key_filename) as json_file:
+  with open("api_key.json") as json_file:
     apikey_data = json.load(json_file)
   api_key = apikey_data['perspective_key']
   # Generates API client object dynamically based on service name and version.
   perspective = discovery.build('commentanalyzer', 'v1alpha1',
                                 developerKey=api_key)
   dlp = discovery.build('dlp', 'v2', developerKey=api_key)
-
-
   return (apikey_data, perspective, dlp)
 
 
@@ -84,29 +85,46 @@ def dlp_request(dlp, apikey_data, comment):
                                                    apikey_data['project_number']
                                                    ).execute())
   return dlp_response
-# Checking/returning comments that are likely or very likely to contain PII
+
 
 def contains_pii(dlp_response):
-  """ specifically checks the dlp response for results containing PII"""
+  """ Checking/returning comments that are likely or very likely to contain PII
+
+      Args:
+      passes in the resukts from the cloud DLP
+      """
   has_pii = False
   if 'findings' not in dlp_response['result']:
     return False, None
   for finding in dlp_response['result']['findings']:
     if finding['likelihood'] in ('LIKELY', 'VERY_LIKELY'):
-      # print('finding:', finding['infoType'], finding['likelihood'])
       has_pii = True
       return (has_pii, finding['infoType']["name"])
   return False, None
-# Checking/returning comments with a toxicity value of over 50 percent.
+
 
 def contains_toxicity(perspective_response):
-  """ specifically checks the perspective response for toxicity score"""
+  """Checking/returning comments with a toxicity value of over 50 percent."""
   is_toxic = False
   if (perspective_response['attributeScores']['TOXICITY']['summaryScore']
       ['value'] >= .5):
     is_toxic = True
   return is_toxic
 
+
+def get_wikipage(pagename):
+  """ Gets all content from a wikipedia page and turns it into plain text. """
+  # pylint: disable=fixme, line-too-long
+  page = ("https://en.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&format=json&formatversion=2&titles="+(pagename))
+  get_page = requests.get(page)
+  response = json.loads(get_page.content)
+  text_response = response['query']['pages'][0]['revisions'][0]['content']
+  return text_response
+
+def wiki_clean(get_wikipage):
+  text = clean.content_clean(get_wikipage)
+  print (text)
+  return text
 
 def use_query(content, sql_query, big_q):
   """make big query api request"""
@@ -115,50 +133,63 @@ def use_query(content, sql_query, big_q):
   strlst = []
   for row in rows:
     strlst.append(str(row[content]))
-  return strlst
+  return strls
+
 
 # pylint: disable=fixme, too-many-locals
 def main(argv):
-  """runs dlp and perspective on content """
+  """ runs dlp and perspective on content passed in """
   parser = argparse.ArgumentParser(description='Process some integers.')
   parser.add_argument('--input_file', help='Location of file to process')
   parser.add_argument('--api_key', help='Location of perspective api key')
+  # pylint: disable=fixme, line-too-long
   parser.add_argument('--sql_query', help='choose specifications for query search')
-  parser.add_argument('--csv_file', help='input csv file')
+  parser.add_argument('--csv_file', help='choose CSV file to process')
+  parser.add_argument('--wiki_pagename', help='insert the talk page name')
   parser.add_argument('--content', help='specify a column in dataset to retreive data from')
   args = parser.parse_args(argv)
-  apikey_data, perspective, dlp = get_client('api_key.json')
+
+  apikey_data, perspective, dlp = get_client()
+  pii_results = open("pii_results.txt", "w+")
+  toxicity_results = open("toxicity_results.txt", "w+")
+
+  if args.wiki_pagename:
+    wiki_response = get_wikipage(args.wiki_pagename)
+    wikitext = wiki_clean(wiki_response)
+    text = wikitext.split("\n")
   if args.csv_file:
     text = pd.read_csv(args.csv_file)
   if args.sql_query:
     big_q = bigquery.Client.from_service_account_json('querykey.json')
     text = use_query(args.content, args.sql_query, big_q)
-  pii_results = open("pii_results.txt", "w+")
-  toxicity_results = open("toxicity_results.txt", "w+")
-  print(big_q)
 
   for line in text:
+    if not line:
+      continue
+    dlp_response = dlp_request(dlp, apikey_data, line)
     try:
-      print(line)
-      print('==============================================\n')
-      dlp_response = dlp_request(dlp, apikey_data, line)
       perspective_response = perspective_request(perspective, line)
-      has_pii_bool, pii_type = contains_pii(dlp_response)
-      if has_pii_bool:
-        pii_results.write(str(line)+"\n"+'contains pii?'+"Yes"+"\n"
-                          +str(pii_type)+"\n"
-                          +"==============================================="+"\n")
-      if contains_toxicity(perspective_response):
-        toxicity_results.write(str(line)+"\n" +"contains TOXICITY?:"+
-                               "Yes"+"\n"+
-                               str(perspective_response['attributeScores']
-                                   ['TOXICITY']['summaryScore']['value'])+"\n"
-                               +"=========================================="+"\n")
+    # Perspective can't handle language errors at this time
     except google_api_errors.HttpError as err:
-      print('error', err)
+      print("Error:", err)
+    has_pii_bool, pii_type = contains_pii(dlp_response)
+    if has_pii_bool:
+      pii_results.write(str(line)+"\n"+'contains pii?'+"Yes"+"\n"
+                        +str(pii_type)+"\n"
+                        +"==============================================="+"\n")
+    if contains_toxicity(perspective_response):
+      toxicity_results.write(str(line)+"\n" +"contains TOXICITY?:"+
+                             "Yes"+"\n"+
+                             str(perspective_response['attributeScores']
+                                 ['TOXICITY']['summaryScore']['value'])+"\n"
+                             +"=========================================="+"\n")
+
   toxicity_results.close()
   pii_results.close()
     # print('dlp result:', json.dumps(dlp_response, indent=2))
     # print ("contains_toxicity:", json.dumps(perspective_response, indent=2))
+
+
 if __name__ == '__main__':
   main(sys.argv[1:])
+ 
