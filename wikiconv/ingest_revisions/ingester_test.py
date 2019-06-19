@@ -26,9 +26,11 @@ import unittest
 import json
 import xml.sax
 import os
+import shutil
 import signal
 import sys
 import copy
+import tempfile
 import time
 from io import BytesIO
 
@@ -43,9 +45,8 @@ time_limit = 2  #seconds
 
 
 def generateInfiniteXML(length, w):
-  with open(
-      os.path.join(os.environ["TEST_SRCDIR"],
-                   '__main__/wikiconv/ingest_revisions/testdata/mediawiki_header.xml'), 'r') as f:
+  with open('wikiconv/ingest_revisions/testdata/mediawiki_header.xml',
+            'r') as f:
     mediawiki_header = ''
     for line in f:
       mediawiki_header = mediawiki_header + line
@@ -71,8 +72,7 @@ def generateInfiniteXML(length, w):
 class TestWikiIngester(unittest.TestCase):
 
   def test_ingester(self):
-    input_file = os.path.join(os.environ["TEST_SRCDIR"],
-        '__main__/wikiconv/ingest_revisions/testdata', 'test_wiki_dump.xml')
+    input_file = 'wikiconv/ingest_revisions/testdata/test_wiki_dump.xml'
     for i, line in enumerate(wiki_ingester.parse_stream(input_file)):
       if i == 0:
         self.assertEqual(line['comment'], 'a test comment 1')
@@ -91,7 +91,8 @@ class TestWikiIngester(unittest.TestCase):
 
     # This is a test on parsing very large xml files to make sure the streaming
     # doesn't consume too much memory.
-    gigantic = os.path.join(os.environ['TEST_TMPDIR'], 'gigantic_xml.xml')
+    tempdir = tempfile.mkdtemp()
+    gigantic = os.path.join(tempdir, 'gigantic_xml.xml')
     with open(gigantic, 'w') as w:
       generateInfiniteXML(test_length, w)
     input_file = gigantic
@@ -103,6 +104,7 @@ class TestWikiIngester(unittest.TestCase):
     costed_time = time.time() - start
     self.assertLessEqual(costed_time, time_limit)
     print('Time spent on parsing: ', costed_time)
+    shutil.rmtree(tempdir)
 
 
 if __name__ == '__main__':
