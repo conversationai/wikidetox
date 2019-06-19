@@ -7,7 +7,7 @@ import sys
 import argparse
 import requests
 import pandas as pd
-import clean
+from antidox import clean
 from googleapiclient import errors as google_api_errors
 from googleapiclient import discovery
 from google.cloud import bigquery
@@ -133,7 +133,7 @@ def use_query(content, sql_query, big_q):
   strlst = []
   for row in rows:
     strlst.append(str(row[content]))
-  return strls
+  return strlst
 
 
 # pylint: disable=fixme, too-many-locals

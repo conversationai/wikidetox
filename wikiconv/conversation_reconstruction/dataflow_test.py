@@ -122,24 +122,17 @@ class DataflowTest(unittest.TestCase):
   def test_end_to_end(self):
     storage_mock = FakeStorageClient()
     tempdir = tempfile.mkdtemp()
-    runfiles = os.environ["RUNFILES_DIR"]
     pipeline_args = [
-        "--setup_file",
-        os.path.join(runfiles,
-                     "__main__/wikiconv/conversation_reconstruction/setup.py"),
+        "--setup_file", "wikiconv/conversation_reconstruction/setup.py",
         "--runner", "DirectRunner"
     ]
     known_args = collections.namedtuple("NamedTuple", [
         "input_revisions", "input_state", "output_conversations", "output_state"
     ])
-    known_args.input_revisions = os.path.join(
-        runfiles,
-        "__main__/wikiconv/conversation_reconstruction/testdata/edgecases_28_convs/revs*"
-    )
-    known_args.input_state = os.path.join(
-        runfiles,
-        "__main__/wikiconv/conversation_reconstruction/testdata/empty_init_state"
-    )
+    known_args.input_revisions = (
+        "wikiconv/conversation_reconstruction/testdata/edgecases_28_convs/revs*")
+    known_args.input_state = (
+        "wikiconv/conversation_reconstruction/testdata/empty_init_state")
     known_args.output_conversations = tempdir
     known_args.output_state = tempdir
     dataflow_main.run(
@@ -147,31 +140,23 @@ class DataflowTest(unittest.TestCase):
 
     assert_json_file_equal(
         self, os.path.join(tempdir, "page_states/page_states-00000-of-00001"),
-        os.path.join(
-            runfiles,
-            "__main__/wikiconv/conversation_reconstruction/testdata/golden/page_states-00000-of-00001"
-        ))
+            "wikiconv/conversation_reconstruction/testdata/golden/page_states-00000-of-00001"
+        )
 
     assert_json_file_equal(
         self, os.path.join(tempdir, "last_revisions/last_rev-00000-of-00001"),
-        os.path.join(
-            runfiles,
-            "__main__/wikiconv/conversation_reconstruction/testdata/golden/last_rev-00000-of-00001"
-        ))
+            "wikiconv/conversation_reconstruction/testdata/golden/last_rev-00000-of-00001"
+        )
 
     assert_json_file_equal(
         self, os.path.join(tempdir, "conversations-00000-of-00001"),
-        os.path.join(
-            runfiles,
-            "__main__/wikiconv/conversation_reconstruction/testdata/golden/conversations-00000-of-00001"
-        ))
+            "wikiconv/conversation_reconstruction/testdata/golden/conversations-00000-of-00001"
+        )
 
     assert_json_file_equal(
         self, os.path.join(tempdir, "error_logs/error_log-00000-of-00001"),
-        os.path.join(
-            runfiles,
-            "__main__/wikiconv/conversation_reconstruction/testdata/golden/error_log-00000-of-00001"
-        ))
+            "wikiconv/conversation_reconstruction/testdata/golden/error_log-00000-of-00001"
+        )
 
 
 if __name__ == "__main__":

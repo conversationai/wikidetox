@@ -38,7 +38,6 @@ import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.testing.test_pipeline import TestPipeline
-from bazel_tools.tools.python.runfiles import runfiles
 from wikiconv.ingest_revisions import dataflow_main
 
 
@@ -78,8 +77,7 @@ class TestParDo(unittest.TestCase):
                      'chwiki-latest-pages-meta-history.xml.bz2')
 
   def test_ingest(self):
-    r = runfiles.Create()
-    data = r.Rlocation('__main__/wikiconv/ingest_revisions/testdata/test_wiki_dump.xml.bz2')
+    data = 'wikiconv/ingest_revisions/testdata/test_wiki_dump.xml.bz2'
     pipeline_args, _ = self.init()
     temp_path = self.create_temp_file()
     pipeline_options = PipelineOptions(pipeline_args)

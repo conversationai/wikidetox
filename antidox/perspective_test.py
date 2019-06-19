@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import perspective
+from antidox import perspective
 import unittest
-from unittest import mock
+import sys
+if sys.version_info >= (3, 3):
+    from unittest import mock
+else:
+    import mock
 
 class TestPerspective(unittest.TestCase):
 
@@ -188,7 +192,7 @@ class TestPerspective(unittest.TestCase):
     self.assertFalse(is_toxic)
   def test_get_wikipage(self):
     wiki_response = \
-    """{{talkheader|wp=yes|WT:NYC|WT:WPNYC}}
+    u"""{{talkheader|wp=yes|WT:NYC|WT:WPNYC}}
 {{WPBS|1=
 {{WikiProject Cities|class=project|importance=na}}
 {{WikiProject New York City|class=project|importance=na}}
@@ -216,7 +220,7 @@ Hi! I didn't know if anyone was willing to work on a park article or not - a stu
 
 Just so everyone who would come here knows, there is an ongoing RfC at [[Wikipedia:Naming conventions (US stations)/NYC Subway RfC]] that WP:NYC might be interested in. {{sbb}} --<span style="border:1px solid #ffa500;background:#f3dddd;">&nbsp;[[User:I dream of horses|I dream of horses]]&nbsp;</span><span style="border:1px solid #ffa500">{{small|&nbsp;If you reply here, please [[WP:ECHO|ping me]] by adding <nowiki>{{U|I dream of horses}}</nowiki> to your message&nbsp;}}</span>  {{small|([[User talk:I dream of horses|talk to me]]) ([[Special:Contributions/I dream of horses|My edits]])}} @  05:11, 12 June 2019 (UTC)"""
     clean_text = \
-    """Help with a park article? 
+    u"""Help with a park article? 
 
 Hi! I didn't know if anyone was willing to work on a park article or not - a student of mine created the article on St. James Park (Bronx). The class ends this week and I'm not entirely sure if they will be back on to edit it, but at the present it lacks information and sourcing to establish how it's notable. I'm going to try to do as much as I can for it, but I'm admittedly kind of swamped with other classes so I wanted to see if anyone would be interested in this. 
 
