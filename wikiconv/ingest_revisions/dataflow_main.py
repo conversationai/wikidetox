@@ -50,22 +50,19 @@ download: if turned on, the pipeline only performs downloading job from
 bucket: the cloud storage bucket (gs://thispartonly/not/this).
 """
 
-from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 import argparse
 import bz2
 import datetime
-import HTMLParser
 import json
 import logging
 import os
 import re
+import six
 import sys
 import time
-import urllib
-import urllib2
 
 import apache_beam as beam
 from wikiconv.ingest_revisions.ingest_utils import wikipedia_revisions_ingester
@@ -137,7 +134,7 @@ class DownloadDataDumps(beam.DoFn):
     logging.info('USERLOG: Download data dump %s to store in cloud storage.',
                  chunk_name)
     # Download data dump from Wikipedia and upload to cloud storage.
-    urllib.urlretrieve(mirror + '/' + chunk_name, chunk_name)
+    six.moves.urllib.request.urlretrieve(mirror + '/' + chunk_name, chunk_name)
     self._storage_client.get_bucket(bucket).blob(
         os.path.join(blob_prefix, chunk_name)).upload_from_filename(chunk_name)
     os.remove(chunk_name)
@@ -230,12 +227,12 @@ class WriteToStorage(beam.DoFn):
     outputfile.close()
 
 
-class ParseDirectory(HTMLParser.HTMLParser):
+class ParseDirectory(six.moves.html_parser.HTMLParser):
   """Extension of HTMLParser that parses all file in a directory."""
 
   def __init__(self):
     self.files = []
-    HTMLParser.HTMLParser.__init__(self)
+    six.moves.html_parser.HTMLParser.__init__(self)
 
   def handle_starttag(self, tag, attrs):
     self.files.extend(attr[1] for attr in attrs if attr[0] == 'href')
@@ -257,7 +254,7 @@ def directory(mirror):
   """
   # Download the directory of files from the webpage for a particular language.
   parser = ParseDirectory()
-  mirror_directory = urllib2.urlopen(mirror)
+  mirror_directory = six.moves.urllib.request.urlopen(mirror)
   parser.feed(mirror_directory.read().decode('utf-8'))
   # Extract the filenames of each XML meta history file.
   meta = re.compile(r'^[a-zA-Z-]+wiki-latest-pages-meta-history.*\.bz2$')
@@ -320,7 +317,7 @@ def main(argv=None):
     # If specified downloading from Wikipedia
     dumpstatus_url = 'https://dumps.wikimedia.org/{lan}wiki/{date}/dumpstatus.json'.format(
         lan=known_args.language, date=known_args.dumpdate)
-    response = urllib2.urlopen(dumpstatus_url)
+    response = six.moves.urllib.request.urlopen(dumpstatus_url)
     dumpstatus = json.loads(response.read())
     url = 'https://dumps.wikimedia.org/{lan}wiki/{date}'.format(
         lan=known_args.language, date=known_args.dumpdate)

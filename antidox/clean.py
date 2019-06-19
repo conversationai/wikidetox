@@ -77,13 +77,13 @@ pre_sub_patterns = [(r'\[\[Image:.*?\]\]', ''),
                     (r'\(?\[\[User_Talk:.*?\]\]\)?', ''),
                     (r'\(?\[\[Special:Contributions.*?\]\]\)?', '')]
 
-post_sub_patterns = [('--', ''), (' :', ' '),
-                     ('—Preceding .* comment added by   •', '')]
+post_sub_patterns = [(r'--', ''), (' :', ' '),
+                     (r'—Preceding .* comment added by   \u2022', '')]
 
 
 def substitute_patterns(s, sub_patterns):
   for p, r in sub_patterns:
-    s = re.sub(p, r, str(s))
+    s = re.sub(p, r, s, flags=re.UNICODE)
   return s
 
 
