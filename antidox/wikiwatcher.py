@@ -15,7 +15,7 @@ import perspective
 
 
 # pylint: disable=fixme, too-many-locals
-def log_event(change):
+def log_event(apikey_data, toxicity, dlp, change):
   """Logs event by printing.
 
   Args:
@@ -24,7 +24,7 @@ def log_event(change):
   # print(
   #     u'user:{user} namespace:{namespace} bot:{bot} comment:{comment} title:{title}'
   #     .format(**change))
-  print('\n########## change:')
+  # print('\n########## change:')
   from_id = (str(change['revision']['old']))
   to_id = (str(change['revision']['new']))
   page = ("https://en.wikipedia.org/w/api.php?action=compare&fromrev="
@@ -33,37 +33,40 @@ def log_event(change):
   response = json.loads(get_page.content)
   revision = response['compare']['*']
 
-  text = clean.content_clean(revision).split("\n")
+  text = clean.content_clean(revision)
 
-  apikey_data, toxicity, dlp = perspective.get_client()
-  for line in text:
-    pii_results = open("pii_results.txt", "a+")
-    toxicity_results = open("toxicity_results.txt", "a+")
-    print(line)
-    if not line:
-      continue
-    dlp_response = perspective.dlp_request(dlp, apikey_data, line)
-    try:
-      perspective_response = perspective.perspective_request(toxicity, line)
-    # Perspective can't handle language errors at this time
-    except google_api_errors.HttpError as err:
-      print("Error:", err)
-    has_pii_bool, pii_type = perspective.contains_pii(dlp_response)
-    if has_pii_bool:
-      pii_results.write(str(line)+"\n"+'contains pii?'+"Yes"+"\n"
-                        +str(pii_type)+"\n"
-                        +"==============================================="+"\n")
-    if perspective.contains_toxicity(perspective_response):
-      toxicity_results.write(str(line)+"\n" +"contains TOXICITY?:"+
-                             "Yes"+"\n"+
-                             str(perspective_response['attributeScores']
-                                 ['TOXICITY']['summaryScore']['value'])+"\n"
-                             +"=========================================="+"\n")
-    toxicity_results.close()
-    pii_results.close()
+  # for line in text:
+  pii_results = open("pii_results.txt", "a+")
+  toxicity_results = open("toxicity_results.txt", "a+")
+  print(text)
+  if not text:
+    return
+  dlp_response = perspective.dlp_request(dlp, apikey_data, text)
+  try:
+    perspective_response = perspective.perspective_request(toxicity, text)
+  # Perspective can't handle language errors at this time
+  except google_api_errors.HttpError as err:
+    print("Error:", err)
+    return
+  has_pii_bool, pii_type = perspective.contains_pii(dlp_response)
+  if has_pii_bool:
+    pii_results.write(u'user:{user} namespace:{namespace} bot:{bot} comment:{comment}'+
+                      'title:{title}'.format(**change)+"\n"+str(text)+"\n"+'contains pii?'
+                      +"Yes"+"\n"
+                      +str(pii_type)+"\n"
+                      +"==============================================="+"\n")
+  if perspective.contains_toxicity(perspective_response):
+    toxicity_results.write(u'user:{user} namespace:{namespace} bot:{bot} comment:{comment}'+
+                           'title:{title}'.format(**change)+"\n"+str(text)+"\n"
+                           +"contains TOXICITY?:"+"Yes"+"\n"+
+                           str(perspective_response['attributeScores']
+                               ['TOXICITY']['summaryScore']['value'])+"\n"
+                           +"=========================================="+"\n")
+  toxicity_results.close()
+  pii_results.close()
 
 
-def watcher(event_source, wiki_filter, namespaces_filter, callback):
+def watcher(event_source, wiki_filter, namespaces_filter):
   """Watcher captures and filters evens from mediawiki.
 
   Args:
@@ -72,6 +75,7 @@ def watcher(event_source, wiki_filter, namespaces_filter, callback):
     namespaces_filter: a set() of namespaces to keep.
     callback: A method to invoke with the JSON params for each filterd event.
   """
+  apikey_data, toxicity, dlp = perspective.get_client()
   for event in event_source:
     if event.event == 'message' and event.data:
       try:
@@ -79,6 +83,7 @@ def watcher(event_source, wiki_filter, namespaces_filter, callback):
       except json.decoder.JSONDecodeError as err:
         print("Error:", err)
         pprint.pprint(event.data)
+        continue
       if change['bot']:
         continue
       if change['wiki'] != wiki_filter:
@@ -89,7 +94,7 @@ def watcher(event_source, wiki_filter, namespaces_filter, callback):
         continue
       if "old" not in change['revision']:
         continue
-      callback(change)
+      log_event(apikey_data, toxicity, dlp, change)
 
 
 if __name__ == '__main__':
@@ -111,4 +116,4 @@ if __name__ == '__main__':
   namespaces = set([int(ns) for ns in args.namespaces.split(',')])
   client = sseclient.SSEClient(args.url)
 
-  watcher(client, args.wiki_filter, namespaces, log_event)
+  watcher(client, args.wiki_filter, namespaces)
