@@ -7,7 +7,7 @@ from __future__ import print_function
 import sys
 
 import unittest
-import wikiwatcher
+from antidox import wikiwatcher
 
 if sys.version_info >= (3, 3):
   from unittest import mock  # pylint: disable=g-import-not-at-top,g-importing-member
@@ -26,10 +26,10 @@ class WikiWatcherTest(unittest.TestCase):
 
   def test_wikiwatcher(self):
     events = [
-        FakeEvent('{"wiki":"enwiki","bot":false,"title":"Yep!","namespace":1}'),
-        FakeEvent('{"wiki":"frwiki","bot":false,"title":"Non!","namespace":0}'),
-        FakeEvent('{"wiki":"enwiki","bot":true,"title":"Nope","namespace":0}'),
-        FakeEvent('{"wiki":"enwiki","bot":true,"title":"Nope","namespace":1}')
+        FakeEvent('{"wiki":"enwiki","bot":false,"title":"Yep!","namespace":1,"revision":{"old":1, "new":2}}'),
+        FakeEvent('{"wiki":"frwiki","bot":false,"title":"Non!","namespace":0,"revision":{"old":1, "new":2}}'),
+        FakeEvent('{"wiki":"enwiki","bot":true,"title":"Nope","namespace":0,"revision":{"old":1, "new":2}}'),
+        FakeEvent('{"wiki":"enwiki","bot":true,"title":"Nope","namespace":1,"revision":{"old":1, "new":2}}')
     ]
     callback = mock.Mock()
     wikiwatcher.watcher(events, 'enwiki', set([1, 3]), callback)
@@ -37,7 +37,8 @@ class WikiWatcherTest(unittest.TestCase):
         u'wiki': u'enwiki',
         u'namespace': 1,
         u'bot': False,
-        u'title': u'Yep!'
+        u'title': u'Yep!',
+        u'revision': {u'old':1, u'new':2},
     })
 
 
