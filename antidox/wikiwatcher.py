@@ -10,8 +10,9 @@ import argparse
 import requests
 import sseclient
 from googleapiclient import errors as google_api_errors
-import clean
-import perspective
+
+from antidox import clean
+from antidox import perspective
 
 
 # pylint: disable=fixme, too-many-locals
