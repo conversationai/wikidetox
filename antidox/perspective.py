@@ -7,7 +7,7 @@ import sys
 import argparse
 import requests
 import pandas as pd
-import clean
+from antidox import clean
 from googleapiclient import errors as google_api_errors
 from googleapiclient import discovery
 from google.cloud import bigquery

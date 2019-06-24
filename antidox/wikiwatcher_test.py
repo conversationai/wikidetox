@@ -7,7 +7,7 @@ from __future__ import print_function
 import sys
 
 import unittest
-import wikiwatcher
+from antidox import wikiwatcher
 
 if sys.version_info >= (3, 3):
   from unittest import mock  # pylint: disable=g-import-not-at-top,g-importing-member
