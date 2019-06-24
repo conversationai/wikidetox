@@ -66,7 +66,7 @@ def log_event(apikey_data, toxicity, dlp, change):
   pii_results.close()
 
 
-def watcher(event_source, wiki_filter, namespaces_filter):
+def watcher(event_source, wiki_filter, namespaces_filter, callback):
   """Watcher captures and filters evens from mediawiki.
 
   Args:
@@ -75,7 +75,6 @@ def watcher(event_source, wiki_filter, namespaces_filter):
     namespaces_filter: a set() of namespaces to keep.
     callback: A method to invoke with the JSON params for each filterd event.
   """
-  apikey_data, toxicity, dlp = perspective.get_client()
   for event in event_source:
     if event.event == 'message' and event.data:
       try:
@@ -94,7 +93,7 @@ def watcher(event_source, wiki_filter, namespaces_filter):
         continue
       if "old" not in change['revision']:
         continue
-      log_event(apikey_data, toxicity, dlp, change)
+      callback(change)
 
 
 if __name__ == '__main__':
@@ -116,4 +115,7 @@ if __name__ == '__main__':
   namespaces = set([int(ns) for ns in args.namespaces.split(',')])
   client = sseclient.SSEClient(args.url)
 
-  watcher(client, args.wiki_filter, namespaces)
+  apikey_data, toxicity, dlp = perspective.get_client()
+  def log_change(change):
+    return log_event(apikey_data, toxicity, dlp, change)
+  watcher(client, args.wiki_filter, namespaces, log_change)
