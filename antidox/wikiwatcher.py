@@ -7,6 +7,7 @@ from __future__ import print_function
 import json
 import pprint
 import argparse
+import pywikibot
 import requests
 import sseclient
 from googleapiclient import errors as google_api_errors
@@ -50,21 +51,37 @@ def log_event(apikey_data, toxicity, dlp, change):
     return
   has_pii_bool, pii_type = perspective.contains_pii(dlp_response)
   if has_pii_bool:
-    pii_results.write(u'user:{user} namespace:{namespace} bot:{bot} comment:{comment}'+
-                      'title:{title}'.format(**change)+"\n"+str(text)+"\n"+'contains pii?'
-                      +"Yes"+"\n"
-                      +str(pii_type)+"\n"
-                      +"==============================================="+"\n")
-  if perspective.contains_toxicity(perspective_response):
-    toxicity_results.write(u'user:{user} namespace:{namespace} bot:{bot} comment:{comment}'+
-                           'title:{title}'.format(**change)+"\n"+str(text)+"\n"
-                           +"contains TOXICITY?:"+"Yes"+"\n"+
-                           str(perspective_response['attributeScores']
-                               ['TOXICITY']['summaryScore']['value'])+"\n"
-                           +"=========================================="+"\n")
-  toxicity_results.close()
-  pii_results.close()
+    site = pywikibot.Site()
+    repo = site.data_repository()
+    page = pywikibot.Page(site, u"User_talk:Antidox321")
 
+    heading = "==Possible Doxxing Detected: Waiting for review=="
+    content = (u'user:{user} namespace:{namespace} bot:{bot} comment:{comment}'+
+               'title:{title}'.format(**change)+"\n"+str(text)+"\n"+'contains pii?'
+               +"Yes"+"\n"
+               +str(pii_type)+"\n")
+    message = "\n\n{}\n{} --~~~~".format(heading, content)
+
+    page.save(summary="Testing", watch=None, minor=False, botflag=True,
+              force=False, async=False, callback=None,
+              apply_cosmetic_changes=None, appendtext=message)
+
+  if perspective.contains_toxicity(perspective_response):
+    site = pywikibot.Site()
+    repo = site.data_repository()
+    page = pywikibot.Page(site, u"User_talk:Antidox321")
+
+    heading = "==Possible Doxxing Detected: Waiting for review=="
+    content = (u'user:{user} namespace:{namespace} bot:{bot} comment:{comment}'+
+               'title:{title}'.format(**change)+"\n"+str(text)+"\n"
+               +"contains TOXICITY?:"+"Yes"+"\n"+
+               str(perspective_response['attributeScores']
+                   ['TOXICITY']['summaryScore']['value'])+"\n"
+               +"=========================================="+"\n")
+    message = "\n\n{}\n{} --~~~~".format(heading, content)
+    page.save(summary="Testing", watch=None, minor=False, botflag=True,
+              force=False, async=False, callback=None,
+              apply_cosmetic_changes=None, appendtext=message)
 
 def watcher(event_source, wiki_filter, namespaces_filter, callback):
   """Watcher captures and filters evens from mediawiki.
