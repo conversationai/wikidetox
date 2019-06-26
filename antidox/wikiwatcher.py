@@ -38,7 +38,7 @@ def log_event(apikey_data, toxicity, dlp, change):
 
   # for line in text:
   pii_results = open("pii_results.txt", "a+")
-  toxicity_results = open("toxicity_results.txt", "a+")
+  toxicity_results = open("toxicity_results.txt", "a+")cd 
   print(text)
   if not text:
     return
@@ -56,11 +56,11 @@ def log_event(apikey_data, toxicity, dlp, change):
     page = pywikibot.Page(site, u"User_talk:Antidox321")
 
     heading = "==Possible Doxxing Detected: Waiting for review=="
-    content = (u'user:{user} namespace:{namespace} bot:{bot} comment:{comment}'+
-               'title:{title}'.format(**change)+"\n"+str(text)+"\n"+'contains pii?'
-               +"Yes"+"\n"
-               +str(pii_type)+"\n")
-    message = "\n\n{}\n{} --~~~~".format(heading, content)
+    content = (u"{"'user:{user}, namespace:{namespace}, bot:{bot}, comment:{comment}'+
+               'title:{title},'.format(**change)+", "+"comment_text:" + str(text)+", "+'contains_pii:'
+               +"True"+", "+"pii_type:"
+               +str(pii_type)+", ""}""\n")
+    message = ", \n{}\n{} --~~~~".format(heading, content)
 
     page.save(summary="Testing", watch=None, minor=False, botflag=True,
               force=False, async=False, callback=None,
@@ -71,13 +71,12 @@ def log_event(apikey_data, toxicity, dlp, change):
     repo = site.data_repository()
     page = pywikibot.Page(site, u"User_talk:Antidox321")
 
-    heading = "==Possible Doxxing Detected: Waiting for review=="
-    content = (u'user:{user} namespace:{namespace} bot:{bot} comment:{comment}'+
-               'title:{title}'.format(**change)+"\n"+str(text)+"\n"
-               +"contains TOXICITY?:"+"Yes"+"\n"+
+    heading = "==Possibly Toxic Detected: Waiting for review=="
+    content = (u"{"'user:{user}, namespace:{namespace}, bot:{bot}, comment:{comment}'+
+               'title:{title}'.format(**change)+", "+"comment_text:" +str(text)+", "
+               +"contains_toxicity:"+"True"+", "+ "toxic_score:"
                str(perspective_response['attributeScores']
-                   ['TOXICITY']['summaryScore']['value'])+"\n"
-               +"=========================================="+"\n")
+                   ['TOXICITY']['summaryScore']['value'])+", ""}""\n")
     message = "\n\n{}\n{} --~~~~".format(heading, content)
     page.save(summary="Testing", watch=None, minor=False, botflag=True,
               force=False, async=False, callback=None,
