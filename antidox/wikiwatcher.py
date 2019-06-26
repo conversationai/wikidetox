@@ -55,7 +55,6 @@ def log_event(apikey_data, toxicity, dlp, change):
                +"True"+", "+"pii_type:"
                +str(pii_type)+", ""}""\n")
     wiki_write(result, header)
-    return(result, header)
 
   if perspective.contains_toxicity(perspective_response):
     header = "==Possibly Toxic Detected: Waiting for review=="
@@ -65,7 +64,6 @@ def log_event(apikey_data, toxicity, dlp, change):
                str(perspective_response['attributeScores']
                    ['TOXICITY']['summaryScore']['value'])+", ""}""\n")
     wiki_write(result, header)
-    return(result, header)
 
 def wiki_write(result, header):
     site = pywikibot.Site()
