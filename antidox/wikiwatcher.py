@@ -36,9 +36,7 @@ def log_event(apikey_data, toxicity, dlp, change):
 
   text = clean.content_clean(revision)
 
-  # for line in text:
-  pii_results = open("pii_results.txt", "a+")
-  toxicity_results = open("toxicity_results.txt", "a+")cd 
+  # for line in text: 
   print(text)
   if not text:
     return
@@ -51,32 +49,31 @@ def log_event(apikey_data, toxicity, dlp, change):
     return
   has_pii_bool, pii_type = perspective.contains_pii(dlp_response)
   if has_pii_bool:
-    site = pywikibot.Site()
-    repo = site.data_repository()
-    page = pywikibot.Page(site, u"User_talk:Antidox321")
-
-    heading = "==Possible Doxxing Detected: Waiting for review=="
-    content = (u"{"'user:{user}, namespace:{namespace}, bot:{bot}, comment:{comment}'+
+    header = "==Possible Doxxing Detected: Waiting for review=="
+    result = (u"{"'user:{user}, namespace:{namespace}, bot:{bot}, comment:{comment}'+
                'title:{title},'.format(**change)+", "+"comment_text:" + str(text)+", "+'contains_pii:'
                +"True"+", "+"pii_type:"
                +str(pii_type)+", ""}""\n")
-    message = ", \n{}\n{} --~~~~".format(heading, content)
-
-    page.save(summary="Testing", watch=None, minor=False, botflag=True,
-              force=False, async=False, callback=None,
-              apply_cosmetic_changes=None, appendtext=message)
+    wiki_write(result, header)
+    return(result, header)
 
   if perspective.contains_toxicity(perspective_response):
-    site = pywikibot.Site()
-    repo = site.data_repository()
-    page = pywikibot.Page(site, u"User_talk:Antidox321")
-
-    heading = "==Possibly Toxic Detected: Waiting for review=="
-    content = (u"{"'user:{user}, namespace:{namespace}, bot:{bot}, comment:{comment}'+
+    header = "==Possibly Toxic Detected: Waiting for review=="
+    result = (u"{"'user:{user}, namespace:{namespace}, bot:{bot}, comment:{comment}'+
                'title:{title}'.format(**change)+", "+"comment_text:" +str(text)+", "
                +"contains_toxicity:"+"True"+", "+ "toxic_score:"
                str(perspective_response['attributeScores']
                    ['TOXICITY']['summaryScore']['value'])+", ""}""\n")
+    wiki_write(result, header)
+    return(result, header)
+
+def wiki_write(result, header):
+    site = pywikibot.Site()
+    repo = site.data_repository()
+    page = pywikibot.Page(site, u"User_talk:Antidox321")
+
+    heading = (header)
+    content = (result)
     message = "\n\n{}\n{} --~~~~".format(heading, content)
     page.save(summary="Testing", watch=None, minor=False, botflag=True,
               force=False, async=False, callback=None,
