@@ -155,7 +155,6 @@ def main(argv):
   parser.add_argument('--output', help='path for output file')
   parser.add_argument('--suffix', help='output file suffix')
   parser.add_argument('--project', help='project id for bigquery table')
-  parser.add_argument('--wiki_pagename', help='wikipedia page name')
   args = parser.parse_args(argv)
   apikey_data, perspective, dlp = get_client('api_key.json')
   with beam.Pipeline(options=PipelineOptions()) as pipeline:
