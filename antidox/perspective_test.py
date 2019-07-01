@@ -189,8 +189,20 @@ class TestPerspective(unittest.TestCase):
       "en"
     ]
     }
-    is_toxic = perspective.contains_toxicity(perspective_response)
+    is_toxic = perspective.contains_insult(perspective_response)
     self.assertFalse(is_toxic)
+
+  def test_contains_toxicity_false(self):
+    perspective_response = \
+    {'attributeScores': {'TOXICITY': {'spanScores': [{'begin': 0, 'end': 25, 'score': {'value': 0.9312127, 'type': 'PROBABILITY'}}], 'summaryScore': {'value': 0.9312127, 'type': 'PROBABILITY'}}, 'THREAT': {'spanScores': [{'begin': 0, 'end': 25, 'score': {'value': 0.15875438, 'type': 'PROBABILITY'}}], 'summaryScore': {'value': 0.15875438, 'type': 'PROBABILITY'}}, 'INSULT': {'spanScores': [{'begin': 0, 'end': 25, 'score': {'value': 0.93682694, 'type': 'PROBABILITY'}}], 'summaryScore': {'value': 0.93682694, 'type': 'PROBABILITY'}}}, 'languages': ['en'], 'detectedLanguages': ['en']}
+    is_insult = perspective.contains_toxicity(perspective_response)
+    self.assertTrue(is_insult)
+
+  def contains_threat(perspective_response):
+    perspective_response = \
+    {'attributeScores': {'INSULT': {'spanScores': [{'begin': 0, 'end': 21, 'score': {'value': 0.55873775, 'type': 'PROBABILITY'}}], 'summaryScore': {'value': 0.55873775, 'type': 'PROBABILITY'}}, 'TOXICITY': {'spanScores': [{'begin': 0, 'end': 21, 'score': {'value': 0.9759337, 'type': 'PROBABILITY'}}], 'summaryScore': {'value': 0.9759337, 'type': 'PROBABILITY'}}, 'THREAT': {'spanScores': [{'begin': 0, 'end': 21, 'score': {'value': 0.9980843, 'type': 'PROBABILITY'}}], 'summaryScore': {'value': 0.9980843, 'type': 'PROBABILITY'}}}, 'languages': ['en'], 'detectedLanguages': ['en']}
+    is_threat = perspective.contains_toxicity(perspective_response)
+    self.assertTrue(is_threat)
   def test_get_wikipage(self):
     wiki_response = \
     u"""{{talkheader|wp=yes|WT:NYC|WT:WPNYC}}

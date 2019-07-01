@@ -67,10 +67,10 @@ def dlp_request(dlp, apikey_data, comment):
                   "name":"PASSPORT"
               },
               {
-                  "name":"PERSON_NAME"
+                  "name":"GCP_CREDENTIALS"
               },
               {
-                  "name":"ALL_BASIC"
+                  "name":"SWIFT_CODE"
               }
               ],
           "minLikelihood":"POSSIBLE",
@@ -110,6 +110,22 @@ def contains_toxicity(perspective_response):
       ['value'] >= .5):
     is_toxic = True
   return is_toxic
+
+def contains_threat(perspective_response):
+  """Checking/returning comments with a toxicity value of over 50 percent."""
+  is_threat = False
+  if (perspective_response['attributeScores']['THREAT']['summaryScore']
+      ['value'] >= .5):
+    is_threat = True
+  return is_threat
+
+def contains_insult(perspective_response):
+  """Checking/returning comments with a toxicity value of over 50 percent."""
+  is_insult = False
+  if (perspective_response['attributeScores']['INSULT']['summaryScore']
+      ['value'] >= .5):
+    is_insult = True
+  return is_insult
 
 
 def get_wikipage(pagename):
@@ -163,7 +179,7 @@ def main(argv):
     big_q = bigquery.Client.from_service_account_json('querykey.json')
     text = use_query(args.content, args.sql_query, big_q)
 
-  for line in text:
+  for line in text.comment_text:
     if not line:
       continue
     dlp_response = dlp_request(dlp, apikey_data, line)
@@ -174,15 +190,22 @@ def main(argv):
       print("Error:", err)
     has_pii_bool, pii_type = contains_pii(dlp_response)
     if has_pii_bool:
-      pii_results.write(str(line)+"\n"+'contains pii?'+"Yes"+"\n"
-                        +str(pii_type)+"\n"
-                        +"==============================================="+"\n")
+      print(json.dumps({"comment_text":line, "contains_pii": True, "pii_type":pii_type})+"\n")
+
     if contains_toxicity(perspective_response):
-      toxicity_results.write(str(line)+"\n" +"contains TOXICITY?:"+
-                             "Yes"+"\n"+
-                             str(perspective_response['attributeScores']
-                                 ['TOXICITY']['summaryScore']['value'])+"\n"
-                             +"=========================================="+"\n")
+      print(json.dumps({"comment_text":line, "contains_toxicity": True,
+        "summaryScore":perspective_response['attributeScores']
+                                 ['TOXICITY']['summaryScore']['value']})+"\n")
+
+    if contains_threat(perspective_response):
+      print(json.dumps({"comment_text":line, "contains_threat": True,
+        "summaryScore":perspective_response['attributeScores']
+                                 ['THREAT']['summaryScore']['value']})+"\n")
+    if contains_insult(perspective_response):
+      print(json.dumps({"comment_text":line, "contains_insult": True,
+        "summaryScore":perspective_response['attributeScores']['INSULT']['summaryScore']
+      ['value']})+"\n")
+      #print(perspective_response)
 
   toxicity_results.close()
   pii_results.close()
@@ -193,3 +216,4 @@ def main(argv):
 if __name__ == '__main__':
   main(sys.argv[1:])
  
+
