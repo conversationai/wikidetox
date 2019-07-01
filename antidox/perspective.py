@@ -161,7 +161,7 @@ def main(argv):
     if args.wiki_pagename:
       wiki_response = get_wikipage(args.wiki_pagename)
       wikitext = wiki_clean(wiki_response)
-      comments = p | beam.create(wikitext.split("\n"))
+      comments = p | beam.Create(wikitext.split("\n"))
     if args.csv_file:
       comments = pipeline | 'ReadMyFile' >> beam.io.ReadFromText(args.csv_file)
     if args.sql_query:
