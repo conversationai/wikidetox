@@ -31,7 +31,7 @@ def log_event(apikey_data, toxicity, dlp, change):
   page = ("https://en.wikipedia.org/w/api.php?action=compare&fromrev="
           + from_id + "&torev=" + to_id + "&format=json")
   get_page = requests.get(page)
-  response = json.loads(get_page.content)
+  response = json.loads(get_page.content.decode('utf-8'))
   revision = response['compare']['*']
 
   text = clean.content_clean(revision)
