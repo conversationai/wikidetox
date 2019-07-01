@@ -34,3 +34,24 @@ Copies of the training and test data are available in Google Storage from the
 wikidetox project.
 
 * example.csv : antidox/example.csv
+# Running Wikiwatcher on Google Cloud Instance
+
+In order to run wikiwatcher on a Google Cloud Instance to retrieve all revisions from wikipedia talk pages in real-time and write them to a doxxing detection bot, user must configure google cloud instance with these steps.
+
+1. Install pip. [ $ sudo apt-get install python3-pip]
+
+2. Install Git. [`sudo add-apt-repository ppa:git-core/ppa -y`
+		 `sudo apt-get update`
+		 `sudo apt-get install git`]
+
+3. [Generate a new SSH Key for the google instance.](https://help.github.com/en/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)
+Must then add new SSH Key to Github settings manually.
+
+4. Clone repository: [~/ `git clone git@github.com:conversationai/wikidetox.git` ]
+5. Install Pyenv [`python3 -m venv pyenv`
+		  `sudo apt-get install python3-venv`
+		  `python3 -m venv pyenv`
+		  `source pyenv/bin/activate`]
+6. Run commands [ `pip install -r requirements.txt`]
+                [ `pip3 install mwparserfromhell`]
+		[ `pip3 install bs4`]
