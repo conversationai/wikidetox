@@ -11,8 +11,9 @@ import pywikibot
 import requests
 import sseclient
 from googleapiclient import errors as google_api_errors
-import clean
-import perspective
+
+from antidox import clean
+from antidox import perspective
 
 
 # pylint: disable=fixme, too-many-locals
@@ -31,7 +32,7 @@ def log_event(apikey_data, toxicity, dlp, change):
   page = ("https://en.wikipedia.org/w/api.php?action=compare&fromrev="
           + from_id + "&torev=" + to_id + "&format=json")
   get_page = requests.get(page)
-  response = json.loads(get_page.content)
+  response = json.loads(get_page.content.decode('utf-8'))
   revision = response['compare']['*']
 
   text = clean.content_clean(revision)
@@ -68,7 +69,7 @@ def log_event(apikey_data, toxicity, dlp, change):
 def wiki_write(result, header):
     site = pywikibot.Site()
     repo = site.data_repository()
-    page = pywikibot.Page(site, u"User_talk:Antidox321")
+    page = pywikibot.Page(site, u"User_talk:DoxDetective")
 
     heading = (header)
     content = (result)
