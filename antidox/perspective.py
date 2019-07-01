@@ -183,9 +183,11 @@ def main(argv):
         """Runs every element of collection through perspective and dlp"""
         print(element)
         print('==============================================\n')
-        dlp_response = dlp_request(dlp, apikey_data, element)
-        has_pii_bool, pii_type = contains_pii(dlp_response)
+        if not element:
+          return None
         try:
+          dlp_response = dlp_request(dlp, apikey_data, element)
+          has_pii_bool, pii_type = contains_pii(dlp_response)
           perspective_response = perspective_request(perspective, element)
           if has_pii_bool:
             pii = [element+"\n"+'contains pii?'+"Yes"+"\n"+str(pii_type)+"\n" \
