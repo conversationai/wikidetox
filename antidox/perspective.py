@@ -156,12 +156,13 @@ def main(argv):
   parser.add_argument('--suffix', help='output file suffix')
   parser.add_argument('--project', help='project id for bigquery table')
   args = parser.parse_args(argv)
-  apikey_data, perspective, dlp = get_client('api_key.json')
+  apikey_data, perspective, dlp = get_client()
   with beam.Pipeline(options=PipelineOptions()) as pipeline:
     if args.wiki_pagename:
       wiki_response = get_wikipage(args.wiki_pagename)
       wikitext = wiki_clean(wiki_response)
-      comments = p | beam.Create(wikitext.split("\n"))
+      text = wikitext.split("\n")
+      comments = pipeline | beam.Create(text)
     if args.csv_file:
       comments = pipeline | 'ReadMyFile' >> beam.io.ReadFromText(args.csv_file)
     if args.sql_query:
