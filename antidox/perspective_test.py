@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
+from antidox import perspective
 import unittest
 import sys
 if sys.version_info >= (3, 3):
     from unittest import mock
 else:
     import mock
-
-import perspective
 
 class TestPerspective(unittest.TestCase):
 
