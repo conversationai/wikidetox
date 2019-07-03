@@ -20,6 +20,7 @@ from apache_beam.options.pipeline_options import GoogleCloudOptions
 from apache_beam.options.pipeline_options import StandardOptions
 from apache_beam import window
 
+
 def get_client():
   """ generates API client with personalized API key """
   with open("api_key.json") as json_file:
@@ -228,6 +229,7 @@ def main(argv):
           return None
         try:
           dlp_response = dlp_request(dlp, apikey_data, element)
+          has_pii_bool, pii_type = contains_pii(dlp_response)
           perspective_response = perspective_request(perspective, element)
           has_pii_bool, pii_type = contains_pii(dlp_response)
           if has_pii_bool:

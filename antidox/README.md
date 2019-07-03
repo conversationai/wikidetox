@@ -16,6 +16,8 @@ will be tested in wikipedia chat rooms as a staring point.
 		"project_number": "PROJECT_ID HERE"
 		}
     ```
+    No longer need to aunthenticate with BigQuery because Apache Beam has integration.
+    
 4. To run the code that processes all comments:
    ``` shell
 	bazel run :perspective --input_file=$PWD/example.csv
