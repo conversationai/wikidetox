@@ -16,17 +16,20 @@
 """
 approximate randomization test (art)
 
-This is a st. significance testing method to assess whether the agreement
-in an annotation task is st. significantly higher than another one.
-
-It is based on the a.r. test used to compare the superiority of a system against
+It is based on the approximate randomization test used to compare the superiority of a system against
 a baseline (see https://cs.stanford.edu/people/wmorgan/sigtest.pdf).
 
-The returned values are the difference in agreement between the two tasks
-and the p-value (the lower the better).
+This code measures the statistical significance of the claim that the agreement in one annotation job is higher
+than the other. The latter is the baseline and it is expected to be harder for the annotators (thus, lower agreement).
+Following, in comments, the former is called easier-task while the latter harder-task (baseline).
 
-INFO: The two tasks should contain annotations of the same texts
-for the result to be valid.
+This test assumes that the two annotation jobs:
+a) contain judgments from two distinct, non-overlapping groups of annotators (as in AB testing), and
+b) the same comments are given to the annotators of the two groups and judgments are 1:1 between the two groups
+
+The returned values are:
+1) the difference in agreement between the two annotation tasks (the higher the better), and
+2) the p-value (the lower the better).
 
 Run as:
 
@@ -37,7 +40,7 @@ python art.py \
 --ht_judgments "ht_labels.json" \
 --repetitions 1000 \
 
-# You can also use "gs://path.json" file paths.
+Note that one can also use "gs://path.json" file paths.
 """
 
 import tensorflow as tf
@@ -48,10 +51,10 @@ from sklearn.metrics import accuracy_score
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer("repetitions", 1000, "Number of samples to be performed.")
-tf.app.flags.DEFINE_string("et_coders", None, "JSON file with easier task coders UIDs - required for Krippendorff's alpha")
-tf.app.flags.DEFINE_string("et_judgments", None, "JSON file with easier task judgments (1:1 with et coders) - required for Krippendorff's alpha")
-tf.app.flags.DEFINE_string("ht_coders", None, "JSON file with harder task coders UIDs - required for Krippendorff's alpha")
-tf.app.flags.DEFINE_string("ht_judgments", None, "JSON file with harder task judgments (1:1 with ht coders) - required for Krippendorff's alpha")
+tf.app.flags.DEFINE_string("et_coders", None, "JSON file with easier-task coders UIDs - required for Krippendorff's alpha")
+tf.app.flags.DEFINE_string("et_judgments", None, "JSON file with easier-task judgments (1:1 with et coders) - required for Krippendorff's alpha")
+tf.app.flags.DEFINE_string("ht_coders", None, "JSON file with harder-task (baseline) coders UIDs - required for Krippendorff's alpha")
+tf.app.flags.DEFINE_string("ht_judgments", None, "JSON file with harder-task (baeline) judgments (1:1 with ht coders) - required for Krippendorff's alpha")
 
 for flag in ["et_coders", "ht_coders", "et_judgments", "ht_judgments"]:
     tf.app.flags.mark_flag_as_required(flag)
