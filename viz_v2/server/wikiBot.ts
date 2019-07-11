@@ -1,4 +1,5 @@
 import Bot = require('nodemw');
+const fetch = require('node-fetch');
 
 interface WikiConfig {
     protocol: string;
@@ -15,18 +16,34 @@ export class WikiBot {
 
     constructor(config: WikiConfig) {
         this.wikiClient = new Bot(config);
-        this.wikiClient.logIn(config.username, config.password, (err, res) => {
-            console.log(`Logging into Wikipedia as ${config.username}`);
-            if ( err ) {
-                console.log( 'WikiBot log in failed: ' + JSON.stringify( err ) );
-            } else {
-                console.log( 'WikiBot logged in! :D' );
-                console.log( res );
+    }
+
+    public getRevisionID(pageid): Promise<number> {
+        const URL = `https://en.wikipedia.org/w/api.php?` +
+        `action=query&format=json&prop=revisions&` +
+        `pageids=${pageid}&rvlimit=1&rvprop=ids`
+        return fetch(URL, {
+            method: 'GET',
+            mode: 'cors',
+            cache: 'no-cache',
+            headers: {
+              'Content-Type': 'application/json'
             }
+        })
+        .then(res => {
+              if (res.ok) {
+                return res.json()
+              } else {
+                throw Error(`Wiki request rejected with status ${res.status}`)
+              }
+        }).then(res => {
+              return res.query.pages[pageid].revisions[0].revid;
+        }).catch(error => {
+            console.error(error)
         })
     }
     
-    public editArticle(pageTitle, comment): Promise<string> {
+    public editArticle(pageTitle, comment): Promise<string> { // need authentication flow or bot approval
         return new Promise((resolve, reject) => {
             this.wikiClient.getArticle(pageTitle, ( err, res ) => {
                 if ( err ) {
@@ -41,7 +58,7 @@ export class WikiBot {
                         // Comment still exists on page
                         const cleanedText = res.replace(new RegExp(comment, "g"), '');
                         // if page & comment exists, edit page
-                        this.wikiClient.edit( pageTitle, cleanedText, 'Edited by DetoxAgent, by WikiDetox Project', ( err, res ) => {
+                        this.wikiClient.edit( pageTitle, cleanedText, 'Edited with wikidetox-viz.appspot.com, made possible by WikiDetox Project', ( err, res ) => {
                             if ( err ) {
                                 console.log( `${pageTitle} edit failed: ${JSON.stringify( err )}` );
                                 reject(new Error('Edit failed'));

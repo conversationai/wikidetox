@@ -129,3 +129,6 @@ conversation_reconstruction_dataflow/analysis/data/*
 conversation_reconstruction/dataflow/ingest_revisions/ingest_utils/testdata/gigantic_xml.xml
 viz_v2/wikidetox-viz-86869622048f.json
 viz_v2/yarn.lock
+
+# Bazel files.
+bazel-*

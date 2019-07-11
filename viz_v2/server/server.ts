@@ -104,17 +104,15 @@ export class Server {
                 res.send(rows);
             } catch (err) {
                 console.error(err);
-                res.status(403).send(err);
+                res.send(403).send(err);
             }
         });
 
-        this.app.post('/wiki_edit', async (req, res) => {
-            const page = req.body.page;
-            const comment = req.body.comment;
+        this.app.post('/wiki_revid', async (req, res) => {
+            const pageid = req.body.pageid;
             try {
-                const editResult = await this.wikiBot.editArticle(page, comment);
-                console.log(editResult);
-                res.status(200).json({status:"ok"});
+                const revid = await this.wikiBot.getRevisionID(pageid);
+                res.send(`${revid}`);
             } catch (err) {
                 console.error(err);
                 res.status(403).send(err);

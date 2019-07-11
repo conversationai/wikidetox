@@ -27,9 +27,9 @@ import json
 import logging
 import resource
 
-from construct_utils.utils import actions
-from construct_utils.utils import insert_utils
-from construct_utils.utils.third_party import rev_clean
+from wikiconv.conversation_reconstruction.construct_utils.utils import actions
+from wikiconv.conversation_reconstruction.construct_utils.utils import insert_utils
+from wikiconv.conversation_reconstruction.construct_utils.utils.third_party import rev_clean
 import diff_match_patch as dmp_module
 import noaho
 
@@ -430,7 +430,7 @@ class ConversationConstructor(object):
       The resulting dictionary.
     """
     keylist = the_dict.keys()
-    ret = the_dict
+    ret = the_dict.copy()
     alive_actions = set([action[0] for action in page['actions'].values()])
     for action in keylist:
       if not (action in alive_actions or action in self.deleted_records):

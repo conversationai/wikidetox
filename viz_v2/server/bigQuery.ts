@@ -41,7 +41,7 @@ export class BigQueryData {
             category1, sub_category1,
             category2, sub_category2,
             category3, sub_category3,
-            page_id, page_title, id, 
+            page_id, page_title, id, rev_id,
             user_text, timestamp, 
             content, cleaned_content, type
         FROM \`${this.table}\` 

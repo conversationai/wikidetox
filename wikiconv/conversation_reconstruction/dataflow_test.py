@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
+import json
 import os
 import shutil
 import tempfile
@@ -13,11 +14,34 @@ import unittest
 import apache_beam as beam
 from apache_beam.testing import test_pipeline
 from apache_beam.testing import util
-import dataflow_main
+import six
+from wikiconv.conversation_reconstruction import dataflow_main
 
 
 class FakeStorageClient(object):
   pass
+
+
+def ordered(obj):
+  if isinstance(obj, dict):
+    return sorted((k, ordered(v)) for k, v in obj.items())
+  if isinstance(obj, list):
+    return sorted([ordered(x) for x in obj], key=str)
+  return obj
+
+
+def assert_json_equal(test, actual, expected):
+  actual_dicts = [ordered(json.loads(item)) for item in actual]
+  expected_dicts = [ordered(json.loads(item)) for item in expected]
+  six.assertCountEqual(test, actual_dicts, expected_dicts)
+
+
+def assert_json_file_equal(test, actual_file, expected_file):
+  with open(actual_file) as actual:
+    actual_lines = actual.readlines()
+  with open(expected_file) as actual:
+    expected_lines = actual.readlines()
+  assert_json_equal(test, actual_lines, expected_lines)
 
 
 class DataflowTest(unittest.TestCase):
@@ -90,68 +114,49 @@ class DataflowTest(unittest.TestCase):
     pipeline.run()
     with open(os.path.join(tempdir, "yyy", "26")) as f:
       self.assertEqual(
-          f.read(),
-          '{"timestamp": 1558015201100, "page_id": "yyy", "rev_id": "26"}')
+          json.loads(f.read()),
+          json.loads(
+              '{"timestamp": 1558015201100, "page_id": "yyy", "rev_id": "26"}'))
     shutil.rmtree(tempdir)
 
   def test_end_to_end(self):
     storage_mock = FakeStorageClient()
     tempdir = tempfile.mkdtemp()
-    runfiles = os.environ["RUNFILES_DIR"]
     pipeline_args = [
-        "--setup_file",
-        os.path.join(runfiles, "__main__/setup.py"), "--runner", "DirectRunner"
+        "--setup_file", "wikiconv/conversation_reconstruction/setup.py",
+        "--runner", "DirectRunner"
     ]
     known_args = collections.namedtuple("NamedTuple", [
         "input_revisions", "input_state", "output_conversations", "output_state"
     ])
-    known_args.input_revisions = os.path.join(
-        runfiles, "__main__/testdata/edgecases_28_convs/revs*")
-    known_args.input_state = os.path.join(runfiles,
-                                          "__main__/testdata/empty_init_state")
+    known_args.input_revisions = (
+        "wikiconv/conversation_reconstruction/testdata/edgecases_28_convs/revs*")
+    known_args.input_state = (
+        "wikiconv/conversation_reconstruction/testdata/empty_init_state")
     known_args.output_conversations = tempdir
     known_args.output_state = tempdir
     dataflow_main.run(
         dataflow_main.Locations(known_args), pipeline_args, storage_mock)
 
-    with open(os.path.join(tempdir,
-                           "page_states/page_states-00000-of-00001")) as actual:
-      actual_lines = actual.readlines()
-    with open(
-        os.path.join(
-            runfiles,
-            "__main__/testdata/golden/page_states-00000-of-00001")) as expected:
-      expected_lines = expected.readlines()
-    self.assertItemsEqual(actual_lines, expected_lines)
+    assert_json_file_equal(
+        self, os.path.join(tempdir, "page_states/page_states-00000-of-00001"),
+            "wikiconv/conversation_reconstruction/testdata/golden/page_states-00000-of-00001"
+        )
 
-    with open(os.path.join(tempdir,
-                           "last_revisions/last_rev-00000-of-00001")) as actual:
-      actual_lines = actual.readlines()
-    with open(
-        os.path.join(
-            runfiles,
-            "__main__/testdata/golden/last_rev-00000-of-00001")) as expected:
-      expected_lines = expected.readlines()
-    self.assertItemsEqual(actual_lines, expected_lines)
+    assert_json_file_equal(
+        self, os.path.join(tempdir, "last_revisions/last_rev-00000-of-00001"),
+            "wikiconv/conversation_reconstruction/testdata/golden/last_rev-00000-of-00001"
+        )
 
-    with open(os.path.join(tempdir, "conversations-00000-of-00001")) as actual:
-      actual_lines = actual.readlines()
-    with open(
-        os.path.join(runfiles,
-                     "__main__/testdata/golden/conversations-00000-of-00001")
-    ) as expected:
-      expected_lines = expected.readlines()
-    self.assertItemsEqual(actual_lines, expected_lines)
+    assert_json_file_equal(
+        self, os.path.join(tempdir, "conversations-00000-of-00001"),
+            "wikiconv/conversation_reconstruction/testdata/golden/conversations-00000-of-00001"
+        )
 
-    with open(os.path.join(tempdir,
-                           "error_logs/error_log-00000-of-00001")) as actual:
-      actual_lines = actual.readlines()
-    with open(
-        os.path.join(
-            runfiles,
-            "__main__/testdata/golden/error_log-00000-of-00001")) as expected:
-      expected_lines = expected.readlines()
-    self.assertItemsEqual(actual_lines, expected_lines)
+    assert_json_file_equal(
+        self, os.path.join(tempdir, "error_logs/error_log-00000-of-00001"),
+            "wikiconv/conversation_reconstruction/testdata/golden/error_log-00000-of-00001"
+        )
 
 
 if __name__ == "__main__":
