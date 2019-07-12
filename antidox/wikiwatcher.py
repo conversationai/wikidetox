@@ -29,15 +29,15 @@ def log_event(apikey_data, toxicity, dlp, change):
   # print('\n########## change:')
   from_id = (str(change['revision']['old']))
   to_id = (str(change['revision']['new']))
-  page = ("https://en.wikipedia.org/w/api.php?action=compare&fromrev="
-          + from_id + "&torev=" + to_id + "&format=json")
+  page = ('https://en.wikipedia.org/w/api.php?action=compare&fromrev=' +
+          from_id + '&torev=' + to_id + '&format=json')
   get_page = requests.get(page)
   response = json.loads(get_page.content.decode('utf-8'))
   revision = response['compare']['*']
 
   text = clean.content_clean(revision)
 
-  # for line in text: 
+  # for line in text:
   print(text)
   if not text:
     return
@@ -46,37 +46,54 @@ def log_event(apikey_data, toxicity, dlp, change):
     perspective_response = perspective.perspective_request(toxicity, text)
   # Perspective can't handle language errors at this time
   except google_api_errors.HttpError as err:
-    print("Error:", err)
+    print('Error:', err)
     return
   has_pii_bool, pii_type = perspective.contains_pii(dlp_response)
   if has_pii_bool:
-    header = "==Possible Doxxing Detected: Waiting for review=="
-    result = (u"{"'user:{user}, namespace:{namespace}, bot:{bot}, comment:{comment}'+
-               'title:{title},'.format(**change)+", "+"comment_text:" + str(text)+", "+'contains_pii:'
-               +"True"+", "+"pii_type:"
-               +str(pii_type)+", ""}""\n")
+    header = '==Possible Doxxing Detected: Waiting for review=='
+    result = (
+        u'{'
+        'user:{user}, namespace:{namespace}, bot:{bot}, comment:{comment}' +
+        'title:{title},'.format(**change) + ', ' + 'comment_text:' + str(text) +
+        ', ' + 'contains_pii:' + 'True' + ', ' + 'pii_type:' + str(pii_type) +
+        ', '
+        '}'
+        '\n')
     wiki_write(result, header)
 
   if perspective.contains_toxicity(perspective_response):
-    header = "==Possibly Toxic Detected: Waiting for review=="
-    result = (u"{"'user:{user}, namespace:{namespace}, bot:{bot}, comment:{comment}'+
-               'title:{title}'.format(**change)+", "+"comment_text:" +str(text)+", "
-               +"contains_toxicity:"+"True"+", "+ "toxic_score:"
-               str(perspective_response['attributeScores']
-                   ['TOXICITY']['summaryScore']['value'])+", ""}""\n")
+    header = '==Possibly Toxic Detected: Waiting for review=='
+    result = (
+        u'{'
+        'user:{user}, namespace:{namespace}, bot:{bot}, comment:{comment}' +
+        'title:{title}'.format(**change) + ', ' + 'comment_text:' + str(text) +
+        ', ' + 'contains_toxicity:' + 'True' + ', ' + 'toxic_score:' +
+        str(perspective_response['attributeScores'] +
+            ['TOXICITY']['summaryScore']['value']) + ', '
+        '}'
+        '\n')
     wiki_write(result, header)
 
-def wiki_write(result, header):
-    site = pywikibot.Site()
-    repo = site.data_repository()
-    page = pywikibot.Page(site, u"User_talk:DoxDetective")
 
-    heading = (header)
-    content = (result)
-    message = "\n\n{}\n{} --~~~~".format(heading, content)
-    page.save(summary="Testing", watch=None, minor=False, botflag=True,
-              force=False, async=False, callback=None,
-              apply_cosmetic_changes=None, appendtext=message)
+def wiki_write(result, header):
+  site = pywikibot.Site()
+  repo = site.data_repository()
+  page = pywikibot.Page(site, u'User_talk:DoxDetective')
+
+  heading = (header)
+  content = (result)
+  message = '\n\n{}\n{} --~~~~'.format(heading, content)
+  page.save(
+      summary='Testing',
+      watch=None,
+      minor=False,
+      botflag=True,
+      force=False,
+      async=False,
+      callback=None,
+      apply_cosmetic_changes=None,
+      appendtext=message)
+
 
 def watcher(event_source, wiki_filter, namespaces_filter, callback):
   """Watcher captures and filters evens from mediawiki.
@@ -92,7 +109,7 @@ def watcher(event_source, wiki_filter, namespaces_filter, callback):
       try:
         change = json.loads(event.data)
       except json.decoder.JSONDecodeError as err:
-        print("Error:", err)
+        print('Error:', err)
         pprint.pprint(event.data)
         continue
       if change['bot']:
@@ -101,9 +118,9 @@ def watcher(event_source, wiki_filter, namespaces_filter, callback):
         continue
       if change['namespace'] not in namespaces_filter:
         continue
-      if "revision" not in change:
+      if 'revision' not in change:
         continue
-      if "old" not in change['revision']:
+      if 'old' not in change['revision']:
         continue
       callback(change)
 
@@ -115,7 +132,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--namespaces',
       default='1,3',
-      help='Namespaces defined in http://phabricator.wikimedia.'+
+      help='Namespaces defined in http://phabricator.wikimedia.' +
       'org/source/mediawiki/browse/master/includes/Defines.php separated by commas.'
   )
   parser.add_argument(
@@ -128,6 +145,8 @@ if __name__ == '__main__':
   client = sseclient.SSEClient(args.url)
 
   apikey_data, toxicity, dlp = perspective.get_client()
+
   def log_change(change):
     return log_event(apikey_data, toxicity, dlp, change)
+
   watcher(client, args.wiki_filter, namespaces, log_change)
