@@ -20,7 +20,7 @@ const MOST_TOXIC_TEXT = 'Toxicity';
 const URL_PART_FOR_SEARCHBY: {[text: string]: string} = {};
 const URL_PART_FOR_BROWSEBY: {[text: string]: string} = {};
 URL_PART_FOR_SEARCHBY[ALL_TEXT] = 'all';
-URL_PART_FOR_SEARCHBY[COMMENT_ID_TEXT] = 'id';
+URL_PART_FOR_SEARCHBY[COMMENT_ID_TEXT] = 'comment_id';
 URL_PART_FOR_SEARCHBY[CONVERSATION_ID_TEXT] = 'conversation_id';
 URL_PART_FOR_SEARCHBY[REVISION_ID_TEXT] = 'revision_id';
 URL_PART_FOR_SEARCHBY[PAGE_TITLE_TEXT] = 'page_title';
@@ -238,7 +238,7 @@ export class AppComponent implements OnInit {
   submitBrowse() {
     console.log('model-based browse form submitted');
     console.log(this.browseForm.value);
-    this.updateLocationHash(this.browseForm.value.searchBy, this.browseForm.value.searchFor, this.browseForm.value.browseBy, this.browseForm.value.browseUpper, this.browseForm.value.browseLower, this.browseForm.value.isHistorical);
+    this.updateLocationHash(this.browseForm.value.searchBy, this.browseForm.value.searchFor, this.browseForm.value.browseBy, this.browseForm.value.browseUppder, this.browseForm.value.browseLower, this.browseForm.value.isHistorical);
     this.browseByScore(this.browseForm.value.browseBy, this.browseForm.value.browseUpper, this.browseForm.value.browseLower, this.browseForm.value.searchBy, this.browseForm.value.searchFor, 'DESC', this.browseForm.value.isHistorical);
   }
 
