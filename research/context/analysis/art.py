@@ -13,8 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-approximate randomization test (art)
+"""approximate randomization test (art)
 
 It is based on the approximate randomization test used to compare the superiority of a system against
 a baseline (see https://cs.stanford.edu/people/wmorgan/sigtest.pdf).
@@ -50,19 +49,24 @@ import krippendorff
 from sklearn.metrics import accuracy_score
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_integer("repetitions", 1000, "Number of samples to be performed.")
-tf.app.flags.DEFINE_string("et_coders", None, "JSON file with easier-task coders UIDs - required for Krippendorff's alpha")
-tf.app.flags.DEFINE_string("et_judgments", None, "JSON file with easier-task judgments (1:1 with et coders) - required for Krippendorff's alpha")
-tf.app.flags.DEFINE_string("ht_coders", None, "JSON file with harder-task (baseline) coders UIDs - required for Krippendorff's alpha")
-tf.app.flags.DEFINE_string("ht_judgments", None, "JSON file with harder-task (baeline) judgments (1:1 with ht coders) - required for Krippendorff's alpha")
+tf.app.flags.DEFINE_integer(
+    'repetitions', 1000, 'Number of samples to be performed.')
+tf.app.flags.DEFINE_string(
+    'et_coders', None, "JSON file with easier-task coders UIDs - required for Krippendorff's alpha")
+tf.app.flags.DEFINE_string(
+    'et_judgments', None, "JSON file with easier-task judgments (1:1 with et coders) - required for Krippendorff's alpha")
+tf.app.flags.DEFINE_string(
+    'ht_coders', None, "JSON file with harder-task (baseline) coders UIDs - required for Krippendorff's alpha")
+tf.app.flags.DEFINE_string(
+    'ht_judgments', None, "JSON file with harder-task (baeline) judgments (1:1 with ht coders) - required for Krippendorff's alpha")
 
-for flag in ["et_coders", "ht_coders", "et_judgments", "ht_judgments"]:
+for flag in ['et_coders', 'ht_coders', 'et_judgments', 'ht_judgments']:
     tf.app.flags.mark_flag_as_required(flag)
 
 
 def scramble(judgments, columns_only=True):
-    """
-    scramble an array of judgments (each row is one question)
+    """scramble an array of judgments (each row is one question)
+
     :param judgments:
     :param columns_only:
     :return:
@@ -78,18 +82,19 @@ def scramble(judgments, columns_only=True):
 
 
 def build_reliability_data(coders_list, labels_list):
-    """
-    Build a reliability data matrix to be used for Krippendorff's alpha calculation
+    """Build a reliability data matrix to be used for Krippendorff's alpha
+    calculation.
+
     :param coders_list: a list of lists, each being the coder UIDs for a unit question
     :param labels_list: a list of lists, each being the coder judgments for a unit question (1:1 with coders_list)
     :return: a numpy reliability data matrix (i.e., each row being a coder, each column being a judgment)
 
     >>> matrix = build_reliability_data([["a", "c", "b"], ["b", "d", "a"]], [[1,0,1],[0,1,1]])
-
     """
-    coders = list({coder for unit_coders in coders_list for coder in unit_coders})
+    coders = list(
+        {coder for unit_coders in coders_list for coder in unit_coders})
     # index the coders, from 0 to |coders|
-    coders2index = lambda coder: coders.index(coder)
+    def coders2index(coder): return coders.index(coder)
     reliability_data = [[] for _ in coders]
     # for each coder create a row and find all judgments
     for coder in coders:
@@ -109,8 +114,9 @@ def build_reliability_data(coders_list, labels_list):
 
 
 def sided_test(t, t_obs):
-    """
-    Compare the hypothesis, whether t is greater than t_observed. This is one-side test.
+    """Compare the hypothesis, whether t is greater than t_observed. This is
+    one-side test.
+
     :param t: sample assessment between the two candidates
     :param t_obs: original assessment between the two candidates
     :return: 1 if sample assessment is better else 0
@@ -120,9 +126,10 @@ def sided_test(t, t_obs):
 
 
 def compare_systems(gold, system_predictions, baseline_predictions, repetitions=1000, evaluator=None):
-    """
-    Use an approximate randomization test to assess whether a "system" is better than a "baseline".
-    (See https://cs.stanford.edu/people/wmorgan/sigtest.pdf for more about approx. randomization)
+    """Use an approximate randomization test to assess whether a "system" is
+    better than a "baseline". (See
+    https://cs.stanford.edu/people/wmorgan/sigtest.pdf for more about approx.
+    randomization)
 
     :param gold: ground truth labels
     :param system_predictions: predictions of the system of interest, testing if it outperfoms a baseline
@@ -145,7 +152,6 @@ def compare_systems(gold, system_predictions, baseline_predictions, repetitions=
     >>> uni_vs_uni = compare_systems(gold, system_predictions, baseline_predictions, 1000, accuracy_score)
     >>> uni_vs_uni > 0.05
     True
-
     """
     p1 = evaluator(gold, system_predictions)
     p2 = evaluator(gold, baseline_predictions)
@@ -155,7 +161,7 @@ def compare_systems(gold, system_predictions, baseline_predictions, repetitions=
         _predictions1 = []
         _predictions2 = []
         for i in range(len(system_predictions)):
-            if np.random.random()>.5:
+            if np.random.random() > .5:
                 _predictions1.append(system_predictions[i])
                 _predictions2.append(baseline_predictions[i])
             else:
@@ -170,8 +176,8 @@ def compare_systems(gold, system_predictions, baseline_predictions, repetitions=
 
 
 def compare(et_coders, et_judgments, ht_coders, ht_judgments):
-    """
-    Compare the agreement between two annotation jobs <et> and <ht>.
+    """Compare the agreement between two annotation jobs <et> and <ht>.
+
     :param et_coders: coders of the easier task
     :param et_judgments: labels assigned by the coders of the easier task
     :param ht_coders: coders of the harder task
@@ -186,9 +192,8 @@ def compare(et_coders, et_judgments, ht_coders, ht_judgments):
 
 
 def sample(et_coders, et_judgments, ht_coders, ht_judgments, repetitions=1000):
-    """
-    Assess the statistical significance of the claim that the Easier Task Coders (et_coders)
-    agree more than the Harder Task Coders (ht_coders).
+    """Assess the statistical significance of the claim that the Easier Task
+    Coders (et_coders) agree more than the Harder Task Coders (ht_coders).
 
     :param et_coders: Easier task coders; each row has the coders IDs for a question - aligned with et_judgments
     :param et_judgments: Easier task judgments; each row has the judgments for a question - done by different coders
@@ -200,10 +205,10 @@ def sample(et_coders, et_judgments, ht_coders, ht_judgments, repetitions=1000):
     t_obs = compare(et_coders, et_judgments, ht_coders, ht_judgments)
     outcome = []
     for _ in range(repetitions):
-        _et_coders, _et_judgments = [],[]
-        _ht_coders, _ht_judgments = [],[]
+        _et_coders, _et_judgments = [], []
+        _ht_coders, _ht_judgments = [], []
         for i in range(len(et_judgments)):
-            if np.random.random()>.5:
+            if np.random.random() > .5:
                 _et_coders.append(et_coders[i])
                 _et_judgments.append(et_judgments[i])
                 _ht_coders.append(ht_coders[i])
@@ -220,8 +225,8 @@ def sample(et_coders, et_judgments, ht_coders, ht_judgments, repetitions=1000):
 
 
 def load_json(filepath=None):
-    """
-    Load a JSON file from Google Storage or a local path.
+    """Load a JSON file from Google Storage or a local path.
+
     :param filepath:
     :return: the JSON file
     """
@@ -231,7 +236,7 @@ def load_json(filepath=None):
     return json.loads(read_file)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     et_coders = load_json(FLAGS.et_coders)
     et_judgments = load_json(FLAGS.et_judgments)
     ht_coders = load_json(FLAGS.ht_coders)
