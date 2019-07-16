@@ -7,6 +7,7 @@ bigquery tables, and wikipedia talk pages"""
 import argparse
 import json
 import sys
+from google.cloud import bigquery
 from googleapiclient import discovery
 from googleapiclient import errors as google_api_errors
 import pandas as pd
@@ -75,10 +76,10 @@ def dlp_request(dlp, apikey_data, comment):
                   "name":"PASSPORT"
               },
               {
-                  "name":"PERSON_NAME"
+                  "name":"GCP_CREDENTIALS"
               },
               {
-                  "name":"ALL_BASIC"
+                  "name":"SWIFT_CODE"
               }
               ],
           "minLikelihood":"POSSIBLE",
@@ -118,6 +119,22 @@ def contains_toxicity(perspective_response):
       ['value'] >= .5):
     is_toxic = True
   return is_toxic
+
+def contains_threat(perspective_response):
+  """Checking/returning comments with a threat value of over 50 percent."""
+  is_threat = False
+  if (perspective_response['attributeScores']['THREAT']['summaryScore']
+      ['value'] >= .5):
+    is_threat = True
+  return is_threat
+
+def contains_insult(perspective_response):
+  """Checking/returning comments with an insult value of over 50 percent."""
+  is_insult = False
+  if (perspective_response['attributeScores']['INSULT']['summaryScore']
+      ['value'] >= .5):
+    is_insult = True
+  return is_insult
 
 
 def get_wikipage(pagename):
@@ -223,6 +240,7 @@ def main(argv):
       # pylint: disable=fixme, inconsistent-return-statements
       def process(self, element):
         """Runs every element of collection through perspective and dlp"""
+
         print(repr(element))
         print('==============================================\n')
         if not element:
@@ -233,15 +251,23 @@ def main(argv):
           perspective_response = perspective_request(perspective, element)
           has_pii_bool, pii_type = contains_pii(dlp_response)
           if has_pii_bool:
-            pii = [element+"\n"+'contains pii?'+"Yes"+"\n"+str(pii_type)+"\n" \
-                  +"==============================================="+"\n"]
+            pii = (json.dumps({"comment_text":element, "contains_pii": True, "pii_type":pii_type})+"\n")
             return pii
           if contains_toxicity(perspective_response):
-            tox = [element+"\n" +"contains TOXICITY?:"+"Yes"
-                   +"\n"+str(perspective_response['attributeScores']
-                             ['TOXICITY']['summaryScore']['value'])+"\n"
-                   +"=========================================="+"\n"]
+            tox = (json.dumps({"comment_text":element, "contains_toxicity": True,
+                               "summaryScore":perspective_response['attributeScores']
+                                              ['TOXICITY']['summaryScore']['value']})+"\n")
             return tox
+          if contains_threat(perspective_response):
+            threat = (json.dumps({"comment_text":element, "contains_threat": True,
+                                  "summaryScore":perspective_response['attributeScores']
+                                                 ['THREAT']['summaryScore']['value']})+"\n")
+            return threat
+          if contains_insult(perspective_response):
+            insult = (json.dumps({"comment_text":element, "contains_insult": True,
+                                  "summaryScore":perspective_response['attributeScores']
+                                                 ['INSULT']['summaryScore']['value']})+"\n")
+            return insult
         except google_api_errors.HttpError as err:
           print('error', err)
     results = comments \
