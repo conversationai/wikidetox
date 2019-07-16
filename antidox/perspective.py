@@ -1,7 +1,6 @@
 """ inputs comments to perspective and dlp apis and detects
 toxicity and personal information> has support for csv files,
 bigquery tables, and wikipedia talk pages"""
-#TODO(tamajongnc): configure pipeline to distribute work to multiple machines
 # pylint: disable=fixme, import-error
 # pylint: disable=fixme, unused-import
 import argparse
@@ -11,14 +10,16 @@ from googleapiclient import discovery
 from googleapiclient import errors as google_api_errors
 import pandas as pd
 import requests
-import clean
 import apache_beam as beam
 from apache_beam.io.gcp.internal.clients import bigquery
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.options.pipeline_options import GoogleCloudOptions
 from apache_beam.options.pipeline_options import StandardOptions
+from apache_beam.options.pipeline_options import WorkerOptions
 from apache_beam import window
+import clean
+
 
 
 def get_client():
@@ -159,7 +160,7 @@ def main(argv):
   parser.add_argument('--wiki_pagename', help='insert the talk page name')
   parser.add_argument('--content', help='specify a column in dataset to retreive data from')
   parser.add_argument('--output', help='path for output file in cloud bucket')
-  parser.add_argument('--nd_output' help='gcs path to store ndjson results')
+  parser.add_argument('--nd_output', help='gcs path to store ndjson results')
   parser.add_argument('--project', help='project id for bigquery table', \
                                    default='wikidetox-viz')
   parser.add_argument('--gproject', help='gcp project id')
@@ -169,9 +170,11 @@ def main(argv):
   apikey_data, perspective, dlp = get_client()
   options = PipelineOptions(pipe_args)
   gcloud_options = options.view_as(GoogleCloudOptions)
-  gcloud_options.project = args.gproject 
-  gcloud_options.temp_location = args.temp_location
+  gcloud_options.project = 'google.com:new-project-242016'
+  gcloud_options.staging_location = 'gs://tj_cloud_bucket/stage'
+  gcloud_options.temp_location = 'gs://tj_cloud_bucket/tmp'
   options.view_as(StandardOptions).runner = 'dataflow'
+  options.view_as(WorkerOptions).num_workers = 100
   options.view_as(SetupOptions).save_main_session = True
   with beam.Pipeline(options=options) as pipeline:
     if args.wiki_pagename:
@@ -213,7 +216,6 @@ def main(argv):
             return [json.dumps(data) + '\n']
         except google_api_errors.HttpError as err:
           print('error', err)
-        print('done')
 
     # pylint: disable=fixme, too-few-public-methods
     class GetToxicity(beam.DoFn):
@@ -250,8 +252,8 @@ def main(argv):
      | beam.ParDo(NDjson())
     # pylint: disable=fixme, expression-not-assigned
     results | 'WriteToText' >> beam.io.WriteToText(
-        args.output)
+        'gs://tj_cloud_bucket/beam.txt')
     json_results | 'WriteToText2' >> beam.io.WriteToText(
-        args.nd_ouput)
+        'gs://tj_cloud_bucket/results.json')
 if __name__ == '__main__':
   main(sys.argv[1:])
