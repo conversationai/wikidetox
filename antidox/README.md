@@ -23,10 +23,13 @@ will be tested in wikipedia chat rooms as a staring point.
 	bazel run :perspective --input_file=$PWD/example.csv
           --api_key=$PWD/api_key.json
    ```
-
+5. To run code on a distributed system:
+   ```shell
+   --setup_file ,/setup.py 
+   ```
    Run the given model that test the comment from the csv file for toxicity and personally identifiable information.
 
-5. Run unittest to ensure the functions contains_toxicity(), and contains_pii(), are working properly.
+6. Run unittest to ensure the functions contains_toxicity(), and contains_pii(), are working properly.
    ```shell
    bazel test :perspective_test --test_output=all
    ```
