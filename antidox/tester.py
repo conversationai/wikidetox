@@ -1,6 +1,6 @@
 import requests
 import json
-import urllib.request
+import urllib.parse
 import time
 import clean
 import datetime
@@ -22,14 +22,9 @@ def log_change():
   while True:
     start = datetime.datetime.now() - datetime.timedelta(minutes=2)
     rcstart = start.isoformat()
-    #print (rcstart)
-
     end = datetime.datetime.now()
     rcend = end.isoformat()
-    #print (rcend)
-    #rcstart = "now"
-    page = ("http://sorenj02.nyc.corp.google.com/mediawiki/api.php?action=query&list=recentchanges&rcstart="+ rcstart + "&rcend=" + rcend + "&rcprop=title%7Cids%7Csizes%7Cflags%7Cuser&rclimit=3&format=json")
-    print (page)
+    page = ("http://sorenj02.nyc.corp.google.com/mediawiki/api.php?action=query&list=recentchanges&rclimit=500&rcprop=title%7Cids%7Csizes%7Cflags%7Cuser&rcdir=newer&rcstart="+ rcstart + "&rcend=now&format=json")
     get_page = requests.get(page)
     response = json.loads(get_page.content)
 
@@ -50,17 +45,3 @@ def log_change():
       #wiki_write(result, header)
     time.sleep(120)
 log_change()
-#page = ("http://sorenj02.nyc.corp.google.com/mediawiki/api.php?action=query&list=recentchanges&rcprop=title%7Cids%7Csizes%7Cflags%7Cuser&rclimit=3&format=json")
-
-# start = datetime.datetime.now() - datetime.timedelta(minutes=2)
-# rcstart = start.isoformat()
-# print (rcstart)
-
-# end = datetime.datetime.now()
-# rcend = end.isoformat()
-# print (rcend)
-# rcstart = "now"
-# page = ("http://sorenj02.nyc.corp.google.com/mediawiki/api.php?action=query&list=recentchanges&rcstart="+ rcstart + "&rcend=" + rcend + "&rcprop=title%7Cids%7Csizes%7Cflags%7Cuser&rclimit=3&format=json")
-# get_page = requests.get(page)
-# response = json.loads(get_page.content)
-# print(response['query']['recentchanges'])
