@@ -70,3 +70,23 @@ In order to run wikiwatcher on a Google Cloud Instance to retrieve all revisions
                  pip3 install mwparserfromhell
      pip3 install bs4
 ```
+# Running wikimedia
+
+1. Download and extract the [zip file](https://www.mediawiki.org/wiki/Manual:Pywikibot/Installation#Configure_Pywikibot) from the section *Install Pywikibot*
+
+2. Follow pathway to core_stable 
+
+3. Run `python3 generate_family_file.py` to create a new family
+
+4. When prompted enter link to wikimedia: http://sorenj02.nyc.corp.google.com/mediawiki/index.php/Main_Page and follow prompts
+
+5. Once finished run `python3 pwb.py login` and choose the wiki you just created.
+
+6. Follow prompts for log in.
+
+7. When implementing in a program add the following two lines of code at beginning
+```shell
+	pywikibot.config.register_family_file('name_of_family',os.path.join(os.path.dirname(__file__),''name_of_family'_family.py'))
+	pywikibot.config.usernames['name_of_family']['en'] = u'name_of_bot'
+```
+8. *Note: Account must already be created on mediawiki*
