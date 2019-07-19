@@ -19,7 +19,7 @@ from apache_beam.options.pipeline_options import GoogleCloudOptions
 from apache_beam.options.pipeline_options import StandardOptions
 from apache_beam.options.pipeline_options import WorkerOptions
 from apache_beam import window
-import clean
+# import clean
 
 def get_client():
   """ generates API client with personalized API key """
@@ -146,6 +146,15 @@ def use_query(content, sql_query, big_q):
     strlst.append(row[content])
   return strlst
 
+def get_pipeline_options(options):
+  gcloud_options = options.view_as(GoogleCloudOptions)
+  gcloud_options.project = 'google.com:new-project-242016'
+  gcloud_options.staging_location = 'gs://tj_cloud_bucket/stage'
+  gcloud_options.temp_location = 'gs://tj_cloud_bucket/tmp'
+  options.view_as(StandardOptions).runner = 'direct'
+  options.view_as(WorkerOptions).num_workers = 69
+  options.view_as(SetupOptions).save_main_session = True
+
 # pylint: disable=fixme, too-many-locals
 # pylint: disable=fixme, too-many-statements
 def main(argv):
@@ -166,15 +175,8 @@ def main(argv):
   parser.add_argument('--temp_location', help='cloud storage path for temp files \
                                               must begin with gs://')
   args, pipe_args = parser.parse_known_args(argv)
-  apikey_data, perspective, dlp = get_client()
   options = PipelineOptions(pipe_args)
-  gcloud_options = options.view_as(GoogleCloudOptions)
-  gcloud_options.project = 'google.com:new-project-242016'
-  gcloud_options.staging_location = 'gs://tj_cloud_bucket/stage'
-  gcloud_options.temp_location = 'gs://tj_cloud_bucket/tmp'
-  options.view_as(StandardOptions).runner = 'dataflow'
-  options.view_as(WorkerOptions).num_workers = 69
-  options.view_as(SetupOptions).save_main_session = True
+  pipe_options = get_pipeline_options(options)
   with beam.Pipeline(options=options) as pipeline:
     if args.wiki_pagename:
       wiki_response = get_wikipage(args.wiki_pagename)
@@ -188,7 +190,7 @@ def main(argv):
           pipeline
           | 'QueryTable' >> beam.io.Read(beam.io.BigQuerySource(
               query=args.sql_query,
-              use_standard_sql=True)) \
+              use_standard_sql=True))
           | beam.Map(lambda elem: elem[args.content]))
 
     # pylint: disable=fixme, too-few-public-methods
@@ -202,16 +204,13 @@ def main(argv):
         try:
           dlp_response = dlp_request(dlp, apikey_data, element)
           perspective_response = perspective_request(perspective, element)
-          if contains_toxicity(perspective_response):
+          contains_toxicity(perspective_response)
+          has_pii_bool, pii_type = contains_pii(dlp_response)
+          if contains_toxicity(perspective_response) or has_pii_bool:
             data = {'comment': element,
                     'Toxicity': str(perspective_response['attributeScores']
-                                    ['TOXICITY']['summaryScore']['value'])}
-            return [json.dumps(data) + '\n']
-          has_pii_bool, pii_type = contains_pii(dlp_response)
-          if has_pii_bool:
-            data = {'comment': element, \
-            'pii_detected': str(pii_type) \
-            }
+                                    ['TOXICITY']['summaryScore']['value']),
+                    'pii_detected':str(pii_type)}
             return [json.dumps(data) + '\n']
         except google_api_errors.HttpError as err:
           print('error', err)
@@ -230,21 +229,18 @@ def main(argv):
           return None
         try:
           dlp_response = dlp_request(dlp, apikey_data, element)
-          has_pii_bool, pii_type = contains_pii(dlp_response)
           perspective_response = perspective_request(perspective, element)
           has_pii_bool, pii_type = contains_pii(dlp_response)
-          if has_pii_bool:
+          if contains_toxicity or has_pii_bool:
             pii = [element+"\n"+'contains pii?'+"Yes"+"\n"+str(pii_type)+"\n" \
-                  +"==============================================="+"\n"]
-            return pii
-          if contains_toxicity(perspective_response):
-            tox = [element+"\n" +"contains TOXICITY?:"+"Yes"
+                  +"\n" +"contains TOXICITY?:"+"Yes"
                    +"\n"+str(perspective_response['attributeScores']
                              ['TOXICITY']['summaryScore']['value'])+"\n"
                    +"=========================================="+"\n"]
-            return tox
+            return pii 
         except google_api_errors.HttpError as err:
           print('error', err)
+    apikey_data, perspective, dlp = get_client()
     results = comments \
      | beam.ParDo(GetToxicity())
     json_results = comments \
