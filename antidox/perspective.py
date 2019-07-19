@@ -176,7 +176,7 @@ def main(argv):
                                               must begin with gs://')
   args, pipe_args = parser.parse_known_args(argv)
   options = PipelineOptions(pipe_args)
-  pipe_options = get_pipeline_options(options)
+  set_pipeline_options(options)
   with beam.Pipeline(options=options) as pipeline:
     if args.wiki_pagename:
       wiki_response = get_wikipage(args.wiki_pagename)
