@@ -146,7 +146,7 @@ def use_query(content, sql_query, big_q):
     strlst.append(row[content])
   return strlst
 
-def get_pipeline_options(options):
+def set_pipeline_options(options):
   gcloud_options = options.view_as(GoogleCloudOptions)
   gcloud_options.project = 'google.com:new-project-242016'
   gcloud_options.staging_location = 'gs://tj_cloud_bucket/stage'
