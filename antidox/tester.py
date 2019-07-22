@@ -45,8 +45,6 @@ def log_change():
         continue
       revision = response['compare']['*']
       text = clean.content_clean(revision)
-      print(text)
-      #wiki_write(result, header)
 
       apikey_data, toxicity, dlp = perspective.get_client()
       dlp_response = perspective.dlp_request(dlp, apikey_data, text)
@@ -60,31 +58,14 @@ def log_change():
       if has_pii_bool:
         header = '==Possible Doxxing Detected: Waiting for review=='
         result = (json.dumps({u"comment_text":text, "contains_pii": True, "pii_type":pii_type})+"\n")
-
-
-        # result = (
-        # u'{'
-        # +'comment_text:' + str(text) +
-        # ', ' + 'contains_pii:' + 'True' + ', ' + 'pii_type:' + str(pii_type) +
-        # ', '
-        # '}'
-        # '\n')
-        #wiki_write(result, header)
-
+        wiki_write(result, header)
 
       if perspective.contains_toxicity(perspective_response):
         header = '==Possibly Toxic Detected: Waiting for review=='
         result = (json.dumps({u"comment_text":text, "contains_toxicity": True,
                                "summaryScore":perspective_response['attributeScores']
                                               ['TOXICITY']['summaryScore']['value']})+"\n")
-
-        # result = (
-        #     u'{'
-        #     'comment_text:' + str(text) +
-        #     ', ' + 'contains_toxicity:' + 'True' + ', ' + 'toxic_score:' +
-        #     str(perspective_response['attributeScores']['TOXICITY']['summaryScore']['value']) +
-        #     '}'+'\n')
-        #wiki_write(result, header)
+        wiki_write(result, header)
       time.sleep(120)
 
 
