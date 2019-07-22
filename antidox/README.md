@@ -78,7 +78,7 @@ In order to run wikiwatcher on a Google Cloud Instance to retrieve all revisions
 
 3. Run `python3 generate_family_file.py` to create a new family
 
-4. When prompted enter link to wikimedia: http://sorenj02.nyc.corp.google.com/mediawiki/index.php/Main_Page and follow prompts
+4. When prompted enter URL to wikimedia and follow prompts
 
 5. Once finished run `python3 pwb.py login` and choose the wiki you just created.
 
