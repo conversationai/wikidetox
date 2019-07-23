@@ -1,4 +1,5 @@
-""" Program that's gets the latest revisions and checks for PII and toxicity """
+""" Program that's gets the latest revisions from a custom mediawiki (without the use of an SSE client) and checks for PII and toxicity.
+    Note: Must create custom family for writing to personal wikibot. See antidox README.md file"""
 import argparse
 import json
 import os
@@ -27,6 +28,8 @@ def wiki_write(result, header):
 
 def log_change():
   """ gets latest revisions and cleans them """
+  dlp_response = perspective.dlp_request(dlp, apikey_data, text)
+  apikey_data, toxicity, dlp = perspective.get_client()
   while True:
     start = datetime.datetime.now() - datetime.timedelta(minutes=2)
     rcstart = start.isoformat()
@@ -48,8 +51,6 @@ def log_change():
       revision = response['compare']['*']
       text = clean.content_clean(revision)
 
-      apikey_data, toxicity, dlp = perspective.get_client()
-      dlp_response = perspective.dlp_request(dlp, apikey_data, text)
       try:
         perspective_response = perspective.perspective_request(toxicity, text)
       # Perspective can't handle language errors at this time
