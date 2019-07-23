@@ -28,15 +28,14 @@ def wiki_write(result, header):
 
 def log_change():
   """ gets latest revisions and cleans them """
-  dlp_response = perspective.dlp_request(dlp, apikey_data, text)
   apikey_data, toxicity, dlp = perspective.get_client()
+  start = datetime.datetime.utcnow() - datetime.timedelta(minutes=2)
   while True:
-    start = datetime.datetime.now() - datetime.timedelta(minutes=2)
-    rcstart = start.isoformat()
-    page = (args.mediawiki + "api.php?action=query&list=recentchanges&rclimit=500&rcprop=title%7Cids%7Csizes%7Cflags%7Cuser&rcdir=newer&rcstart="+ rcstart + "&rcend=now&format=json")
+    end = datetime.datetime.utcnow()
+    page = (args.mediawiki + "api.php?action=query&list=recentchanges&rclimit=500&rcprop=title%7Cids%7Csizes%7Cflags%7Cuser&rcdir=newer&rcstart="+ start.isoformat() + "&rcend=" + end.isoformat() + "&format=json")
     get_page = requests.get(page)
     response = json.loads(get_page.content)
-
+    start = end
     for change in response['query']['recentchanges']:
       print('new change:')
       revid = str(change['revid'])
@@ -50,7 +49,8 @@ def log_change():
         continue
       revision = response['compare']['*']
       text = clean.content_clean(revision)
-
+      dlp_response = perspective.dlp_request(dlp, apikey_data, text)
+      print(text)
       try:
         perspective_response = perspective.perspective_request(toxicity, text)
       # Perspective can't handle language errors at this time
