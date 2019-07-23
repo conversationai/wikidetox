@@ -1,30 +1,32 @@
-import requests
+""" Program that's gets the latest revisions and checks for PII and toxicity """
 import argparse
 import json
-import sys
-import urllib.parse
-import time
-from antidox import clean
-import datetime
-from antidox import perspective
-import pywikibot
 import os
+import time
+import datetime
+import requests
+import pywikibot
+from antidox import clean
+from antidox import perspective
+
 
 def wiki_write(result, header):
-    pywikibot.config.register_family_file('doxwiki', os.path.join(os.path.dirname(__file__), 'doxwiki_family.py'))
-    pywikibot.config.usernames['doxwiki']['en'] = u'Antidoxer'
-    site = pywikibot.Site()
-    repo = site.data_repository()
-    page = pywikibot.Page(site, u"User_talk:Antidoxer")
+  """ Writes results to wikipedia/wikimedia bot page """
+  pywikibot.config.register_family_file('doxwiki', os.path.join(os.path.dirname(__file__), 'doxwiki_family.py'))
+  pywikibot.config.usernames['doxwiki']['en'] = u'Antidoxer'
+  site = pywikibot.Site()
+  repo = site.data_repository()
+  page = pywikibot.Page(site, u"User_talk:Antidoxer")
 
-    heading = (header)
-    content = (result)
-    message = "\n\n{}\n{} --~~~~".format(heading, content)
-    page.save(summary="Testing", watch=None, minor=False, botflag=True,
-              force=False, async=False, callback=None,
-              apply_cosmetic_changes=None, appendtext=message)
+  heading = (header)
+  content = (result)
+  message = "\n\n{}\n{} --~~~~".format(heading, content)
+  page.save(summary="Testing", watch=None, minor=False, botflag=True,
+            force=False, async=False, callback=None,
+            apply_cosmetic_changes=None, appendtext=message)
 
 def log_change():
+  """ gets latest revisions and cleans them """
   while True:
     start = datetime.datetime.now() - datetime.timedelta(minutes=2)
     rcstart = start.isoformat()
@@ -37,7 +39,7 @@ def log_change():
       revid = str(change['revid'])
       old_revid = str(change['old_revid'])
       compare = (args.mediawiki + "api.php?action=compare&fromrev="
-              + old_revid + "&torev=" + revid + "&format=json")
+                 + old_revid + "&torev=" + revid + "&format=json")
       get_compare = requests.get(compare)
       response = json.loads(get_compare.content.decode('utf-8'))
 
@@ -63,8 +65,8 @@ def log_change():
       if perspective.contains_toxicity(perspective_response):
         header = '==Possibly Toxic Detected: Waiting for review=='
         result = (json.dumps({u"comment_text":text, "contains_toxicity": True,
-                               "summaryScore":perspective_response['attributeScores']
-                                              ['TOXICITY']['summaryScore']['value']})+"\n")
+                              "summaryScore":perspective_response['attributeScores']
+                                             ['TOXICITY']['summaryScore']['value']})+"\n")
         wiki_write(result, header)
       time.sleep(120)
 
