@@ -19,7 +19,7 @@ from apache_beam.options.pipeline_options import GoogleCloudOptions
 from apache_beam.options.pipeline_options import StandardOptions
 from apache_beam.options.pipeline_options import WorkerOptions
 from apache_beam import window
-# import clean
+import clean
 
 def get_client():
   """ generates API client with personalized API key """
