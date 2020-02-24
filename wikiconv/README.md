@@ -19,6 +19,7 @@ The dataset is released under the [CC0 license v1.0](http://creativecommons.org/
 The data is available for download from
 * Google Cloud: https://console.cloud.google.com/storage/browser/wikidetox-wikiconv-public-dataset
 * Figshare: https://figshare.com/projects/WikiConv_A_Corpus_of_the_Complete_Conversational_History_of_a_Large_Online_Collaborative_Community/57110
+* Now also available in [ConvoKit](https://convokit.cornell.edu/) together with [example code](https://zissou.infosci.cornell.edu/convokit/documentation/wikiconv.html), in a format that is directly compatible with several conversational analysis tools.  
 
 If you believe there is any information in this dataset that should be removed, please file a Github issue in this repository or email `conversationai-questions@google.com`
 
