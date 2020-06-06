@@ -180,6 +180,14 @@ last {
   margin-bottom: 2em;
 }
 
-
+.section_creator{
+  float: left;
+}
+.section_title{
+  padding: 5px;
+  background: #FFF;
+  border: 1px solid #CCC;
+  font-family:courier;
+}
 
 
