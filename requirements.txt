@@ -19,7 +19,7 @@ google-gax==0.12.5
 google-reauth==0.1.0
 google-resumable-media==0.3.1
 grpc-google-logging-v2==0.8.1
-lxml==4.2.1
+lxml==4.6.2
 mock==2.0.0
 mwparserfromhell==0.5.1
 mwtypes==0.3.0
