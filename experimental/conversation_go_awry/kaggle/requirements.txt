@@ -2,7 +2,7 @@ absl-py==0.1.9
 bleach==3.3.0
 enum34==1.1.6
 futures==3.1.1
-html5lib==0.99999999
+html5lib==0.999999999
 Markdown==2.6.11
 numpy==1.22.0
 pandas==0.22.0
