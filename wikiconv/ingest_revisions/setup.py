@@ -33,7 +33,7 @@ import setuptools
 REQUIRED_PACKAGES = [
     'google-cloud-storage == 1.13.0',
     'google-apitools == 0.5.26',
-    'lxml == 4.6.5',
+    'lxml == 4.9.1',
 ]
 
 setuptools.setup(
