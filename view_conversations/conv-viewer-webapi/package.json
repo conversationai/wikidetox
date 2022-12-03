@@ -43,7 +43,7 @@
     "line-by-line": "^0.1.5",
     "morgan": "^1.8.1",
     "nodemon": "^1.12.1",
-    "passport": "^0.3.2",
+    "passport": "^0.6.0",
     "passport-google-oauth20": "^1.0.0",
     "recaptcha2": "^1.0.8",
     "request": "^2.78.0",
