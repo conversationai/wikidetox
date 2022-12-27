@@ -31,7 +31,7 @@ pandas==v0.23.4
 python-dateutil==2.8.0
 pywikibot==3.0.20190430
 requests==2.20.0
-setuptools==39.1.0
+setuptools==65.5.1
 six==1.11.0
 sseclient==0.0.24
 uritemplate==3.0.0
