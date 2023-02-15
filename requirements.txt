@@ -3,7 +3,7 @@ beautifulsoup4==4.6.0
 bs4==0.0.1
 deltas==0.4.6
 diff-match-patch==20181111
-future==0.16.0
+future==0.18.3
 gax-google-logging-v2==0.8.3
 gcloud==0.18.3
 google==2.0.1
