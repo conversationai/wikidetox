@@ -35,5 +35,5 @@ setuptools==65.5.1
 six==1.11.0
 sseclient==0.0.24
 uritemplate==3.0.0
-urllib3==1.26.17
+urllib3==1.26.18
 yamlconf==0.2.3
