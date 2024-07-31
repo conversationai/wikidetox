@@ -19,7 +19,7 @@
     "csv-parse": "^2.0.0",
     "csv-stringify": "^2.0.0",
     "jquery": "^3.5.0",
-    "requirejs": "^2.3.5",
+    "requirejs": "^2.3.7",
     "stream-transform": "^1.0.0",
     "yargs": "^9.0.1"
   },
