@@ -79,16 +79,16 @@ fi
 
 if (( PHASE3 )); then
   # Initialize Page States
-  gsutil -m rm -r \
+  gcloud storage rm --recursive \
     "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/next_stage/*" \
     "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/*" \
     "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/bakup/*" || true
 
-  gsutil -m cp empty_file \
+  gcloud storage cp empty_file \
     "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/last_revisions/last_rev"
-  gsutil -m cp empty_file \
+  gcloud storage cp empty_file \
     "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/page_states/page_states"
-  gsutil -m cp empty_file \
+  gcloud storage cp empty_file \
     "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/current/error_logs/error_log"
 
   # Start Reconstruction
@@ -109,13 +109,13 @@ fi
 
 if (( PHASE4 )); then
   # Move results
-  gsutil -m mv \
+  gcloud storage mv \
     "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}/next_stage/" \
     "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/page_states"
-  gsutil -m mv \
+  gcloud storage mv \
     "gs://${cloudBucket}/conversations-${language}${dumpdate}" \
     "gs://${cloudBucket}/wikiconv_v2/${language}-${dumpdate}/conversations"
-  gsutil -m rm -r "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}"
+  gcloud storage rm --recursive "gs://${cloudBucket}/process_tmp_${language}_${dumpdate}"
 
   # Clean Result Format
   cd conversation_reconstruction
