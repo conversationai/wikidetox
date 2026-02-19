@@ -20,7 +20,7 @@ A dataflow pipeline to ingest the Wikipedia dump from 7zipped xml files to json.
 
 To configure with boto:
 
-  Run gsutil config -e
+  Run gcloud config set project
 
 Run with:
 
@@ -173,7 +173,7 @@ class DownloadDataDumps(beam.DoFn):
     url = mirror + "/" + chunk_name
     write_path = path.join('gs://', bucket, chunk_name)
     urllib.urlretrieve(url, chunk_name)
-    os.system("gsutil cp {chunk} {filepath}".format(chunk=chunk_name, filepath=write_path))
+    os.system("gcloud storage cp {chunk} {filepath}".format(chunk=chunk_name, filepath=write_path))
     os.system("rm {chunk}".format(chunk=chunk_name))
     yield chunk_name
     return
@@ -200,10 +200,10 @@ class IngestDumps(beam.DoFn):
     if ingestFrom == 'local':
        input_stream = chunk_name
     else:
-      cmd = "gsutil -m cp {path} {chunk}".format(filepath=path.join('gs://', bucket, chunk_name), chunk=chunk_name)
+      cmd = "gcloud storage cp {path} {chunk}".format(filepath=path.join('gs://', bucket, chunk_name), chunk=chunk_name)
       status = os.WEXITSTATUS(os.system(cmd))
       if status  != 0:
-        raise Exception("GSUTIL COPY Error, exited with status {}".format(status))
+        raise Exception("gcloud storage COPY Error, exited with status {}".format(status))
       input_stream = chunk_name
     # Running ingestion on the xml file
     last_revision = None

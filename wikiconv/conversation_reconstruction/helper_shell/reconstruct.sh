@@ -1,9 +1,9 @@
 cd ..
 for year in $(seq 2011 2018)
 do
-   gsutil -m rm -r gs://wikidetox-viz-dataflow/process_tmp/revs
-   gsutil -m mv -p gs://wikidetox-viz-dataflow/process_tmp/current/* gs://wikidetox-viz-dataflow/process_tmp/bakup/
-   gsutil -m mv -p gs://wikidetox-viz-dataflow/process_tmp/next_stage/* gs://wikidetox-viz-dataflow/process_tmp/current/
+   gcloud storage rm --recursive gs://wikidetox-viz-dataflow/process_tmp/revs
+   gcloud storage mv --preserve-acl gs://wikidetox-viz-dataflow/process_tmp/current/* gs://wikidetox-viz-dataflow/process_tmp/bakup/
+   gcloud storage mv --preserve-acl gs://wikidetox-viz-dataflow/process_tmp/next_stage/* gs://wikidetox-viz-dataflow/process_tmp/current/
    echo "start job on year $year"
    source activate python2
    python dataflow_main.py \
