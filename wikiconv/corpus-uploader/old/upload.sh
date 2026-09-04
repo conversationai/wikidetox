@@ -19,7 +19,7 @@ CLOUD_URL=$CLOUD_URL$LANGUAGE
 TITLE="WikiConv_${LANGUAGE}"
 
 mkdir -p tmp/${LANGUAGE}/
-gsutil ls gs://${CLOUD_URL} > tmp/${LANGUAGE}/filelist
+gcloud storage ls gs://${CLOUD_URL} > tmp/${LANGUAGE}/filelist
 
 # List all of the existing items
 #echo 'List all of the existing items...'
@@ -43,7 +43,7 @@ for name in `cat tmp/${LANGUAGE}/filelist`; do
   echo $name
   tmpfile=$(basename $name)
   echo $tmpfile
-  gsutil cp $name tmp/${LANGUAGE}
+  gcloud storage cp $name tmp/${LANGUAGE}
 
   FILE_NAME=$tmpfile
   FILE_PATH=tmp/${LANGUAGE}/$FILE_NAME
